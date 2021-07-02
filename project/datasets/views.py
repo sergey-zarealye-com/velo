@@ -44,7 +44,8 @@ def select(selected):
     return render_template('datasets/list.html', 
                            impath=fname + '.svg',
                            maptext=maptext,
-                           rnd=str(uuid4()))
+                           rnd=str(uuid4()),
+                           version=selected)
 
 @datasets_blueprint.route('/list')
 @login_required

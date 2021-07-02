@@ -1,15 +1,31 @@
 {% extends "_base.html" %}
 {% block title %}Datasets{% endblock %}
+{% from "helpers.html" import version_details %}
 {% block content %}
 
-<div class="card">
+<div class="container">
+  <div class="row">
+    <div class="col-12">
+      <nav class="nav nav-pills nav-fill">
+          <a class="nav-item nav-link active m-2" href="{{url_for('images.browse', selected=version)}}">Browse</a>
+          <a class="nav-item nav-link active m-2" href="#">Branch</a>
+          <a class="nav-item nav-link active m-2" href="#">Merge</a>
+          <a class="nav-item nav-link active m-2" href="#">Split</a>
+          <a class="nav-item nav-link active m-2" href="#">Checkout</a>
+          <a class="nav-item nav-link active m-2" href="#">Import</a>
+      </nav>
+    </div>
+  </div>
+  {{ version_details(version) }}
+</div>
+
+<div class="card mt-4">
   <div class="card-body">
-    <h4 class="card-title">Datasets</h4>
     <div>
         <img src="{{ url_for('static', filename='tmp/' + impath, rnd=rnd) }}" usemap="#dsvers" />
         {{ maptext | safe }}
     </div>
   </div>
-</div>
+</div> 
 
 {% endblock %}

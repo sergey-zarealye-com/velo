@@ -23,13 +23,13 @@
           <li class="nav-item {% if 'datasets' in request.path %}active{% endif %}">
             <a class="nav-link" href="{{ url_for('datasets.list') }}">Datasets</a>
           </li>
-          <li class="nav-item {% if request.path == url_for('images.list') %}active{% endif %}">
+          <li class="nav-item {% if 'images' in request.path %}active{% endif %}">
             <a class="nav-link" href="{{ url_for('images.list') }}">Browse</a>
           </li>
-          <li class="nav-item {% if request.path == url_for('maintenance.index') %}active{% endif %}">
+          <li class="nav-item {% if 'maintenance' in request.path %}active{% endif %}">
             <a class="nav-link" href="{{ url_for('maintenance.index') }}">Maintenance</a>
           </li>
-          <li class="nav-item {% if request.path == url_for('todo.list') %}active{% endif %}">
+          <li class="nav-item {% if 'todo' in request.path %}active{% endif %}">
             <a class="nav-link" href="{{ url_for('todo.list') }}">ToDo</a>
           </li>
           

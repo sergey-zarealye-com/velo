@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 
 from project import app, db, mail
 from project.models import User
+from project.gitmodel import Version
 
 
 # CONFIG
@@ -21,5 +22,15 @@ images_blueprint = Blueprint('images', __name__,
 
 # ROUTES
 @images_blueprint.route('/list')
+@login_required
 def list():
-    return render_template('images/list.html')
+    version = Version()
+    first_one = version.versions[0]
+    return redirect(url_for('images.browse', selected=first_one))
+
+@images_blueprint.route('/browse/<selected>')
+@login_required
+def browse(selected):
+    version = Version()
+    
+    return render_template('images/list.html', version=selected)    
