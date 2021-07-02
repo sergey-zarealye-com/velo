@@ -8,6 +8,7 @@ from itsdangerous import URLSafeTimedSerializer
 from threading import Thread
 from flask_mail import Message
 from datetime import datetime, timedelta
+import traceback
 
 from project import app, db, mail
 from project.models import User, Version

@@ -15,6 +15,7 @@ from project.models import User, Version
 from .forms import EditVersionForm
 import graphviz
 from uuid import uuid4
+import traceback
 
 # CONFIG
 TMPDIR = os.path.join('project', 'static', 'tmp')
@@ -92,3 +93,34 @@ def edit(selected):
                 flash(message, 'danger')
     return render_template('datasets/edit.html', 
                            version=version, form=form)
+
+@datasets_blueprint.route('/init', methods=['GET', 'POST'])
+@login_required
+def init():
+    form = EditVersionForm(request.form)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            try:
+                version = Version(form.name.data,
+                                  form.description.data,
+                                  current_user.id)
+                db.session.add(version)
+                db.session.commit()
+                message = Markup("Saved successfully!")
+                flash(message, 'success')
+                return redirect(url_for('datasets.select', 
+                                        selected=version.name))
+            except IntegrityError:
+                traceback.print_exc()
+                db.session.rollback()
+                message = Markup(
+                    "<strong>Error!</strong>! Version name should be unique.")
+                flash(message, 'danger')
+            except Exception as e:
+                traceback.print_exc()
+                db.session.rollback()
+                message = Markup(
+                    "<strong>Error!</strong> Unable to save this version. " + str(e))
+                flash(message, 'danger')
+    return render_template('datasets/init.html', 
+                           form=form)
