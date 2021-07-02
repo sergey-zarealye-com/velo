@@ -27,7 +27,7 @@ def list():
     first_one = Version.get_first()
     if first_one is None:
         abort(404)
-    return redirect(url_for('images.browse', selected=first_one))
+    return redirect(url_for('images.browse', selected=first_one.name))
 
 @images_blueprint.route('/browse/<selected>')
 @login_required
