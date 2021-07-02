@@ -20,7 +20,7 @@
       <div class="collapse navbar-collapse" id="navbarSupportedContent">
         <ul class="navbar-nav mr-auto">
           {% if current_user.is_authenticated %}
-          <li class="nav-item {% if request.path == url_for('datasets.list') %}active{% endif %}">
+          <li class="nav-item {% if 'datasets' in request.path %}active{% endif %}">
             <a class="nav-link" href="{{ url_for('datasets.list') }}">Datasets</a>
           </li>
           <li class="nav-item {% if request.path == url_for('images.list') %}active{% endif %}">
