@@ -15,7 +15,9 @@ from project.models import User
 
 
 # CONFIG
-users_blueprint = Blueprint('users', __name__, template_folder='templates')
+users_blueprint = Blueprint('users', __name__, 
+                            template_folder='templates',
+                            url_prefix='/users')
 
 
 # HELPERS

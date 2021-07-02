@@ -32,9 +32,16 @@ def load_user(user_id):
 
 # BLUEPRINTS
 from project.users.views import users_blueprint
+from project.datasets.views import datasets_blueprint
+from project.images.views import images_blueprint
+from project.todo.views import todo_blueprint
+from project.maintenance.views import maintenance_blueprint
 
 app.register_blueprint(users_blueprint)
-
+app.register_blueprint(datasets_blueprint)
+app.register_blueprint(images_blueprint)
+app.register_blueprint(todo_blueprint)
+app.register_blueprint(maintenance_blueprint)
 
 # ROUTES
 @app.route('/', methods=['GET', 'POST'])
