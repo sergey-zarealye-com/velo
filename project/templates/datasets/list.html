@@ -9,7 +9,7 @@
       <nav class="nav nav-pills">
           {% if is_active['browse'] %}<a class="nav-item nav-link active m-2" href="{{url_for('images.browse', selected=version.name)}}">Browse</a>{% endif %}
           {% if is_active['init'] %}<a class="nav-item nav-link active m-2" href="#">Init</a>{% endif %}
-          {% if is_active['edit'] %}<a class="nav-item nav-link active m-2" href="#">Edit</a>{% endif %}
+          {% if is_active['edit'] %}<a class="nav-item nav-link active m-2" href="{{url_for('datasets.edit', selected=version.name)}}">Edit</a>{% endif %}
           {% if is_active['branch'] %}<a class="nav-item nav-link active m-2" href="#">Branch</a>{% endif %}
           {% if is_active['commit'] %}<a class="nav-item nav-link active m-2" href="#">Commit</a>{% endif %}
           {% if is_active['merge'] %}<a class="nav-item nav-link active m-2" href="#">Merge</a>{% endif %}

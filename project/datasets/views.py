@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 
 from project import app, db, mail
 from project.models import User, Version
+from .forms import EditVersionForm
 import graphviz
 from uuid import uuid4
 
@@ -26,10 +27,10 @@ datasets_blueprint = Blueprint('datasets', __name__,
 @datasets_blueprint.route('/select/<selected>')
 @login_required
 def select(selected):
-    srcStr = Version.dot_str(selected)
     version = Version.query.filter_by(name=selected).first()
     if version is None:
         abort(404)
+    srcStr = Version.dot_str(selected)
     fname = str(current_user.id)
     my_graph = graphviz.Digraph(name="my_graph", engine='dot')
     my_graph.src = graphviz.Source(srcStr, filename=None, directory=None, 
@@ -59,3 +60,35 @@ def list():
         db.session.add(first_one)
         db.session.commit()
     return redirect(url_for('datasets.select', selected=first_one.name))
+
+@datasets_blueprint.route('/edit/<selected>', methods=['GET', 'POST'])
+@login_required
+def edit(selected):
+    version = Version.query.filter_by(name=selected).first()
+    if version is None:
+        abort(404)
+    form = EditVersionForm(request.form)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            try:
+                version.name = Version.safe_id(form.name.data)
+                version.description = form.description.data
+                db.session.commit()
+                message = Markup("Saved successfully!")
+                flash(message, 'success')
+                return redirect(url_for('datasets.select', 
+                                        selected=version.name))
+            except IntegrityError:
+                traceback.print_exc()
+                db.session.rollback()
+                message = Markup(
+                    "<strong>Error!</strong>! Version name should be unique.")
+                flash(message, 'danger')
+            except Exception as e:
+                traceback.print_exc()
+                db.session.rollback()
+                message = Markup(
+                    "<strong>Error!</strong> Unable to edit this version. " + str(e))
+                flash(message, 'danger')
+    return render_template('datasets/edit.html', 
+                           version=version, form=form)

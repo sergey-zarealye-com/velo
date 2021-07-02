@@ -163,7 +163,7 @@ class Version(db.Model):
     
     def actions_dict(self):
         actions = ['init', 'edit', 'import', 'split', 'commit', 
-                   'branch', 'merge', 'checkout']
+                   'branch', 'merge', 'checkout', 'browse']
         out = dict([(a, False) for a in actions])
         if self.status == 1:
             out['init'] = True
@@ -175,9 +175,11 @@ class Version(db.Model):
             out['import'] = True
             out['split'] = True
             out['commit'] = True
+            out['browse'] = True
         elif self.status == 3:
             out['branch'] = True
             out['merge'] = True
             out['init'] = True
             out['checkout'] = True
+            out['browse'] = True
         return out
