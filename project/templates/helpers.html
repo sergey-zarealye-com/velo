@@ -4,7 +4,7 @@
     Selected:
     </div>
     <div class="col-10">
-    {{version}}
+    {{version.name}}
     </div>
   </div>
   <div class="row">
@@ -12,7 +12,7 @@
     Created at:
     </div>
     <div class="col-10">
-    
+    {{version.created_at}}
     </div>
   </div>
   <div class="row">
@@ -20,7 +20,16 @@
     Description:
     </div>
     <div class="col-10">
+    {{version.description}}
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-2">
+    Items No:
+    </div>
+    <div class="col-10">
     
     </div>
   </div>
+
 {% endmacro %}

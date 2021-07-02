@@ -6,15 +6,16 @@
 <div class="container">
   <div class="row">
     <div class="col-12">
-      <nav class="nav nav-pills nav-fill">
-          <a class="nav-item nav-link active m-2" href="{{url_for('images.browse', selected=version)}}">Browse</a>
-          <a class="nav-item nav-link active m-2" href="#">Init</a>
-          <a class="nav-item nav-link active m-2" href="#">Branch</a>
-          <a class="nav-item nav-link active m-2" href="#">Commit</a>
-          <a class="nav-item nav-link active m-2" href="#">Merge</a>
-          <a class="nav-item nav-link active m-2" href="#">Split</a>
-          <a class="nav-item nav-link active m-2" href="#">Checkout</a>
-          <a class="nav-item nav-link active m-2" href="#">Import</a>
+      <nav class="nav nav-pills">
+          {% if is_active['browse'] %}<a class="nav-item nav-link active m-2" href="{{url_for('images.browse', selected=version.name)}}">Browse</a>{% endif %}
+          {% if is_active['init'] %}<a class="nav-item nav-link active m-2" href="#">Init</a>{% endif %}
+          {% if is_active['edit'] %}<a class="nav-item nav-link active m-2" href="#">Edit</a>{% endif %}
+          {% if is_active['branch'] %}<a class="nav-item nav-link active m-2" href="#">Branch</a>{% endif %}
+          {% if is_active['commit'] %}<a class="nav-item nav-link active m-2" href="#">Commit</a>{% endif %}
+          {% if is_active['merge'] %}<a class="nav-item nav-link active m-2" href="#">Merge</a>{% endif %}
+          {% if is_active['split'] %}<a class="nav-item nav-link active m-2" href="#">Split</a>{% endif %}
+          {% if is_active['checkout'] %}<a class="nav-item nav-link active m-2" href="#">Checkout</a>{% endif %}
+          {% if is_active['import'] %}<a class="nav-item nav-link active m-2" href="#">Import</a>{% endif %}
       </nav>
     </div>
   </div>

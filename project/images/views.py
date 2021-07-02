@@ -10,8 +10,7 @@ from flask_mail import Message
 from datetime import datetime, timedelta
 
 from project import app, db, mail
-from project.models import User
-from project.gitmodel import VersionsTree
+from project.models import User, Version
 
 
 # CONFIG
@@ -24,13 +23,15 @@ images_blueprint = Blueprint('images', __name__,
 @images_blueprint.route('/list')
 @login_required
 def list():
-    version = VersionsTree()
-    first_one = version.versions[0]
+    first_one = Version.get_first()
+    if first_one is None:
+        abort(404)
     return redirect(url_for('images.browse', selected=first_one))
 
 @images_blueprint.route('/browse/<selected>')
 @login_required
-def browse(selected):
-    version = VersionsTree()
-    
-    return render_template('images/list.html', version=selected)    
+def browse(selected):    
+    version = Version.query.filter_by(name=selected).first()
+    if version is None:
+        abort(404)
+    return render_template('images/list.html', version=version)    
