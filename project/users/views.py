@@ -92,13 +92,13 @@ def login():
         if form.validate_on_submit():
             user = User.query.filter_by(email=form.email.data).first()
             if user is not None and user.is_correct_password(form.password.data):
-                if user.is_email_confirmed is not True:
-                    user.authenticated = True
-                    db.session.add(user)
-                    db.session.commit()
-                    login_user(user)
-                    return redirect(url_for('users.resend_email_confirmation'), )
-                if user.is_email_confirmed is True:
+                # if user.is_email_confirmed is not True:
+                #     user.authenticated = True
+                #     db.session.add(user)
+                #     db.session.commit()
+                #     login_user(user)
+                #     return redirect(url_for('users.resend_email_confirmation'), )
+                # if user.is_email_confirmed is True:
                     user.authenticated = True
                     user.last_logged_in = user.current_logged_in
                     user.current_logged_in = datetime.now()

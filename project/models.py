@@ -16,7 +16,6 @@ class User(db.Model):
     last_logged_in = db.Column(db.DateTime, nullable=True)
     current_logged_in = db.Column(db.DateTime, nullable=True)
     role = db.Column(db.String, default='user')
-    items = db.relationship('Items', backref='user', lazy='dynamic')
 
     def __init__(self, email, password, email_confirmation_sent_on=None, role='user'):
         self.email = email
@@ -70,18 +69,3 @@ class User(db.Model):
     def __repr__(self):
         return '<User {}>'.format(self.email)
 
-
-class Items(db.Model):
-    __tablename__ = 'items'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
-    notes = db.Column(db.String, nullable=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-
-    def __init__(self, name, notes, user_id):
-        self.name = name
-        self.notes = notes
-        self.user_id = user_id
-
-    def __repr__(self):
-        return '<id {}>'.format(self.id)
