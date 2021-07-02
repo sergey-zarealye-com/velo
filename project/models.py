@@ -69,3 +69,6 @@ class User(db.Model):
     def __repr__(self):
         return '<User {}>'.format(self.email)
 
+# class Dataset(db.Model):
+#     __tablename__ = 'users'
+#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)

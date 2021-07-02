@@ -1,6 +1,6 @@
 from project import db
 
-class Version:
+class VersionsTree:
     def __init__(self):
         self.versions = ['a', 'b', 'c', 'd', 'e']
         self.edges = """

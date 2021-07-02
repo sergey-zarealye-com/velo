@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 
 from project import app, db, mail
 from project.models import User
-from project.gitmodel import Version
+from project.gitmodel import VersionsTree
 import graphviz
 from uuid import uuid4
 
@@ -27,7 +27,7 @@ datasets_blueprint = Blueprint('datasets', __name__,
 @datasets_blueprint.route('/select/<selected>')
 @login_required
 def select(selected):
-    version = Version()
+    version = VersionsTree()
     srcStr = version.dot_str(selected)
     fname = str(current_user.id)
     my_graph = graphviz.Digraph(name="my_graph", engine='dot')
@@ -50,6 +50,6 @@ def select(selected):
 @datasets_blueprint.route('/list')
 @login_required
 def list():
-    version = Version()
+    version = VersionsTree()
     first_one = version.versions[0]
     return redirect(url_for('datasets.select', selected=first_one))
