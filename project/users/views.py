@@ -40,7 +40,7 @@ def send_confirmation_email(user_email):
         _external=True)
 
     html = render_template(
-        'email_confirmation.html',
+        'users/email_confirmation.html',
         confirm_url=confirm_url)
 
     send_email('Confirm Your Email Address', [user_email], html)
@@ -55,7 +55,7 @@ def send_password_reset_email(user_email):
         _external=True)
 
     html = render_template(
-        'email_password_reset.html',
+        'users/email_password_reset.html',
         password_reset_url=password_reset_url)
 
     send_email('Password Reset Requested', [user_email], html)
@@ -82,7 +82,7 @@ def register():
                 message = Markup(
                     "<strong>Error!</strong> Unable to process registration.")
                 flash(message, 'danger')
-    return render_template('register.html', form=form)
+    return render_template('users/register.html', form=form)
 
 
 @users_blueprint.route('/login', methods=['GET', 'POST'])
@@ -113,13 +113,13 @@ def login():
                 message = Markup(
                     "<strong>Error!</strong> Incorrect login credentials.")
                 flash(message, 'danger')
-    return render_template('login.html', form=form)
+    return render_template('users/login.html', form=form)
 
 
 @users_blueprint.route('/user_profile', methods=['GET', 'POST'])
 @login_required
 def user_profile():
-    return render_template('user_profile.html')
+    return render_template('users/user_profile.html')
 
 
 @users_blueprint.route('/confirm/<token>')
@@ -161,7 +161,7 @@ def reset():
             message = Markup(
                 "Invalid email address!")
             flash(message, 'danger')
-            return render_template('password_reset_email.html', form=form)
+            return render_template('users/password_reset_email.html', form=form)
         if user.email_confirmed:
             send_password_reset_email(user.email)
             message = Markup(
@@ -173,7 +173,7 @@ def reset():
             flash(message, 'danger')
         return redirect(url_for('users.login'))
 
-    return render_template('password_reset_email.html', form=form)
+    return render_template('users/password_reset_email.html', form=form)
 
 
 @users_blueprint.route('/reset/<token>', methods=["GET", "POST"])
@@ -206,7 +206,7 @@ def reset_with_token(token):
         flash(message, 'success')
         return redirect(url_for('users.login'))
 
-    return render_template('reset_password_with_token.html', form=form, token=token)
+    return render_template('users/reset_password_with_token.html', form=form, token=token)
 
 
 @users_blueprint.route('/admin_view_users')
@@ -216,7 +216,7 @@ def admin_view_users():
         abort(403)
     else:
         users = User.query.order_by(User.id).all()
-        return render_template('admin_view_users.html', users=users)
+        return render_template('admin/admin_view_users.html', users=users)
 
 
 @users_blueprint.route('/admin_dashboard')
@@ -229,7 +229,7 @@ def admin_dashboard():
         kpi_mau = User.query.filter(User.last_logged_in > (datetime.today() - timedelta(days=30))).count()
         kpi_total_confirmed = User.query.filter_by(email_confirmed=True).count()
         kpi_mau_percentage = (100 / kpi_total_confirmed) * kpi_mau
-        return render_template('admin_dashboard.html', users=users, kpi_mau=kpi_mau, kpi_total_confirmed=kpi_total_confirmed, kpi_mau_percentage=kpi_mau_percentage)
+        return render_template('admin/admin_dashboard.html', users=users, kpi_mau=kpi_mau, kpi_total_confirmed=kpi_total_confirmed, kpi_mau_percentage=kpi_mau_percentage)
 
 
 @users_blueprint.route('/logout')
@@ -260,7 +260,7 @@ def user_password_change():
             flash(message, 'success')
             return redirect(url_for('users.user_profile'))
 
-    return render_template('password_change.html', form=form)
+    return render_template('users/password_change.html', form=form)
 
 
 @users_blueprint.route('/resend_confirmation')
@@ -317,4 +317,4 @@ def user_email_change():
                 message = Markup(
                     "Sorry, that email already exists!")
                 flash(message, 'danger')
-    return render_template('email_change.html', form=form)
+    return render_template('users/email_change.html', form=form)
