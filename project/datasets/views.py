@@ -124,3 +124,39 @@ def init():
                 flash(message, 'danger')
     return render_template('datasets/init.html', 
                            form=form)
+
+@datasets_blueprint.route('/branch/<selected>', methods=['GET', 'POST'])
+@login_required
+def branch(selected):
+    parent = Version.query.filter_by(name=selected).first()
+    if parent is None:
+        abort(404)
+    form = EditVersionForm(request.form)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            try:
+                version = Version(form.name.data,
+                                  form.description.data,
+                                  current_user.id)
+                db.session.add(version)
+                db.session.commit()
+                parent.child_id = version.id
+                db.session.commit()
+                message = Markup("Saved successfully!")
+                flash(message, 'success')
+                return redirect(url_for('datasets.select', 
+                                        selected=version.name))
+            except IntegrityError:
+                traceback.print_exc()
+                db.session.rollback()
+                message = Markup(
+                    "<strong>Error!</strong>! Version name should be unique.")
+                flash(message, 'danger')
+            except Exception as e:
+                traceback.print_exc()
+                db.session.rollback()
+                message = Markup(
+                    "<strong>Error!</strong> Unable to save this version. " + str(e))
+                flash(message, 'danger')
+    return render_template('datasets/branch.html', 
+                           form=form, selected=selected)
