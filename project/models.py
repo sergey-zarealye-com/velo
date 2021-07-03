@@ -75,10 +75,9 @@ class Version(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String, unique=True, nullable=False)
     status = db.Column(db.SmallInteger, nullable=False) # 1=empty 2=stage 3=versioned
-    child_id = db.Column(db.Integer, nullable=True)
     description = db.Column(db.String, nullable=True)
-    created_at = db.Column(db.DateTime)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    created_at = db.Column(db.DateTime, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
     user = db.relationship("User")
     
@@ -110,7 +109,6 @@ class Version(db.Model):
         self.description = description
         self.user_id = user_id
         self.status = 1 #empty
-        self.child_id = None
         self.created_at = datetime.now()
         
     @staticmethod
@@ -148,9 +146,11 @@ class Version(db.Model):
         TPL = "%s->%s;\n"
         out = []
         for v in Version.versions():
-            if v.child_id is not None:
-                child = Version.query.get(v.child_id)
-                out.append(TPL % (v.name, child.name))
+            children = VersionChildren.query.filter_by(parent_id=v.id)
+            for child in children:
+                ch = Version.query.get(child.child_id)
+                if ch is not None:
+                    out.append(TPL % (v.name, ch.name))
         return ''.join(out)
     
     @staticmethod
@@ -183,3 +183,14 @@ class Version(db.Model):
             out['checkout'] = True
             out['browse'] = True
         return out
+    
+class VersionChildren(db.Model):
+    __tablename__ = 'version_children'
+    child_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False, primary_key=True)
+    parent_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False, primary_key=True)
+    child = db.relationship("Version", foreign_keys=[child_id])
+    parents = db.relationship("Version", foreign_keys=[parent_id])
+    
+    def __init__(self, child_id, parent_id):
+        self.child_id = child_id
+        self.parent_id = parent_id

@@ -11,7 +11,7 @@ from flask_mail import Message
 from datetime import datetime, timedelta
 
 from project import app, db, mail
-from project.models import User, Version
+from project.models import User, Version, VersionChildren
 from .forms import EditVersionForm
 import graphviz
 from uuid import uuid4
@@ -140,7 +140,8 @@ def branch(selected):
                                   current_user.id)
                 db.session.add(version)
                 db.session.commit()
-                parent.child_id = version.id
+                vc = VersionChildren(version.id, parent.id)
+                db.session.add(vc)
                 db.session.commit()
                 message = Markup("Saved successfully!")
                 flash(message, 'success')
