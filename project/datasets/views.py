@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 
 from project import app, db, mail
 from project.models import User, Version, VersionChildren
-from .forms import EditVersionForm, ImportForm, CommitForm
+from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm
 import graphviz
 from uuid import uuid4
 import traceback
@@ -229,3 +229,39 @@ def commit(selected):
                 flash(message, 'danger')
     return render_template('datasets/commit.html', 
                            form=form, selected=selected, version=version)
+
+@datasets_blueprint.route('/merge/<selected>', methods=['GET', 'POST'])
+@login_required
+def merge(selected):
+    parent = Version.query.filter_by(name=selected).first()
+    if parent is None:
+        abort(404)
+    if parent.status in [1, 2]:
+        abort(400)
+    form = MergeForm(request.form)
+    targets = Version.query.filter(Version.status < 3)
+    form.target_select.choices = [(t.name, t.name) 
+                                  for t in targets
+                                  if t.name != selected]
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            try:
+                version = Version.query.filter_by(name=form.target_select.data).first()
+                if version.status == 3:
+                    abort(400)
+                vc = VersionChildren(version.id, parent.id)
+                db.session.add(vc)
+                db.session.commit()
+                #TODO -- update categories for merged branch
+                message = Markup("Saved successfully!")
+                flash(message, 'success')
+                return redirect(url_for('datasets.select', 
+                                        selected=version.name))
+            except Exception as e:
+                traceback.print_exc()
+                db.session.rollback()
+                message = Markup(
+                    "<strong>Error!</strong> Unable to save this version. " + str(e))
+                flash(message, 'danger')
+    return render_template('datasets/merge.html', 
+                           form=form, selected=selected)

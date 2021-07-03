@@ -1,0 +1,18 @@
+{% extends "_base.html" %}
+{% block title %}Merge dataset{% endblock %}
+{% from "_formshelper.html" import select %}
+{% block content %}
+
+
+<div class="card mt-4">
+  <div class="card-body">
+    <form action="{{ url_for('datasets.merge', selected=selected) }}" method="post" name="editform">
+        {{ form.csrf_token }}
+        {{select(form.target_select, {})}}
+        <input type="submit" value="Commit" class="btn btn-primary">
+        <a href="{{url_for('datasets.select', selected=selected)}}" role="button" class="btn btn-secondary float-right">Cancel</a>            
+    </form>
+  </div>
+</div> 
+
+{% endblock %}
