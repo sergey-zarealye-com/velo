@@ -10,7 +10,7 @@ from flask_mail import Message
 from datetime import datetime, timedelta
 
 from project import app, db, mail
-from project.models import User
+from project.models import User, Version, Category
 
 
 # CONFIG
@@ -22,4 +22,27 @@ maintenance_blueprint = Blueprint('maintenance', __name__,
 # ROUTES
 @maintenance_blueprint.route('/index')
 def index():
-    return render_template('maintenance/index.html')
+    first_one = Version.get_first()
+    if first_one is None:
+        abort(404)
+    return redirect(url_for('maintenance.categs_list', selected=first_one.name))
+
+@maintenance_blueprint.route('/categs_list/<selected>')
+@login_required
+def categs_list(selected):    
+    version = Version.query.filter_by(name=selected).first()
+    if version is None:
+        abort(404)
+    categs = Category.query.filter_by(version_id=version.id)
+    return render_template('maintenance/index.html', 
+                           version=version, categs=categs)    
+
+@maintenance_blueprint.route('/models_list/<selected>')
+@login_required
+def models_list(selected):    
+    version = Version.query.filter_by(name=selected).first()
+    if version is None:
+        abort(404)
+    models = []
+    return render_template('maintenance/models_list.html', 
+                           version=version, models=models)    

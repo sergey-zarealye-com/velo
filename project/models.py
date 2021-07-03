@@ -194,3 +194,16 @@ class VersionChildren(db.Model):
     def __init__(self, child_id, parent_id):
         self.child_id = child_id
         self.parent_id = parent_id
+
+
+class Category(db.Model):
+    __tablename__ = 'categories'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    version_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False)
+    name = db.Column(db.String, unique=False, nullable=False)
+    
+    version = db.relationship("Version")
+    
+    def __init__(self, name, version_id):
+        self.name = name
+        self.version_id = version_id
