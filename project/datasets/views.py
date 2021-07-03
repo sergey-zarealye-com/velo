@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 
 from project import app, db, mail
 from project.models import User, Version, VersionChildren
-from .forms import EditVersionForm
+from .forms import EditVersionForm, ImportForm
 import graphviz
 from uuid import uuid4
 import traceback
@@ -143,6 +143,7 @@ def branch(selected):
                 vc = VersionChildren(version.id, parent.id)
                 db.session.add(vc)
                 db.session.commit()
+                #TODO -- copy categories for new branch
                 message = Markup("Saved successfully!")
                 flash(message, 'success')
                 return redirect(url_for('datasets.select', 
@@ -161,3 +162,36 @@ def branch(selected):
                 flash(message, 'danger')
     return render_template('datasets/branch.html', 
                            form=form, selected=selected)
+
+@datasets_blueprint.route('/import/<selected>', methods=['GET', 'POST'])
+@login_required
+def import2ds(selected):
+    version = Version.query.filter_by(name=selected).first()
+    if version is None:
+        abort(404)
+    form = ImportForm(request.form)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            # change status to STAGE which means that version is not empty
+            version.status = 2
+            db.session.commit()
+            #TODO implement actual images import. For your convenience:
+            print('flocation', form.flocation.data)
+            print('reason', form.reason.data)
+            print('category_select', form.category_select.data)
+            print('category', form.category.data)
+            print('is_score_model', bool(form.is_score_model.data))
+            print('score_model', form.score_model.data)
+            print('is_dedup', bool(form.is_dedup.data))
+            print('is_size_control', bool(form.is_size_control.data))
+            print('min_size', form.min_size.data)
+            print('is_stub_control', bool(form.is_stub_control.data))
+            print('is_valid_control', bool(form.is_valid_control.data))
+            print('is_resize', bool(form.is_resize.data))
+            print('resize_w', form.resize_w.data)
+            print('resize_h', form.resize_w.data)
+            
+            #TODO update categories for current version, based on import results
+            return redirect(url_for('datasets.select', selected=version.name))
+    return render_template('datasets/import.html', 
+                           form=form, selected=selected, version=version)

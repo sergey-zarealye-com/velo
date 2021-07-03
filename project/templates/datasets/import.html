@@ -1,0 +1,80 @@
+{% extends "_base.html" %}
+{% block title %}Import into the dataset{% endblock %}
+{% from "_formshelper.html" import render_field, checkbox, select %}
+{% block content %}
+
+<div class="card bg-light mb-3">
+    <div class="card-body">
+        <form action="{{ url_for('datasets.import2ds', selected=selected) }}" method="post" name="editform">
+            {{ form.csrf_token }}
+            <div class="form-group mb-4">
+              {{ form.flocation.label }}
+              {{ render_field(form.flocation, class="form-control") }}
+            </div>
+            {{ select(form.reason, {}) }}
+            {{ select(form.category_select, {'data-bind': 'value: category_select'}) }}
+            <div data-bind="visible: category_select()=='set'">
+            {{ select(form.category, {}) }}
+            </div>
+            <div class="form-group mb-4">
+            {{checkbox(form.is_score_model, {'data-bind': 'checked: is_score_model'})}}
+            </div>
+            <div data-bind="visible: is_score_model()">
+            {{ select(form.score_model, {}) }}
+            </div>
+            <div class="form-group mb-4">
+              {{ checkbox(form.is_dedup, {}) }}
+            </div>
+            <div class="form-row">
+                <div class="form-group col-md-4">
+                  {{ checkbox(form.is_size_control, {'data-bind': 'checked: is_size_control'}) }}
+                </div>
+                <div class="form-group col-md-8" data-bind="visible: is_size_control()">
+                    <div class="form-group" >
+                      {{ form.min_size.label }}
+                      {{ render_field(form.min_size, class="form-control") }}
+                    </div>
+                </div>
+            </div>
+            <div class="form-group mb-4">
+              {{ checkbox(form.is_stub_control, {}) }}
+            </div>
+            <div class="form-group mb-4">
+              {{ checkbox(form.is_valid_control, {}) }}
+            </div>            
+            <div class="form-row">
+                <div class="form-group col-md-4">
+                    {{ checkbox(form.is_resize, {'data-bind': 'checked: is_resize'}) }}
+                </div>
+                <div class="form-group col-md-4" data-bind="visible: is_resize()">
+                    <div class="form-group" >
+                      {{ form.resize_w.label }}
+                      {{ render_field(form.resize_w, class="form-control") }}
+                    </div>
+                </div>
+                <div class="form-group col-md-4" data-bind="visible: is_resize()">
+                    <div class="form-group" >
+                      {{ form.resize_h.label }}
+                      {{ render_field(form.resize_h, class="form-control") }}
+                    </div>
+                </div>
+            </div>
+            
+            <input type="submit" value="Import" class="btn btn-primary">
+            <a href="{{url_for('datasets.select', selected=selected)}}" role="button" class="btn btn-secondary float-right">Cancel</a>            
+        </form>
+    </div>
+</div>
+
+<script>
+var bindings = {
+    is_score_model: ko.observable({{ form.is_score_model.checked and 'true' or 'false'}}),
+    is_size_control: ko.observable({{ form.is_size_control.checked and 'true' or 'false'}}),
+    is_resize: ko.observable({{ form.is_resize.checked and 'true' or 'false'}}),
+    category_select: ko.observable("folder"),
+};
+ko.applyBindings(bindings);
+</script>
+
+
+{% endblock %}

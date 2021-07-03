@@ -15,7 +15,7 @@
           {% if is_active['merge'] %}<a class="nav-item nav-link active m-2" href="#">Merge</a>{% endif %}
           {% if is_active['split'] %}<a class="nav-item nav-link active m-2" href="#">Split</a>{% endif %}
           {% if is_active['checkout'] %}<a class="nav-item nav-link active m-2" href="#">Checkout</a>{% endif %}
-          {% if is_active['import'] %}<a class="nav-item nav-link active m-2" href="#">Import</a>{% endif %}
+          {% if is_active['import'] %}<a class="nav-item nav-link active m-2" href="{{url_for('datasets.import2ds', selected=version.name)}}">Import</a>{% endif %}
       </nav>
     </div>
   </div>
