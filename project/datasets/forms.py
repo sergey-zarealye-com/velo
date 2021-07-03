@@ -41,3 +41,6 @@ class ImportForm(FlaskForm):
                                   validators=[NumberRange(min=64, max=4096)])
     resize_h = IntegerField('Height', default=256, 
                                   validators=[NumberRange(min=64, max=4096)])
+    
+class CommitForm(FlaskForm):
+    pass

@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 
 from project import app, db, mail
 from project.models import User, Version, VersionChildren
-from .forms import EditVersionForm, ImportForm
+from .forms import EditVersionForm, ImportForm, CommitForm
 import graphviz
 from uuid import uuid4
 import traceback
@@ -68,6 +68,8 @@ def edit(selected):
     version = Version.query.filter_by(name=selected).first()
     if version is None:
         abort(404)
+    if version.status == 3:
+        abort(400)
     form = EditVersionForm(request.form)
     if request.method == 'POST':
         if form.validate_on_submit():
@@ -131,6 +133,8 @@ def branch(selected):
     parent = Version.query.filter_by(name=selected).first()
     if parent is None:
         abort(404)
+    if parent.status in [1, 2]:
+        abort(400)
     form = EditVersionForm(request.form)
     if request.method == 'POST':
         if form.validate_on_submit():
@@ -169,6 +173,8 @@ def import2ds(selected):
     version = Version.query.filter_by(name=selected).first()
     if version is None:
         abort(404)
+    if version.status == 3:
+        abort(400)
     form = ImportForm(request.form)
     if request.method == 'POST':
         if form.validate_on_submit():
@@ -194,4 +200,32 @@ def import2ds(selected):
             #TODO update categories for current version, based on import results
             return redirect(url_for('datasets.select', selected=version.name))
     return render_template('datasets/import.html', 
+                           form=form, selected=selected, version=version)
+
+@datasets_blueprint.route('/commit/<selected>', methods=['GET', 'POST'])
+@login_required
+def commit(selected):
+    version = Version.query.filter_by(name=selected).first()
+    if version is None:
+        abort(404)
+    if version.status in [1, 3]:
+        abort(400)
+    form = CommitForm(request.form)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            try:
+                version.status = 3
+                db.session.commit()
+                #TODO freeze image_id's in joining table
+                message = Markup("Saved successfully!")
+                flash(message, 'success')
+                return redirect(url_for('datasets.select', 
+                                        selected=version.name))
+            except Exception as e:
+                traceback.print_exc()
+                db.session.rollback()
+                message = Markup(
+                    "<strong>Error!</strong> Unable to commit this version. " + str(e))
+                flash(message, 'danger')
+    return render_template('datasets/commit.html', 
                            form=form, selected=selected, version=version)
