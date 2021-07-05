@@ -31,6 +31,11 @@ class ImportForm(FlaskForm):
                                      (2, 'EfficientNet')], 
                             coerce=int)
     is_dedup = BooleanField('Check for duplicates')
+    dedup_model = SelectField(
+        'Model for image deduplication',
+        choices=[(1, 'inception_v1',)],
+        coerce=int
+    )
     is_size_control = BooleanField('Check for minimal image size')
     min_size = IntegerField('Minimal image size', default=224, 
                                   validators=[NumberRange(min=64, max=4096)])

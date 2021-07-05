@@ -23,7 +23,10 @@
             {{ select(form.score_model, {}) }}
             </div>
             <div class="form-group mb-4">
-              {{ checkbox(form.is_dedup, {}) }}
+              {{ checkbox(form.is_dedup, {'data-bind': 'checked: is_dedup'}) }}
+            </div>
+            <div class="form-group mb-4" data-bind="visible: is_dedup()">
+                {{ select(form.dedup_model, {}) }}
             </div>
             <div class="form-row">
                 <div class="form-group col-md-4">
@@ -72,6 +75,7 @@ var bindings = {
     is_size_control: ko.observable({{ form.is_size_control.checked and 'true' or 'false'}}),
     is_resize: ko.observable({{ form.is_resize.checked and 'true' or 'false'}}),
     category_select: ko.observable("folder"),
+    is_dedup: ko.observable({{ form.is_dedup.checked and 'true' or 'false'}}),
 };
 ko.applyBindings(bindings);
 </script>
