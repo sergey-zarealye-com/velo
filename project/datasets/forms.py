@@ -1,5 +1,11 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SelectField, BooleanField, IntegerField
+from wtforms import (
+    StringField,
+    SelectField,
+    BooleanField,
+    IntegerField,
+    FloatField
+)
 from wtforms.validators import DataRequired, Length, NumberRange
 
 class EditVersionForm(FlaskForm):
@@ -30,12 +36,25 @@ class ImportForm(FlaskForm):
                             choices=[(1, 'ResNet'),
                                      (2, 'EfficientNet')], 
                             coerce=int)
+
+    # Deduplication settings
     is_dedup = BooleanField('Check for duplicates')
     dedup_model = SelectField(
         'Model for image deduplication',
         choices=[(1, 'inception_v1',)],
         coerce=int
     )
+    is_dedup_automatic = BooleanField('Automatic threshold deduplication ')
+    dedup_treshold = FloatField(
+        'Threshold',
+        validators=[
+            NumberRange(
+                min=0.,
+                message="Can't be negative"
+            )
+        ]
+    )
+
     is_size_control = BooleanField('Check for minimal image size')
     min_size = IntegerField('Minimal image size', default=224, 
                                   validators=[NumberRange(min=64, max=4096)])
