@@ -244,7 +244,8 @@ def merge(selected):
     targets = Version.query.filter(Version.status < 3)
     form.target_select.choices = [(t.name, t.name) 
                                   for t in targets
-                                  if t.name != selected]
+                                  if t.name != selected and 
+                                      not parent.is_connected(t)]
     if request.method == 'POST':
         if form.validate_on_submit():
             try:

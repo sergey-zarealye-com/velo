@@ -194,6 +194,11 @@ class Version(db.Model):
             out['browse'] = True
         return out
     
+    def is_connected(self, child):
+        edge = VersionChildren.query.filter_by(child_id=child.id, 
+                                        parent_id=self.id).first()
+        return edge is not None
+    
 class VersionChildren(db.Model):
     __tablename__ = 'version_children'
     child_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False, primary_key=True)
