@@ -2,7 +2,8 @@
 
 # IMPORTS
 import os
-from flask import render_template, Blueprint, request, redirect, url_for, flash, Markup, abort
+from flask import render_template, Blueprint, request, redirect, url_for
+from flask import flash, Markup, abort, session
 from sqlalchemy.exc import IntegrityError
 from flask_login import current_user, login_required
 from itsdangerous import URLSafeTimedSerializer
@@ -31,6 +32,7 @@ def select(selected):
     version = Version.query.filter_by(name=selected).first()
     if version is None:
         abort(404)
+    session['selected_version'] = selected
     srcStr = Version.dot_str(selected)
     fname = str(current_user.id)
     my_graph = graphviz.Digraph(name="my_graph", engine='dot')
@@ -55,7 +57,10 @@ def select(selected):
 @datasets_blueprint.route('/list')
 @login_required
 def list():
-    first_one = Version.get_first()
+    if 'selected_version' in session:
+        first_one = Version.query.filter_by(name=session['selected_version']).first()
+    else:
+        first_one = Version.get_first()
     if first_one is None:
         first_one = Version('Init', 'Auto-created empty dataset', current_user.id)
         db.session.add(first_one)

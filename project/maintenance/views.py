@@ -1,7 +1,8 @@
 # project/users/views.py
 
 # IMPORTS
-from flask import render_template, Blueprint, request, redirect, url_for, flash, Markup, abort
+from flask import render_template, Blueprint, request, redirect, url_for
+from flask import flash, Markup, abort, session
 from sqlalchemy.exc import IntegrityError
 from flask_login import login_user, current_user, login_required, logout_user
 from itsdangerous import URLSafeTimedSerializer
@@ -22,15 +23,21 @@ maintenance_blueprint = Blueprint('maintenance', __name__,
 # ROUTES
 @maintenance_blueprint.route('/index')
 def index():
-    first_one = Version.get_first()
+    if 'selected_version' in session:
+        first_one = Version.query.filter_by(name=session['selected_version']).first()
+    else:
+        first_one = Version.get_first()
     if first_one is None:
         abort(404)
     return redirect(url_for('maintenance.categs_list', selected=first_one.name))
 
 @maintenance_blueprint.route('/categs_list/<selected>')
 @login_required
-def categs_list(selected):    
-    version = Version.query.filter_by(name=selected).first()
+def categs_list(selected):   
+    if 'selected_version' in session:
+        version = Version.query.filter_by(name=session['selected_version']).first()
+    else:
+        version = Version.query.filter_by(name=selected).first()
     if version is None:
         abort(404)
     categs = Category.query.filter_by(version_id=version.id)
@@ -40,7 +47,10 @@ def categs_list(selected):
 @maintenance_blueprint.route('/models_list/<selected>')
 @login_required
 def models_list(selected):    
-    version = Version.query.filter_by(name=selected).first()
+    if 'selected_version' in session:
+        version = Version.query.filter_by(name=session['selected_version']).first()
+    else:
+        version = Version.query.filter_by(name=selected).first()
     if version is None:
         abort(404)
     models = []
