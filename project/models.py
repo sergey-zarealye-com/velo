@@ -1,3 +1,5 @@
+from sqlalchemy import PrimaryKeyConstraint
+
 from project import db, bcrypt
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 from datetime import datetime
@@ -215,3 +217,23 @@ class DataItems(db.Model):
     __tablename__ = 'data_items'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     path = db.Column(db.String, unique=True, nullable=False)
+
+
+class VersionItems(db.Model):
+    __tablename__ = 'version_items'
+    item_id = db.Column(db.Integer, db.ForeignKey('data_items.id'), nullable=False)
+    version_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False)
+    __table_args__ = (
+        PrimaryKeyConstraint('item_id', 'version_id'),
+    )
+
+
+class TmpTable(db.Model):
+    __tablename__ = 'tmp_table'
+    item_id = db.Column(db.Integer, db.ForeignKey('data_items.id'), nullable=False)
+    node_name = db.Column(db.String, db.ForeignKey('versions.name'), nullable=False)
+    # TODO: make category as ForeignKey
+    category = db.Column(db.String, nullable=False)
+    __table_args__ = (
+        PrimaryKeyConstraint('item_id', 'node_name', 'category'),
+    )

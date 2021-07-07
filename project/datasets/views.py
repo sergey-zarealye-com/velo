@@ -12,7 +12,7 @@ from flask_mail import Message
 from datetime import datetime, timedelta
 
 from project import app, db, mail
-from project.models import User, Version, VersionChildren, DataItems
+from project.models import User, Version, VersionChildren, DataItems, TmpTable, VersionItems
 from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm
 import graphviz
 from uuid import uuid4
@@ -190,11 +190,13 @@ def import2ds(selected):
         if form.validate_on_submit():
             # change status to STAGE which means that version is not empty
             if form.category_select.data == 'folder':
+                # TODO: handle exceptions, add s3 source
                 for cat, files in get_files_by_category(form.flocation.data):
-                    # ids_cat = {}
                     try:
                         objects = [DataItems(path=path) for path in files]
                         db.session.bulk_save_objects(objects, return_defaults=True)
+                        tmp = [TmpTable(item_id=obj.id, node_name=selected, category=cat) for obj in objects]
+                        db.session.bulk_save_objects(tmp)
                         # TODO: добавить класс добавленных данных
                     except Exception as ex:
                         log.error(ex)
@@ -202,7 +204,6 @@ def import2ds(selected):
                     else:
                         version.status = 2
                         db.session.commit()
-                        break
             # version.status = 2
             # db.session.commit()
             # TODO implement actual images import. For your convenience:
@@ -239,6 +240,11 @@ def commit(selected):
     if request.method == 'POST':
         if form.validate_on_submit():
             try:
+                node_id = Version.query.filter_by(name=selected).with_entities(Version.id).first().id
+                items_to_commit = TmpTable.query.filter_by(node_name=selected).with_entities(TmpTable.item_id).all()
+                objects = [VersionItems(item_id=item.item_id, version_id=node_id) for item in items_to_commit]
+                db.session.bulk_save_objects(objects)
+                TmpTable.query.filter_by(node_name=selected).delete()
                 version.status = 3
                 db.session.commit()
                 # TODO freeze image_id's in joining table
