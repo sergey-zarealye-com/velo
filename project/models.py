@@ -131,14 +131,24 @@ class Version(db.Model):
     
     @staticmethod    
     def nodes_def(sel, url_prefix='/datasets/select'):
-        TPL1 = '%(id)s[URL="%(prefix)s/%(id)s", style="bold"];\n'
-        TPL2 = '%(id)s[URL="%(prefix)s/%(id)s"];'
+        STYLE_SEL = 'filled'
+        COLOR = 'white'
+        COLOR_SEL = 'lightgrey'
+        STYLE_COMMIT = 'bold'
+        TPL = '%(id)s[URL="%(prefix)s/%(id)s", style="%(style)s", fillcolor="%(color)s"];\n'
         out = []
         for v in Version.versions():
+            style = []
+            color = COLOR
             if v.name == sel:
-                out.append(TPL1 % dict(id=v.name, prefix=url_prefix))
-            else:
-                out.append(TPL2 % dict(id=v.name, prefix=url_prefix))
+                style.append(STYLE_SEL)
+                color = COLOR_SEL
+            if v.status == 3:
+                style.append(STYLE_COMMIT)
+            out.append(TPL % dict(id=v.name, 
+                                   prefix=url_prefix,
+                                   style = ','.join(style),
+                                   color=color))
         return ''.join(out)
     
     @staticmethod
