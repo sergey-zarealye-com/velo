@@ -19,7 +19,7 @@ class User(db.Model):
     last_logged_in = db.Column(db.DateTime, nullable=True)
     current_logged_in = db.Column(db.DateTime, nullable=True)
     role = db.Column(db.String, default='user')
-
+    
     def __init__(self, email, password, email_confirmation_sent_on=None, role='user'):
         self.email = email
         self.password = password
@@ -72,7 +72,6 @@ class User(db.Model):
     def __repr__(self):
         return '<User {}>'.format(self.email)
 
-
 class Version(db.Model):
     __tablename__ = 'versions'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -106,7 +105,7 @@ class Version(db.Model):
         
         
     """
-
+    
     def __init__(self, name, description, user_id):
         self.name = Version.safe_id(name)
         self.description = description
@@ -134,14 +133,24 @@ class Version(db.Model):
 
     @staticmethod
     def nodes_def(sel, url_prefix='/datasets/select'):
-        TPL1 = '%(id)s[URL="%(prefix)s/%(id)s", style="bold"];\n'
-        TPL2 = '%(id)s[URL="%(prefix)s/%(id)s"];'
+        STYLE_SEL = 'filled'
+        COLOR = 'white'
+        COLOR_SEL = 'lightgrey'
+        STYLE_COMMIT = 'bold'
+        TPL = '%(id)s[URL="%(prefix)s/%(id)s", style="%(style)s", fillcolor="%(color)s"];\n'
         out = []
         for v in Version.versions():
+            style = []
+            color = COLOR
             if v.name == sel:
-                out.append(TPL1 % dict(id=v.name, prefix=url_prefix))
-            else:
-                out.append(TPL2 % dict(id=v.name, prefix=url_prefix))
+                style.append(STYLE_SEL)
+                color = COLOR_SEL
+            if v.status == 3:
+                style.append(STYLE_COMMIT)
+            out.append(TPL % dict(id=v.name,
+                                   prefix=url_prefix,
+                                   style = ','.join(style),
+                                   color=color))
         return ''.join(out)
 
     @staticmethod
@@ -187,6 +196,12 @@ class Version(db.Model):
             out['browse'] = True
         return out
 
+    def is_connected(self, child):
+        edge = VersionChildren.query.filter_by(child_id=child.id,
+                                        parent_id=self.id).first()
+        return edge is not None
+
+
 
 class VersionChildren(db.Model):
     __tablename__ = 'version_children'
@@ -205,12 +220,41 @@ class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     version_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False)
     name = db.Column(db.String, unique=False, nullable=False)
+    task = db.Column(db.SmallInteger, nullable=False) # 1=CV classes, 2=NLP classes
+    position = db.Column(db.Integer, nullable=False) # position related to Model outputs, numbering starts from ZERO
 
     version = db.relationship("Version")
+    
+    @staticmethod
+    def TASKS():
+        return [(1, 'Vision'),
+                (2, 'NLP')]
 
-    def __init__(self, name, version_id):
+    def __init__(self, name, version_id, task, position=None):
         self.name = name
         self.version_id = version_id
+        self.task = task
+        if position is not None:
+            self.position = position
+        else:
+            last_categ = Category.query \
+                                .filter_by(version_id=version_id, task=task) \
+                                .order_by(Category.position.desc()) \
+                                .first()
+            if last_categ is None:
+                self.position = 0
+            else:
+                self.position = last_categ.position + 1
+
+    @staticmethod
+    def list(task, version_name):
+        version = Version.query.filter_by(name=version_name).first()
+        if version is None:
+            return []
+        return Category.query \
+                    .filter_by(version_id=version.id, task=task) \
+                    .order_by(Category.position) \
+                    .all()
 
 
 class DataItems(db.Model):

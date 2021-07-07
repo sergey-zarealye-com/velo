@@ -3,7 +3,8 @@
 # IMPORTS
 import logging
 import os
-from flask import render_template, Blueprint, request, redirect, url_for, flash, Markup, abort
+from flask import render_template, Blueprint, request, redirect, url_for
+from flask import flash, Markup, abort, session
 from sqlalchemy.exc import IntegrityError
 from flask_login import current_user, login_required
 from itsdangerous import URLSafeTimedSerializer
@@ -12,7 +13,7 @@ from flask_mail import Message
 from datetime import datetime, timedelta
 
 from project import app, db, mail
-from project.models import User, Version, VersionChildren, DataItems, TmpTable, VersionItems
+from project.models import User, Version, VersionChildren, DataItems, TmpTable, VersionItems, Category
 from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm
 import graphviz
 from uuid import uuid4
@@ -36,6 +37,7 @@ def select(selected):
     version = Version.query.filter_by(name=selected).first()
     if version is None:
         abort(404)
+    session['selected_version'] = selected
     srcStr = Version.dot_str(selected)
     fname = str(current_user.id)
     my_graph = graphviz.Digraph(name="my_graph", engine='dot')
@@ -61,7 +63,10 @@ def select(selected):
 @datasets_blueprint.route('/list')
 @login_required
 def list():
-    first_one = Version.get_first()
+    if 'selected_version' in session:
+        first_one = Version.query.filter_by(name=session['selected_version']).first()
+    else:
+        first_one = Version.get_first()
     if first_one is None:
         first_one = Version('Init', 'Auto-created empty dataset', current_user.id)
         db.session.add(first_one)
@@ -151,12 +156,24 @@ def branch(selected):
                 version = Version(form.name.data,
                                   form.description.data,
                                   current_user.id)
+                version.status = 2
                 db.session.add(version)
                 db.session.commit()
                 vc = VersionChildren(version.id, parent.id)
                 db.session.add(vc)
                 db.session.commit()
-                # TODO -- copy categories for new branch
+                #Copy categories from parent version:
+                #TODO inefficient, in case of error rollback not possible and new version is already created!
+                for task in Category.TASKS():
+                    categs = Category.list(task[0], parent.name)
+                    for parent_categ in categs:
+                        child_categ = Category(parent_categ.name,
+                                               version.id,
+                                               task[0],
+                                               position=parent_categ.position)
+                        db.session.add(child_categ)
+                db.session.commit()
+                #TODO -- copy images from parent version (to join tbl)? Must be able to browse them in new branched version
                 message = Markup("Saved successfully!")
                 flash(message, 'success')
                 return redirect(url_for('datasets.select',
@@ -274,7 +291,8 @@ def merge(selected):
     targets = Version.query.filter(Version.status < 3)
     form.target_select.choices = [(t.name, t.name)
                                   for t in targets
-                                  if t.name != selected]
+                                  if t.name != selected and
+                                      not parent.is_connected(t)]
     if request.method == 'POST':
         if form.validate_on_submit():
             try:

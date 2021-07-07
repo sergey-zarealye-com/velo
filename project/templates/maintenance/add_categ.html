@@ -1,0 +1,20 @@
+{% extends "_base.html" %}
+{% block title %}Add category{% endblock %}
+{% from "_formshelper.html" import render_field %}
+{% block content %}
+
+<div class="card bg-light mb-3">
+    <div class="card-body">
+        <form action="{{ url_for('maintenance.categ_add', task_id=task_id) }}" method="post" name="editform">
+            {{ form.csrf_token }}
+            <div class="form-group mb-4">
+              {{ form.name.label }}
+              {{ render_field(form.name, class="form-control") }}
+            </div>
+            <input type="submit" value="Save" class="btn btn-primary">
+            <a href="{{url_for('maintenance.categs_list', selected=selected)}}" role="button" class="btn btn-secondary float-right">Cancel</a>            
+        </form>
+    </div>
+</div>
+
+{% endblock %}
