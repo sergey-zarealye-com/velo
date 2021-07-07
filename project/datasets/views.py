@@ -12,7 +12,7 @@ from flask_mail import Message
 from datetime import datetime, timedelta
 
 from project import app, db, mail
-from project.models import User, Version, VersionChildren
+from project.models import User, Version, VersionChildren, Category
 from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm
 import graphviz
 from uuid import uuid4
@@ -153,7 +153,17 @@ def branch(selected):
                 vc = VersionChildren(version.id, parent.id)
                 db.session.add(vc)
                 db.session.commit()
-                #TODO -- copy categories for new branch
+                #Copy categories from parent version:
+                #TODO inefficient, in case of error rollback not possible and new version is already created!
+                for task in Category.TASKS():
+                    categs = Category.list(task[0], parent.name)
+                    for parent_categ in categs:
+                        child_categ = Category(parent_categ.name,
+                                               version.id, 
+                                               task[0],
+                                               position=parent_categ.position)
+                        db.session.add(child_categ)
+                db.session.commit()
                 #TODO -- copy images from parent version (to join tbl)? Must be able to browse them in new branched version
                 message = Markup("Saved successfully!")
                 flash(message, 'success')

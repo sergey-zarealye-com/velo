@@ -216,9 +216,38 @@ class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     version_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False)
     name = db.Column(db.String, unique=False, nullable=False)
+    task = db.Column(db.SmallInteger, nullable=False) # 1=CV classes, 2=NLP classes
+    position = db.Column(db.Integer, nullable=False) # position related to Model outputs, numbering starts from ZERO
     
     version = db.relationship("Version")
     
-    def __init__(self, name, version_id):
+    @staticmethod
+    def TASKS():
+        return [(1, 'Vision'), 
+                (2, 'NLP')]
+    
+    def __init__(self, name, version_id, task, position=None):
         self.name = name
         self.version_id = version_id
+        self.task = task
+        if position is not None:
+            self.position = position
+        else:
+            last_categ = Category.query \
+                                .filter_by(version_id=version_id, task=task) \
+                                .order_by(Category.position.desc()) \
+                                .first()
+            if last_categ is None:
+                self.position = 0
+            else:
+                self.position = last_categ.position + 1
+        
+    @staticmethod
+    def list(task, version_name):
+        version = Version.query.filter_by(name=version_name).first()
+        if version is None:
+            return []
+        return Category.query \
+                    .filter_by(version_id=version.id, task=task) \
+                    .order_by(Category.position) \
+                    .all()
