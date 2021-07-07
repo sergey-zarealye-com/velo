@@ -142,12 +142,14 @@ def branch(selected):
                 version = Version(form.name.data,
                                   form.description.data,
                                   current_user.id)
+                version.status = 2
                 db.session.add(version)
                 db.session.commit()
                 vc = VersionChildren(version.id, parent.id)
                 db.session.add(vc)
                 db.session.commit()
                 #TODO -- copy categories for new branch
+                #TODO -- copy images from parent version (to join tbl)? Must be able to browse them in new branched version
                 message = Markup("Saved successfully!")
                 flash(message, 'success')
                 return redirect(url_for('datasets.select', 
