@@ -7,13 +7,9 @@ from flask import render_template, Blueprint, request, redirect, url_for
 from flask import flash, Markup, abort, session
 from sqlalchemy.exc import IntegrityError
 from flask_login import current_user, login_required
-from itsdangerous import URLSafeTimedSerializer
-from threading import Thread
-from flask_mail import Message
-from datetime import datetime, timedelta
 
-from project import app, db, mail
-from project.models import User, Version, VersionChildren, DataItems, TmpTable, VersionItems, Category
+from project import db
+from project.models import Version, VersionChildren, DataItems, TmpTable, VersionItems, Category
 from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm
 import graphviz
 from uuid import uuid4
@@ -68,9 +64,13 @@ def list():
     else:
         first_one = Version.get_first()
     if first_one is None:
-        first_one = Version('Init', 'Auto-created empty dataset', current_user.id)
-        db.session.add(first_one)
-        db.session.commit()
+        try:
+            first_one = Version('Init', 'Auto-created empty dataset', current_user.id)
+            db.session.add(first_one)
+            db.session.commit()
+        except Exception as ex:
+            log.error(ex)
+            db.session.rollback()
     return redirect(url_for('datasets.select', selected=first_one.name))
 
 
@@ -162,8 +162,8 @@ def branch(selected):
                 vc = VersionChildren(version.id, parent.id)
                 db.session.add(vc)
                 db.session.commit()
-                #Copy categories from parent version:
-                #TODO inefficient, in case of error rollback not possible and new version is already created!
+                # Copy categories from parent version:
+                # TODO inefficient, in case of error rollback not possible and new version is already created!
                 for task in Category.TASKS():
                     categs = Category.list(task[0], parent.name)
                     for parent_categ in categs:
@@ -173,7 +173,7 @@ def branch(selected):
                                                position=parent_categ.position)
                         db.session.add(child_categ)
                 db.session.commit()
-                #TODO -- copy images from parent version (to join tbl)? Must be able to browse them in new branched version
+                # TODO -- copy images from parent version (to join tbl)? Must be able to browse them in new branched version
                 message = Markup("Saved successfully!")
                 flash(message, 'success')
                 return redirect(url_for('datasets.select',
@@ -292,7 +292,7 @@ def merge(selected):
     form.target_select.choices = [(t.name, t.name)
                                   for t in targets
                                   if t.name != selected and
-                                      not parent.is_connected(t)]
+                                  not parent.is_connected(t)]
     if request.method == 'POST':
         if form.validate_on_submit():
             try:

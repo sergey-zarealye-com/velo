@@ -19,7 +19,7 @@ class User(db.Model):
     last_logged_in = db.Column(db.DateTime, nullable=True)
     current_logged_in = db.Column(db.DateTime, nullable=True)
     role = db.Column(db.String, default='user')
-    
+
     def __init__(self, email, password, email_confirmation_sent_on=None, role='user'):
         self.email = email
         self.password = password
@@ -72,6 +72,7 @@ class User(db.Model):
     def __repr__(self):
         return '<User {}>'.format(self.email)
 
+
 class Version(db.Model):
     __tablename__ = 'versions'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -105,7 +106,7 @@ class Version(db.Model):
         
         
     """
-    
+
     def __init__(self, name, description, user_id):
         self.name = Version.safe_id(name)
         self.description = description
@@ -148,9 +149,9 @@ class Version(db.Model):
             if v.status == 3:
                 style.append(STYLE_COMMIT)
             out.append(TPL % dict(id=v.name,
-                                   prefix=url_prefix,
-                                   style = ','.join(style),
-                                   color=color))
+                                  prefix=url_prefix,
+                                  style=','.join(style),
+                                  color=color))
         return ''.join(out)
 
     @staticmethod
@@ -198,17 +199,19 @@ class Version(db.Model):
 
     def is_connected(self, child):
         edge = VersionChildren.query.filter_by(child_id=child.id,
-                                        parent_id=self.id).first()
+                                               parent_id=self.id).first()
         return edge is not None
-
 
 
 class VersionChildren(db.Model):
     __tablename__ = 'version_children'
-    child_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False, primary_key=True)
-    parent_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False, primary_key=True)
+    child_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False)
+    parent_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False)
     child = db.relationship("Version", foreign_keys=[child_id])
     parents = db.relationship("Version", foreign_keys=[parent_id])
+    __table_args__ = (
+        PrimaryKeyConstraint('child_id', 'parent_id'),
+    )
 
     def __init__(self, child_id, parent_id):
         self.child_id = child_id
@@ -220,11 +223,11 @@ class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     version_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False)
     name = db.Column(db.String, unique=False, nullable=False)
-    task = db.Column(db.SmallInteger, nullable=False) # 1=CV classes, 2=NLP classes
-    position = db.Column(db.Integer, nullable=False) # position related to Model outputs, numbering starts from ZERO
+    task = db.Column(db.SmallInteger, nullable=False)  # 1=CV classes, 2=NLP classes
+    position = db.Column(db.Integer, nullable=False)  # position related to Model outputs, numbering starts from ZERO
 
     version = db.relationship("Version")
-    
+
     @staticmethod
     def TASKS():
         return [(1, 'Vision'),
@@ -238,9 +241,9 @@ class Category(db.Model):
             self.position = position
         else:
             last_categ = Category.query \
-                                .filter_by(version_id=version_id, task=task) \
-                                .order_by(Category.position.desc()) \
-                                .first()
+                .filter_by(version_id=version_id, task=task) \
+                .order_by(Category.position.desc()) \
+                .first()
             if last_categ is None:
                 self.position = 0
             else:
@@ -252,9 +255,9 @@ class Category(db.Model):
         if version is None:
             return []
         return Category.query \
-                    .filter_by(version_id=version.id, task=task) \
-                    .order_by(Category.position) \
-                    .all()
+            .filter_by(version_id=version.id, task=task) \
+            .order_by(Category.position) \
+            .all()
 
 
 class DataItems(db.Model):
