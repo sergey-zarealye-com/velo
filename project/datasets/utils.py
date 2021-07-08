@@ -12,5 +12,5 @@ def get_files_by_category(data_path: str) -> Tuple[str, List[str]]:
             files = []
             for file in item.iterdir():
                 if file.is_file() and file.suffix in extensions:
-                    files.append(file.name)
+                    files.append(str(file))
             yield label, files
