@@ -3,6 +3,7 @@
 # IMPORTS
 import logging
 import os
+from typing import List
 
 from flask import render_template, Blueprint, request, redirect, url_for
 from flask import flash, Markup, abort, session
@@ -16,7 +17,7 @@ import graphviz
 from uuid import uuid4
 import traceback
 
-from .utils import get_files_by_category, get_data_samples
+from .utils import get_data_samples
 
 log = logging.getLogger(__name__)
 
@@ -195,6 +196,23 @@ def branch(selected):
                            form=form, selected=selected)
 
 
+def import_data(categories: List[str], objects: List[DataItems], selected: str, version: Version) -> None:
+    try:
+        db.session.bulk_save_objects(objects, return_defaults=True)
+        tmp = [TmpTable(item_id=obj.id,
+                        node_name=selected,
+                        category=cat) for obj, cat in zip(objects, categories)]
+        db.session.bulk_save_objects(tmp)
+    except Exception as ex:
+        log.error(ex)
+        db.session.rollback()
+    else:
+        # change status to STAGE which means that version is not empty
+        version.status = 2
+        db.session.commit()
+    return
+
+
 @datasets_blueprint.route('/import/<selected>', methods=['GET', 'POST'])
 @login_required
 def import2ds(selected):
@@ -206,8 +224,8 @@ def import2ds(selected):
     form = ImportForm(request.form)
     if request.method == 'POST':
         if form.validate_on_submit():
+            src = form.flocation.data
             if form.reason.data == 'moderation':
-                src = form.flocation.data
                 objects = []
                 for sample in get_data_samples(src):
                     item2moderate = Moderation(src=src,
@@ -224,20 +242,20 @@ def import2ds(selected):
             else:
                 if form.category_select.data == 'folder':
                     # TODO: handle exceptions, add s3 source
-                    for cat, files in get_files_by_category(form.flocation.data):
-                        try:
-                            objects = [DataItems(path=path) for path in files]
-                            db.session.bulk_save_objects(objects, return_defaults=True)
-                            tmp = [TmpTable(item_id=obj.id, node_name=selected, category=cat) for obj in objects]
-                            db.session.bulk_save_objects(tmp)
-                            # TODO: добавить класс добавленных данных
-                        except Exception as ex:
-                            log.error(ex)
-                            db.session.rollback()
-                        else:
-                            # change status to STAGE which means that version is not empty
-                            version.status = 2
-                            db.session.commit()
+                    # вынести куда нибудь commit_batch
+                    commit_batch = 1000
+                    objects, categories = [], []
+                    for sample in get_data_samples(src):
+                        data_item = DataItems(path=sample.path)
+                        objects.append(data_item)
+                        categories.append(sample.category)
+                        if len(objects) == commit_batch:
+                            import_data(categories, objects, selected, version)
+                            objects.clear()
+                    if len(objects):
+                        import_data(categories, objects, selected, version)
+                        objects.clear()
+
             # version.status = 2
             # db.session.commit()
             # TODO implement actual images import. For your convenience:

@@ -284,3 +284,14 @@ class TmpTable(db.Model):
     __table_args__ = (
         PrimaryKeyConstraint('item_id', 'node_name', 'category'),
     )
+
+
+class Moderation(db.Model):
+    __tablename__ = 'moderation'
+    src = db.Column(db.String, nullable=False)
+    file = db.Column(db.String, nullable=False)
+    src_media_type = db.Column(db.String, nullable=False)
+    category = db.Column(db.String, nullable=True)
+    __table_args__ = (
+        PrimaryKeyConstraint('src', 'file'),
+    )
