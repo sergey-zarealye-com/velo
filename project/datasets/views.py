@@ -3,19 +3,20 @@
 # IMPORTS
 import logging
 import os
+
 from flask import render_template, Blueprint, request, redirect, url_for
 from flask import flash, Markup, abort, session
 from sqlalchemy.exc import IntegrityError
 from flask_login import current_user, login_required
 
 from project import db
-from project.models import Version, VersionChildren, DataItems, TmpTable, VersionItems, Category
+from project.models import Version, VersionChildren, DataItems, TmpTable, VersionItems, Category, Moderation
 from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm
 import graphviz
 from uuid import uuid4
 import traceback
 
-from .utils import get_files_by_category
+from .utils import get_files_by_category, get_data_samples
 
 log = logging.getLogger(__name__)
 
@@ -205,22 +206,38 @@ def import2ds(selected):
     form = ImportForm(request.form)
     if request.method == 'POST':
         if form.validate_on_submit():
-            # change status to STAGE which means that version is not empty
-            if form.category_select.data == 'folder':
-                # TODO: handle exceptions, add s3 source
-                for cat, files in get_files_by_category(form.flocation.data):
-                    try:
-                        objects = [DataItems(path=path) for path in files]
-                        db.session.bulk_save_objects(objects, return_defaults=True)
-                        tmp = [TmpTable(item_id=obj.id, node_name=selected, category=cat) for obj in objects]
-                        db.session.bulk_save_objects(tmp)
-                        # TODO: добавить класс добавленных данных
-                    except Exception as ex:
-                        log.error(ex)
-                        db.session.rollback()
-                    else:
-                        version.status = 2
-                        db.session.commit()
+            if form.reason.data == 'moderation':
+                src = form.flocation.data
+                objects = []
+                for sample in get_data_samples(src):
+                    item2moderate = Moderation(src=src,
+                                               file=sample.path,
+                                               src_media_type=sample.media_type,
+                                               category=sample.category)
+                    objects.append(item2moderate)
+                try:
+                    db.session.bulk_save_objects(objects, return_defaults=True)
+                    db.session.commit()
+                except Exception as ex:
+                    log.error(ex)
+                    db.session.rollback()
+            else:
+                if form.category_select.data == 'folder':
+                    # TODO: handle exceptions, add s3 source
+                    for cat, files in get_files_by_category(form.flocation.data):
+                        try:
+                            objects = [DataItems(path=path) for path in files]
+                            db.session.bulk_save_objects(objects, return_defaults=True)
+                            tmp = [TmpTable(item_id=obj.id, node_name=selected, category=cat) for obj in objects]
+                            db.session.bulk_save_objects(tmp)
+                            # TODO: добавить класс добавленных данных
+                        except Exception as ex:
+                            log.error(ex)
+                            db.session.rollback()
+                        else:
+                            # change status to STAGE which means that version is not empty
+                            version.status = 2
+                            db.session.commit()
             # version.status = 2
             # db.session.commit()
             # TODO implement actual images import. For your convenience:
