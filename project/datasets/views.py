@@ -250,31 +250,32 @@ def commit(selected):
 @datasets_blueprint.route('/merge/<selected>', methods=['GET', 'POST'])
 @login_required
 def merge(selected):
-    parent = Version.query.filter_by(name=selected).first()
-    if parent is None:
+    child = Version.query.filter_by(name=selected).first()
+    if child is None:
         abort(404)
-    if parent.status in [1, 2]:
+    if child.status in [3]:
         abort(400)
     form = MergeForm(request.form)
-    targets = Version.query.filter(Version.status < 3)
+    parents = Version.query.filter(Version.status == 3) \
+                        .order_by(Version.created_at.desc())
     form.target_select.choices = [(t.name, t.name) 
-                                  for t in targets
+                                  for t in parents
                                   if t.name != selected and 
-                                      not parent.is_connected(t)]
+                                      not t.is_connected(child)]
     if request.method == 'POST':
         if form.validate_on_submit():
             try:
                 version = Version.query.filter_by(name=form.target_select.data).first()
-                if version.status == 3:
+                if version.status in [1, 2]:
                     abort(400)
-                vc = VersionChildren(version.id, parent.id)
+                vc = VersionChildren(child.id, version.id)
                 db.session.add(vc)
                 db.session.commit()
                 #TODO -- update categories for merged branch
                 message = Markup("Saved successfully!")
                 flash(message, 'success')
                 return redirect(url_for('datasets.select', 
-                                        selected=version.name))
+                                        selected=child.name))
             except Exception as e:
                 traceback.print_exc()
                 db.session.rollback()

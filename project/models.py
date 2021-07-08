@@ -179,6 +179,7 @@ class Version(db.Model):
             out['init'] = True
             out['edit'] = True
             out['import'] = True
+            out['merge'] = True
         elif self.status == 2:
             out['init'] = True
             out['edit'] = True
@@ -186,9 +187,9 @@ class Version(db.Model):
             out['split'] = True
             out['commit'] = True
             out['browse'] = True
+            out['merge'] = True
         elif self.status == 3:
             out['branch'] = True
-            out['merge'] = True
             out['init'] = True
             out['checkout'] = True
             out['browse'] = True
