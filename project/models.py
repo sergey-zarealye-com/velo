@@ -1,5 +1,6 @@
 from project import db, bcrypt
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
+from sqlalchemy.dialects.postgresql import JSON
 from datetime import datetime
 import re
 
@@ -207,3 +208,14 @@ class Category(db.Model):
     def __init__(self, name, version_id):
         self.name = name
         self.version_id = version_id
+
+
+class Deduplication(db.Model):
+    __tablename__ = 'deduplication'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    # user who has created this task
+    task_uid = db.Column(db.String)
+    # user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    # 0 - just started 1 - finished
+    status = db.Column(db.SmallInteger, nullable=False)
+    result = db.Column(JSON)

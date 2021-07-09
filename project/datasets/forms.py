@@ -47,6 +47,7 @@ class ImportForm(FlaskForm):
     is_dedup_automatic = BooleanField('Automatic threshold deduplication ')
     dedup_treshold = FloatField(
         'Threshold',
+        default=0.0,
         validators=[
             NumberRange(
                 min=0.,

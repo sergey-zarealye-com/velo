@@ -17,6 +17,28 @@ import graphviz
 from uuid import uuid4
 import traceback
 
+from .pipeline import pipeline
+from multiprocessing import Process, Queue
+from .rabbitmq_connector import send_message, get_message
+import json
+import uuid
+
+
+# Processes for communication module
+sending_queue: Queue = Queue()
+sending_process = Process(
+    target=send_message,
+    args=('deduplication_1', sending_queue)
+)
+sending_process.start()
+
+pulling_queue: Queue = Queue()
+pulling_process = Process(
+    target=get_message,
+    args=('deduplication_result_1', pulling_queue)
+)
+pulling_process.start()
+
 # CONFIG
 TMPDIR = os.path.join('project', 'static', 'tmp')
 datasets_blueprint = Blueprint('datasets', __name__, 
@@ -196,9 +218,24 @@ def import2ds(selected):
             print('is_resize', bool(form.is_resize.data))
             print('resize_w', form.resize_w.data)
             print('resize_h', form.resize_w.data)
+
+            task_id = str(uuid.uuid4())
+
+            sending_queue.put(
+                (task_id, json.dumps({
+                    'id': task_id,
+                    'directory': form.flocation.data,
+                    'is_size_control': form.is_size_control.data,
+                    'min_size': form.min_size.data,
+                    'is_resize': bool(form.is_resize.data),
+                    'dst_size': (int(form.resize_h.data), int(form.resize_w.data)),
+                    'deduplication': bool(form.is_dedup.data),
+                }))
+            )
             
             #TODO update categories for current version, based on import results
-            return redirect(url_for('datasets.select', selected=version.name))
+            # return redirect(url_for('datasets.select', selected=version.name))
+            return redirect(url_for('deduplication.task_confirmation', task_id=task_id, selected=version.name))
     return render_template('datasets/import.html', 
                            form=form, selected=selected, version=version)
 

@@ -1,0 +1,42 @@
+{% extends "_base.html" %}
+{% block title %}Deduplication{% endblock %}
+{% from "_formshelper.html" import render_field, checkbox, select %}
+{% block content %}
+
+
+<style>
+    .row {
+        display: flex;
+    }
+
+    .column {
+        flex: 50%;
+        padding: 5px;
+    }
+</style>
+
+
+<div class="card bg-light mb-3">
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('deduplication.print_list') }}">
+            {% for item in images %}
+            <input type="checkbox" name="test_checkbox" value="{{ item.item_index }}">
+            <p>Similarity: {{ item.similarity }}</p>
+            
+            <div class="row">
+                <div class="column">
+                <img src="{{ url_for('deduplication.download_file', filename=item.image1) }}" alt="First image" style="width:100%">
+                </div>
+
+                <div class="column">
+                <img src={{ url_for('deduplication.download_file', filename=item.image2) }} alt="Second image" style="width:100%">
+                </div>
+            </div>
+            {% endfor %}
+            <input type="submit" action="submit">
+          </form>
+    </div>
+</div>
+
+
+{% endblock %}

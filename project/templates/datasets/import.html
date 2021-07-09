@@ -33,8 +33,8 @@
                     {{ select(form.is_dedup_automatic, {'data-bind': 'checked: is_dedup_automatic'}) }}
                 </div>
                 <div class="form-group mb-4" data-bind="visible: is_dedup_automatic()">
-                    <p>The value indicates the minimum distance for images that are considered different.
-                        Images from pairs with a shorter distance will be removed. </p>
+                    <p>The value indicates the minimum similarity for images that are considered as copies.
+                        Images from pairs with a bigger similarity value will be removed. </p>
                     {{ select(form.dedup_treshold, {}) }}
                 </div>
             </div>
