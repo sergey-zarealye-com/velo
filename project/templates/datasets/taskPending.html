@@ -1,12 +1,13 @@
 {% extends "_base.html" %}
-{% block title %}Task confirmed{% endblock %}
+{% block title %}Deduplication{% endblock %}
 {% from "_formshelper.html" import render_field, checkbox, select %}
 {% block content %}
 
 
 <div class="card bg-light mb-3">
     <div class="card-body">
-        <h3>Task <a href={{ url_for('deduplication.show_dedup', task_id=task_id) }}>{{ task_id }}</a>confirmed!</h3>
+        <p>Task {{ task_id }} is pending...</a>
+        <p>Status: {{ "not provided" }}</p>
     </div>
 </div>
 

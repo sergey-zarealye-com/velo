@@ -4,3 +4,4 @@ APP_SETTINGS="config.DevelopmentConfig"
 SECRET_KEY="your-secret-key"
 #SET DATABASE URL IF YOU ARE NOT USING SQLITE
 DATABASE_URL="postgresql://velo:123@localhost:5432/velo"
+STORAGE_DIR = '<PLACE YOUR DIR HERE>'

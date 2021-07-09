@@ -9,11 +9,9 @@ from flask import (
     abort,
     send_from_directory,
     redirect,
-    url_for,
-    flash,
-    Markup,
 )
 from flask_login import current_user, login_required
+from project import app
 
 from project.models import Deduplication
 
@@ -27,9 +25,11 @@ dedup_blueprint = Blueprint(
 )
 
 
+print('\t\t', os.environ.get('STORAGE_DIR'))
+
 @dedup_blueprint.route('/uploads/<path:filename>')
 def download_file(filename):
-    return send_from_directory('/storage1/mrowl/smoke', filename, as_attachment=True)
+    return send_from_directory(os.environ.get('STORAGE_DIR'), filename, as_attachment=True)
 
 
 @dedup_blueprint.route('/task_confirmation/<task_id>/<selected>')
@@ -52,24 +52,24 @@ def show_dedup(task_id):
     if task is None:
         abort(404)
 
+    if task.result is None:
+        return render_template('datasets/taskPending.html', task_id=task.task_uid)
+
     page_length = request.args.get("num_items")
     page_num = request.args.get("page_num")
 
-    # check if there is directory with task_id
-    full_path = '/storage1/mrowl/smoke/'
-    if not os.path.isdir(full_path):
-        print("Not found")
-        return abort(404)
+    dedup_result = task.result['deduplication'][0]
+    images = [
+        {
+            'item_index': i,
+            'image1': row[0],
+            'image2': row[1],
+            'similarity': row[2]
+        }
+        for i, row in enumerate(dedup_result)
+    ]
 
     return render_template(
         'datasets/deduplication.html',
-        images=[
-            {
-                'item_index': i,
-                'image1': filename,
-                'image2': filename,
-                'similarity': 0.89
-            }
-            for i, filename in enumerate(os.listdir(full_path)[:10])
-        ]
+        images=images
     )
