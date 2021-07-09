@@ -22,9 +22,9 @@ images_blueprint = Blueprint('images', __name__,
 
 
 # ROUTES
-@images_blueprint.route('/list')
+@images_blueprint.route('/index')
 @login_required
-def list():
+def index():
     if 'selected_version' in session:
         first_one = Version.query.filter_by(name=session['selected_version']).first()
     else:
@@ -42,4 +42,4 @@ def browse(selected):
         version = Version.query.filter_by(name=selected).first()
     if version is None:
         abort(404)
-    return render_template('images/list.html', version=version)    
+    return render_template('images/index.html', version=version)    

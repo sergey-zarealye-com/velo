@@ -21,11 +21,11 @@ todo_blueprint = Blueprint('todo', __name__,
 
 
 # ROUTES
-@todo_blueprint.route('/list')
-def list():
+@todo_blueprint.route('/index')
+def index():
     if 'selected_version' in session:
         version = Version.query.filter_by(name=session['selected_version']).first()
     else:
         version = Version.query.filter_by(name=selected).first()
 
-    return render_template('todo/list.html')
+    return render_template('todo/index.html')

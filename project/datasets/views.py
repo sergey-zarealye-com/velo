@@ -47,16 +47,16 @@ def select(selected):
         maptext=mapfile.readlines()
     maptext=' '.join(maptext)
     is_active = version.actions_dict()
-    return render_template('datasets/list.html', 
+    return render_template('datasets/index.html', 
                            impath=fname + '.svg',
                            maptext=maptext,
                            rnd=str(uuid4()),
                            version=version,
                            is_active=is_active)
 
-@datasets_blueprint.route('/list')
+@datasets_blueprint.route('/index')
 @login_required
-def list():
+def index():
     if 'selected_version' in session:
         first_one = Version.query.filter_by(name=session['selected_version']).first()
     else:
@@ -274,8 +274,9 @@ def merge(selected):
                 #TODO -- update categories for merged branch
                 message = Markup("Saved successfully!")
                 flash(message, 'success')
-                return redirect(url_for('datasets.select', 
-                                        selected=child.name))
+                return redirect(url_for('datasets.merge_categs', 
+                                        child=child.name,
+                                        parent=version.name))
             except Exception as e:
                 traceback.print_exc()
                 db.session.rollback()
@@ -284,3 +285,75 @@ def merge(selected):
                 flash(message, 'danger')
     return render_template('datasets/merge.html', 
                            form=form, selected=selected)
+
+@datasets_blueprint.route('/merge_categs/<parent>/<child>', methods=['GET', 'POST'])
+@login_required
+def merge_categs(parent, child):
+    child = Version.query.filter_by(name=child).first()
+    if child is None:
+        abort(404)
+    parent = Version.query.filter_by(name=parent).first()
+    if parent is None:
+        abort(404)
+    if child.status in [3]:
+        abort(400)
+    categs = {}
+    for task in Category.TASKS():
+        child_categs = Category.list(task[0], child.name)
+        parent_categs = Category.list(task[0], parent.name)
+        categs[task[0]] = {}
+        categs[task[0]]['child'] = child_categs
+        categs[task[0]]['parent'] = parent_categs
+    if request.method == 'POST':
+        merged_list = {}
+        is_error = False
+        for task in Category.TASKS():
+            task_categs_seq = []
+            for ch_c in categs[task[0]]['child']:
+                try:
+                    pos = int(request.values['categ_%d' % ch_c.id])
+                    task_categs_seq.append((pos, ch_c))
+                except:
+                    pass
+            for pa_c in categs[task[0]]['parent']:
+                try:
+                    pos = int(request.values['categ_%d' % pa_c.id])
+                    task_categs_seq.append((pos, pa_c))
+                except:
+                    pass
+            task_categs_seq.sort(key=lambda o: o[0])
+            checking_validity_list = [o[0] for o in task_categs_seq]
+            if list(range(len(checking_validity_list))) != checking_validity_list:
+                message = Markup(
+                    "<strong>" + task[1] + "</strong> Wrong positions sequence: " + str(checking_validity_list))
+                flash(message, 'danger')
+                is_error = True
+            else:
+                merged_list[task[0]] = task_categs_seq
+        if not is_error:
+            try:
+                # Insert categories for merged branch
+                for task in Category.TASKS():
+                    for d_categ in Category.list(task[0], child.name):
+                        db.session.delete(d_categ)
+                    for t_categ in merged_list[task[0]]:
+                        categ = Category(t_categ[1].name,
+                                         child.id,
+                                         task[0],
+                                         t_categ[0])
+                        db.session.add(categ)
+                db.session.commit()
+                message = Markup("Saved successfully!")
+                flash(message, 'success')
+                return redirect(url_for('datasets.select', 
+                                        selected=child.name))
+            except Exception as e:
+                traceback.print_exc()
+                db.session.rollback()
+                message = Markup(
+                    "<strong>Error!</strong> Unable to save this version. " + str(e))
+                flash(message, 'danger')
+    return render_template('datasets/merge_categs.html', 
+                           categs=categs, 
+                           tasks=dict(Category.TASKS()),
+                           child=child, parent=parent)

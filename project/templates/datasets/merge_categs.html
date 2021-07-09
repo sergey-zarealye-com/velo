@@ -1,0 +1,71 @@
+{% extends "_base.html" %}
+{% block title %}Merge categories{% endblock %}
+{% from "helpers.html" import version_details %}
+{% block content %}
+
+<div class="container">
+    {{ version_details(child) }}
+</div>
+<form method="post" action="{{url_for('datasets.merge_categs', child=child.name, parent=parent.name)}}" name="editform">
+{% for task in categs.keys() %}
+<div class="card-columns">
+    {% for edge in ['parent', 'child'] %}
+        <div class="card m-4">
+            <div class="card-header">
+                {{tasks[task]}} {{edge}}
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for categ in categs[task][edge] %}
+                    <li class="list-group-item" 
+                    data-bind="style: { color: color_{{task}}_e_{{edge}}_c_{{categ.id}}() }"
+                    >
+                        <input size=4 name="categ_{{categ.id}}" value="{{categ.position}}"
+                        data-bind="textInput: t_{{task}}_e_{{edge}}_c_{{categ.id}}">
+                        {{categ.name}}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endfor %}    
+</div>
+{% endfor %}
+<input type="submit" value="Save" class="btn btn-primary">
+</form>
+
+
+<script>
+function MergeCategsModel() {
+
+{% for task in categs.keys() %}
+    {% for edge in ['parent', 'child'] %}
+        {% for categ in categs[task][edge] %}
+            this.t_{{task}}_e_{{edge}}_c_{{categ.id}} = ko.observable("{{categ.position}}");
+        {% endfor %}
+    {% endfor %}
+{% endfor %}
+{% for task in categs.keys() %}
+    {% for edge in ['parent', 'child'] %}
+        {% for categ in categs[task][edge] %}
+            this.color_{{task}}_e_{{edge}}_c_{{categ.id}} = ko.computed(
+                function() {
+                    var my_pos = this.t_{{task}}_e_{{edge}}_c_{{categ.id}}();
+                    {% for it_edge in ['parent', 'child'] %}
+                        {% for it_categ in categs[task][it_edge] %}   
+                            {% if categ.id != it_categ.id %}      
+                                if (!isNaN(my_pos) && Number.isInteger(parseFloat(my_pos)) 
+                                    && my_pos == this.t_{{task}}_e_{{it_edge}}_c_{{it_categ.id}}()) return 'red';
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                    return 'black';
+                }, this
+            );
+        {% endfor %}
+    {% endfor %}
+{% endfor %}
+}
+
+ko.applyBindings(new MergeCategsModel());
+</script>
+
+{% endblock %}
