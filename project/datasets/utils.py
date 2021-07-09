@@ -1,6 +1,7 @@
 import enum
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Generator
 
 from project.video_utils import ffmpeg_job
 
@@ -39,7 +40,7 @@ def get_media_type(file: Path) -> MediaType:
     return MediaType.VIDEO
 
 
-def get_data_samples(data_path: str) -> DataSample:
+def get_data_samples(data_path: str) -> Generator[DataSample, None, None]:
     data_path = Path(data_path)
     # если это один файл
     if data_path.is_file():

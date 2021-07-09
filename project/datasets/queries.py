@@ -1,6 +1,7 @@
 from typing import List
 
 from project.models import VersionChildren
+from project.models import Moderation
 
 
 def get_nodes_above(sess, node_id) -> List[int]:
@@ -28,6 +29,7 @@ if __name__ == '__main__':
     engine = create_engine("postgresql://velo:123@localhost:5432/velo")
     Session = sessionmaker(bind=engine)
     session = Session()
-    nodes = get_nodes_above(session, 2)
 
-    print(nodes)
+    q = Moderation.query.distinct("src").all()
+    for item in q:
+        print(item)
