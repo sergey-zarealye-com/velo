@@ -1,5 +1,6 @@
 from project import db, bcrypt
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
+from sqlalchemy import and_, or_
 from datetime import datetime
 import re
 
@@ -252,3 +253,43 @@ class Category(db.Model):
                     .filter_by(version_id=version.id, task=task) \
                     .order_by(Category.position) \
                     .all()
+
+class ToDoItem(db.Model):
+    __tablename__ = 'todo_items'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    version_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False)
+    started_at = db.Column(db.DateTime, nullable=True)
+    finished_at = db.Column(db.DateTime, nullable=True)
+    file_path = db.Column(db.String, unique=True, nullable=False)
+    title = db.Column(db.String, unique=False, nullable=True)
+    description = db.Column(db.String, unique=False, nullable=True)
+    audio_text = db.Column(db.String, unique=False, nullable=True)
+    gt_category = db.Column(db.String, unique=False, nullable=False)
+    assigned_categories_json = db.Column(db.String, unique=False, nullable=True)
+    
+    user = db.relationship("User")
+    version = db.relationship("Version")
+
+    def __init__(self, file_path, title, description, gt_category):
+        self.file_path = file_path
+        self.title = title
+        self.description = description
+        self.gt_category = gt_category
+        self.created_at = datetime.now()
+        self.user_id = None
+        self.version_id = None
+        self.assigned_categories_json = None
+        
+    @staticmethod
+    def fetch_for_user(user_id, skip=0, limit=25):
+        return ToDoItem.query.filter(or_(
+            ToDoItem.started_at.is_(None),
+            and_(
+                ToDoItem.started_at.isnot(None),  
+                ToDoItem.finished_at.is_(None),  
+                ToDoItem.user_id == user_id
+            )
+        )).order_by(ToDoItem.created_at) \
+            .limit(limit).offset(skip)

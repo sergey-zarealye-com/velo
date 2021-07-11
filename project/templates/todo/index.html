@@ -2,11 +2,33 @@
 {% block title %}To do{% endblock %}
 {% block content %}
 
-<div class="card">
-  <div class="card-body">
-    <h4 class="card-title">To do</h4>
-    
-  </div>
-</div>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th scope="col">Their label</th>
+      <th scope="col">Created</th>
+      <th scope="col">Started</th>
+      <th scope="col">&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+      {% for todo in todoitems %}
+          <tr>
+              <td>{{todo.gt_category}}</td>
+              <td>{{todo.created_at}}</td>
+              <td>{{todo.started_at}}</td>
+              <td>
+                  {% if todo.started_at == None %}
+                      <form method="post", action="{{url_for('todo.take', item_id=todo.id)}}">
+                      <button type="submit" class="btn btn-primary btn-sm active">Take</button>
+                      </form>
+                  {% else %}
+                      <a href="{{url_for('todo.item', item_id=todo.id)}}" class="btn btn-success btn-sm active" role="button" aria-pressed="true">Open</a>
+                  {% endif %}
+              </td>
+          </tr>
+      {% endfor %}
+  </tbody>
+</table>
 
 {% endblock %}
