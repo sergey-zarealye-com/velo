@@ -6,22 +6,34 @@
 <form method="POST" action="{{url_for('todo.moderate', item_id=todo.id)}}">
 
 <div class="container">
+{% for task in categs.keys() %}
+    {% if task == 1 %}
     <div class="row">
-        <div class="col-9">
+        <div class="col-12">
+            <h5>{{tasks[task]}}</h5>
             <div class="card-columns">
             {% for frame in frames %}
                 <div class="card">
                     <img class="card-img" src="{{frame[0]}}" alt="...***...">
                     <div class="card-img-overlay">
                         <p class="card-text">
-                            <div class="form-check">
-                              <input name="frame_{{frame[1]}}" class="form-check-input position-static form-control-lg" type="checkbox">
-                            </div>
+                            <select class="form-control" name="categ_task[{{task}}]_frame[{{frame[1]}}]">
+                                <option value="-1" selected></option>
+                            {% for categ in categs[task] %}
+                                <option value="{{categ.id}}">{{categ.name}}</option>
+                            {% endfor %}                                                          
+                            </select>
                         </p>
                     </div>
                 </div>
             {% endfor %}
             </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-9">
+            <h5>{{tasks[task]}}</h5>   
             <dl class="row">
                 <dt class="col-2">Title</dt>
                 <dd class="col-10">{{todo.title}}</dd>
@@ -37,7 +49,7 @@
             </dl>
         </div>
         <div class="col-3">
-            {% for task in categs.keys() %}
+            
                 <div class="card m-4">
                     
                     <div class="card-header">
@@ -47,7 +59,7 @@
                         {% for categ in categs[task] %}
                             <li class="list-group-item">
                                 <div class="form-check">
-                                    <input name="categ_{{categ.id}}" class="form-check-input" type="checkbox">
+                                    <input name="categ_task[{{task}}]_categ[{{categ.id}}]" class="form-check-input" type="checkbox">
                                     <label class="form-check-label" for="defaultCheck1">
                                         {{categ.name}}
                                     </label>
@@ -57,12 +69,13 @@
                         {% endfor %}
                     </ul>
                 </div>
-            {% endfor %}
-            <div class="text-center">
-                <button class="btn btn-danger" type="submit">Save</button>
-            </div>
         </div>
-
+    </div>
+{% endif %}
+{% endfor %}
+<div class="text-center">
+    <button class="btn btn-danger btn-lg" type="submit">Save</button>
+</div>
 </form>
 
 
