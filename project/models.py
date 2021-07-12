@@ -292,6 +292,7 @@ class Moderation(db.Model):
     file = db.Column(db.String, nullable=False)
     src_media_type = db.Column(db.String, nullable=False)
     category = db.Column(db.String, nullable=True)
+    general_category = db.Column(db.String, nullable=False)
     __table_args__ = (
         PrimaryKeyConstraint('src', 'file'),
     )

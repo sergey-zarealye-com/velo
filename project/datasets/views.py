@@ -226,11 +226,14 @@ def import2ds(selected):
             src = form.flocation.data
             if form.reason.data == 'moderation':
                 objects = []
+                category = form.category.choices[form.category.data-1][1]
+                general_category = form.general_category.data
                 for sample in get_data_samples(src):
                     item2moderate = Moderation(src=src,
                                                file=sample.path,
                                                src_media_type=sample.media_type,
-                                               category=sample.category)
+                                               category=category,
+                                               general_category=general_category)
                     objects.append(item2moderate)
                 try:
                     db.session.bulk_save_objects(objects, return_defaults=True)
@@ -272,6 +275,7 @@ def import2ds(selected):
             print('is_resize', bool(form.is_resize.data))
             print('resize_w', form.resize_w.data)
             print('resize_h', form.resize_w.data)
+            print('general_category', form.general_category.data)
 
             # TODO update categories for current version, based on import results
             return redirect(url_for('datasets.select', selected=version.name))

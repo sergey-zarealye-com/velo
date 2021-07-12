@@ -1,82 +1,95 @@
 {% extends "_base.html" %}
-{% block title %}{{todo.gt_category}}{% endblock %}
+{% block title %}{{ todo.gt_category }}{% endblock %}
 {% from "_formshelper.html" import render_field %}
 {% block content %}
 
-<form method="POST" action="{{url_for('todo.moderate', item_id=todo.id)}}">
+    <form method="POST" action="{{ url_for('todo.moderate', item_id=todo.id) }}">
 
-<div class="container">
-{% for task in categs.keys() %}
-    {% if task == 1 %}
-    <div class="row">
-        <div class="col-12">
-            <h5>{{tasks[task]}}</h5>
-            <div class="card-columns">
-            {% for frame in frames %}
-                <div class="card">
-                    <img class="card-img" src="{{frame[0]}}" alt="...***...">
-                    <div class="card-img-overlay">
-                        <p class="card-text">
-                            <select class="form-control" name="categ_task[{{task}}]_frame[{{frame[1]}}]">
-                                <option value="-1" selected></option>
-                            {% for categ in categs[task] %}
-                                <option value="{{categ.id}}">{{categ.name}}</option>
-                            {% endfor %}                                                          
-                            </select>
-                        </p>
+        <div class="container">
+            {% for task in categs.keys() %}
+                {% if task == 1 %}
+                    <div class="row">
+                        <div class="col-12">
+                            <h5>{{ tasks[task] }}</h5>
+                            <div class="card-columns">
+                                {% for frame in frames %}
+                                    <div class="card">
+                                        <img class="card-img"
+                                             src="{{ url_for('static', filename='images/tmp/' + frame[0]) }}"
+                                             alt="...***...">
+                                        <div class="card-img-overlay">
+                                            <p class="card-text">
+                                                <select class="form-control"
+                                                        name="categ_task[{{ task }}]_frame[{{ frame[1] }}]">
+                                                    <option value="-1" selected></option>
+                                                    {% for categ in categs[task] %}
+                                                        <option value="{{ categ.id }}">{{ categ.name }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </p>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
                     </div>
-                </div>
-            {% endfor %}
-            </div>
-        </div>
-    </div>
-    {% else %}
-    <div class="row">
-        <div class="col-9">
-            <h5>{{tasks[task]}}</h5>   
-            <dl class="row">
-                <dt class="col-2">Title</dt>
-                <dd class="col-10">{{todo.title}}</dd>
-                <dt class="col-2">Description</dt>
-                <dd class="col-10">{{todo.description}}</dd>
-                <dt class="col-2">Audio</dt>
-                <dd class="col-10">{{todo.audio}} 
-Жительница американского штата Массачусетс Джоанна Гарделл угнала пикап со строительной площадки, после чего устроила дебош на дороге. Остановить ее удалось только после того, как женщина решила заказать еду в McDonald's, сообщает FoxNews.
-За время поездки она неоднократно проезжала на красный свет, выезжала на встречную полосу, причем во время одного из таких маневров столкнулась с фургоном.
-Владелец пикапа оснастил его GPS-трекером, поэтому полиция смогла вычислить нахождение автомобиля без продолжения преследования. Они позвонили в McDonald's и попросили сотрудников задержать заказ.
-Но когда полицейские попытались арестовать Гарделл, она заявила, что пикап принадлежит ей, после чего протаранила патрульную машину, другой автомобиль посетителя ресторана, а затем выехала на траву и застряла. В итоге женщину задержали, ей предъявлены многочисленные обвинения. Возможная причина ее поведения не сообщается.
-                </dd>
-            </dl>
-        </div>
-        <div class="col-3">
-            
-                <div class="card m-4">
-                    
-                    <div class="card-header">
-                        <h5>{{tasks[task]}}</h5>
-                    </div>
-                    <ul class="list-group list-group-flush">
-                        {% for categ in categs[task] %}
-                            <li class="list-group-item">
-                                <div class="form-check">
-                                    <input name="categ_task[{{task}}]_categ[{{categ.id}}]" class="form-check-input" type="checkbox">
-                                    <label class="form-check-label" for="defaultCheck1">
-                                        {{categ.name}}
-                                    </label>
+                {% else %}
+                    <div class="row">
+                        <div class="col-9">
+                            <h5>{{ tasks[task] }}</h5>
+                            <dl class="row">
+                                <dt class="col-2">Title</dt>
+                                <dd class="col-10">{{ todo.title }}</dd>
+                                <dt class="col-2">Description</dt>
+                                <dd class="col-10">{{ todo.description }}</dd>
+                                <dt class="col-2">Audio</dt>
+                                <dd class="col-10">{{ todo.audio }}
+                                    Жительница американского штата Массачусетс Джоанна Гарделл угнала пикап со
+                                    строительной площадки, после чего устроила дебош на дороге. Остановить ее удалось
+                                    только после того, как женщина решила заказать еду в McDonald's, сообщает FoxNews.
+                                    За время поездки она неоднократно проезжала на красный свет, выезжала на встречную
+                                    полосу, причем во время одного из таких маневров столкнулась с фургоном.
+                                    Владелец пикапа оснастил его GPS-трекером, поэтому полиция смогла вычислить
+                                    нахождение автомобиля без продолжения преследования. Они позвонили в McDonald's и
+                                    попросили сотрудников задержать заказ.
+                                    Но когда полицейские попытались арестовать Гарделл, она заявила, что пикап
+                                    принадлежит ей, после чего протаранила патрульную машину, другой автомобиль
+                                    посетителя ресторана, а затем выехала на траву и застряла. В итоге женщину
+                                    задержали, ей предъявлены многочисленные обвинения. Возможная причина ее поведения
+                                    не сообщается.
+                                </dd>
+                            </dl>
+                        </div>
+                        <div class="col-3">
+
+                            <div class="card m-4">
+
+                                <div class="card-header">
+                                    <h5>{{ tasks[task] }}</h5>
                                 </div>
-                                
-                            </li>
-                        {% endfor %}
-                    </ul>
-                </div>
-        </div>
-    </div>
-{% endif %}
-{% endfor %}
-<div class="text-center">
-    <button class="btn btn-danger btn-lg" type="submit">Save</button>
-</div>
-</form>
+                                <ul class="list-group list-group-flush">
+                                    {% for categ in categs[task] %}
+                                        <li class="list-group-item">
+                                            <div class="form-check">
+                                                <input name="categ_task[{{ task }}]_categ[{{ categ.id }}]"
+                                                       class="form-check-input" type="checkbox">
+                                                <label class="form-check-label" for="defaultCheck1">
+                                                    {{ categ.name }}
+                                                </label>
+                                            </div>
+
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+            <div class="text-center">
+                <button class="btn btn-danger btn-lg" type="submit">Save</button>
+            </div>
+    </form>
 
 
 

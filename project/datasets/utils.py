@@ -9,7 +9,7 @@ image_extensions = ['.jpg', '.png', '.bmp']
 audio_extensions = ['.mp3', '.wav']
 
 # TODO: в конфиг
-OUT_DIR = Path("./tmp")
+OUT_DIR = Path("./project/static/images/tmp")
 if not OUT_DIR.exists():
     OUT_DIR.mkdir()
 
