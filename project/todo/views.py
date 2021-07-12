@@ -30,7 +30,7 @@ def index():
     if 'selected_version' in session:
         version = Version.query.filter_by(name=session['selected_version']).first()
     else:
-        version = Version.query.filter_by(name=selected).first()
+        version = Version.get_first()
 
     q = Moderation.query.distinct("src").all()
     for i, t in enumerate(q):
@@ -60,7 +60,7 @@ def take(item_id):
     if 'selected_version' in session:
         version = Version.query.filter_by(name=session['selected_version']).first()
     else:
-        version = Version.query.filter_by(name=selected).first()
+        version = Version.get_first()
     todo.started_at = datetime.now()
     todo.user_id = current_user.id
     todo.version_id = version.id
@@ -78,7 +78,7 @@ def item(item_id):
     if 'selected_version' in session:
         version = Version.query.filter_by(name=session['selected_version']).first()
     else:
-        version = Version.query.filter_by(name=selected).first()
+        version = Version.get_first()
     categs = {}
     for task in Category.TASKS():
         categs[task[0]] = Category.list(task[0], version.name)
