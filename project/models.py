@@ -1,3 +1,5 @@
+from sqlalchemy import PrimaryKeyConstraint
+
 from project import db, bcrypt
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 from sqlalchemy import and_, or_
@@ -75,13 +77,13 @@ class Version(db.Model):
     __tablename__ = 'versions'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String, unique=True, nullable=False)
-    status = db.Column(db.SmallInteger, nullable=False) # 1=empty 2=stage 3=versioned
+    status = db.Column(db.SmallInteger, nullable=False)  # 1=empty 2=stage 3=versioned
     description = db.Column(db.String, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    
+
     user = db.relationship("User")
-    
+
     """
         Status defines allowed operations according to state diagram https://bit.ly/3x9Uv6e
         
@@ -146,10 +148,10 @@ class Version(db.Model):
                 color = COLOR_SEL
             if v.status == 3:
                 style.append(STYLE_COMMIT)
-            out.append(TPL % dict(id=v.name, 
-                                   prefix=url_prefix,
-                                   style = ','.join(style),
-                                   color=color))
+            out.append(TPL % dict(id=v.name,
+                                  prefix=url_prefix,
+                                  style=','.join(style),
+                                  color=color))
         return ''.join(out)
     
     @staticmethod
@@ -207,7 +209,10 @@ class VersionChildren(db.Model):
     parent_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False, primary_key=True)
     child = db.relationship("Version", foreign_keys=[child_id])
     parents = db.relationship("Version", foreign_keys=[parent_id])
-    
+    __table_args__ = (
+        PrimaryKeyConstraint('child_id', 'parent_id'),
+    )
+
     def __init__(self, child_id, parent_id):
         self.child_id = child_id
         self.parent_id = parent_id
@@ -236,9 +241,9 @@ class Category(db.Model):
             self.position = position
         else:
             last_categ = Category.query \
-                                .filter_by(version_id=version_id, task=task) \
-                                .order_by(Category.position.desc()) \
-                                .first()
+                .filter_by(version_id=version_id, task=task) \
+                .order_by(Category.position.desc()) \
+                .first()
             if last_categ is None:
                 self.position = 0
             else:
@@ -250,9 +255,46 @@ class Category(db.Model):
         if version is None:
             return []
         return Category.query \
-                    .filter_by(version_id=version.id, task=task) \
-                    .order_by(Category.position) \
-                    .all()
+            .filter_by(version_id=version.id, task=task) \
+            .order_by(Category.position) \
+            .all()
+
+
+class DataItems(db.Model):
+    __tablename__ = 'data_items'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    path = db.Column(db.String, unique=True, nullable=False)
+
+
+class VersionItems(db.Model):
+    __tablename__ = 'version_items'
+    item_id = db.Column(db.Integer, db.ForeignKey('data_items.id'), nullable=False)
+    version_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False)
+    __table_args__ = (
+        PrimaryKeyConstraint('item_id', 'version_id'),
+    )
+
+
+class TmpTable(db.Model):
+    __tablename__ = 'tmp_table'
+    item_id = db.Column(db.Integer, db.ForeignKey('data_items.id'), nullable=False)
+    node_name = db.Column(db.String, db.ForeignKey('versions.name'), nullable=False)
+    # TODO: make category as ForeignKey
+    category = db.Column(db.String, nullable=False)
+    __table_args__ = (
+        PrimaryKeyConstraint('item_id', 'node_name', 'category'),
+    )
+
+
+class Moderation(db.Model):
+    __tablename__ = 'moderation'
+    src = db.Column(db.String, nullable=False)
+    file = db.Column(db.String, nullable=False)
+    src_media_type = db.Column(db.String, nullable=False)
+    category = db.Column(db.String, nullable=True)
+    __table_args__ = (
+        PrimaryKeyConstraint('src', 'file'),
+    )
 
 class ToDoItem(db.Model):
     __tablename__ = 'todo_items'
@@ -268,7 +310,7 @@ class ToDoItem(db.Model):
     audio_text = db.Column(db.String, unique=False, nullable=True)
     gt_category = db.Column(db.String, unique=False, nullable=False)
     assigned_categories_json = db.Column(db.String, unique=False, nullable=True)
-    
+
     user = db.relationship("User")
     version = db.relationship("Version")
 
@@ -281,14 +323,14 @@ class ToDoItem(db.Model):
         self.user_id = None
         self.version_id = None
         self.assigned_categories_json = None
-        
+
     @staticmethod
     def fetch_for_user(user_id, skip=0, limit=25):
         return ToDoItem.query.filter(or_(
             ToDoItem.started_at.is_(None),
             and_(
-                ToDoItem.started_at.isnot(None),  
-                ToDoItem.finished_at.is_(None),  
+                ToDoItem.started_at.isnot(None),
+                ToDoItem.finished_at.is_(None),
                 ToDoItem.user_id == user_id
             )
         )).order_by(ToDoItem.created_at) \

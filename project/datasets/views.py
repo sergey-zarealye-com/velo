@@ -1,26 +1,29 @@
 # project/users/views.py
 
 # IMPORTS
+import logging
 import os
+from typing import List
+
 from flask import render_template, Blueprint, request, redirect, url_for
 from flask import flash, Markup, abort, session
 from sqlalchemy.exc import IntegrityError
 from flask_login import current_user, login_required
-from itsdangerous import URLSafeTimedSerializer
-from threading import Thread
-from flask_mail import Message
-from datetime import datetime, timedelta
 
-from project import app, db, mail
-from project.models import User, Version, VersionChildren, Category
+from project import db
+from project.models import Version, VersionChildren, DataItems, TmpTable, VersionItems, Category, Moderation
 from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm
 import graphviz
 from uuid import uuid4
 import traceback
 
+from .utils import get_data_samples
+
+log = logging.getLogger(__name__)
+
 # CONFIG
 TMPDIR = os.path.join('project', 'static', 'tmp')
-datasets_blueprint = Blueprint('datasets', __name__, 
+datasets_blueprint = Blueprint('datasets', __name__,
                                template_folder='templates',
                                url_prefix='/datasets')
 
@@ -36,18 +39,18 @@ def select(selected):
     srcStr = Version.dot_str(selected)
     fname = str(current_user.id)
     my_graph = graphviz.Digraph(name="my_graph", engine='dot')
-    my_graph.src = graphviz.Source(srcStr, filename=None, directory=None, 
+    my_graph.src = graphviz.Source(srcStr, filename=None, directory=None,
                                    format='svg', engine='dot', encoding='utf-8')
-    #TODO remove tmp files!
-    my_graph.src.render(fname, TMPDIR, 
+    # TODO remove tmp files!
+    my_graph.src.render(fname, TMPDIR,
                         view=False)
-    my_graph.src.render(fname, TMPDIR, 
+    my_graph.src.render(fname, TMPDIR,
                         format='cmapx', view=False)
-    with open (os.path.join(TMPDIR, fname + '.cmapx'), "r") as mapfile:
-        maptext=mapfile.readlines()
-    maptext=' '.join(maptext)
+    with open(os.path.join(TMPDIR, fname + '.cmapx'), "r") as mapfile:
+        maptext = mapfile.readlines()
+    maptext = ' '.join(maptext)
     is_active = version.actions_dict()
-    return render_template('datasets/index.html', 
+    return render_template('datasets/index.html',
                            impath=fname + '.svg',
                            maptext=maptext,
                            rnd=str(uuid4()),
@@ -62,10 +65,15 @@ def index():
     else:
         first_one = Version.get_first()
     if first_one is None:
-        first_one = Version('Init', 'Auto-created empty dataset', current_user.id)
-        db.session.add(first_one)
-        db.session.commit()
+        try:
+            first_one = Version('Init', 'Auto-created empty dataset', current_user.id)
+            db.session.add(first_one)
+            db.session.commit()
+        except Exception as ex:
+            log.error(ex)
+            db.session.rollback()
     return redirect(url_for('datasets.select', selected=first_one.name))
+
 
 @datasets_blueprint.route('/edit/<selected>', methods=['GET', 'POST'])
 @login_required
@@ -84,7 +92,7 @@ def edit(selected):
                 db.session.commit()
                 message = Markup("Saved successfully!")
                 flash(message, 'success')
-                return redirect(url_for('datasets.select', 
+                return redirect(url_for('datasets.select',
                                         selected=version.name))
             except IntegrityError:
                 traceback.print_exc()
@@ -98,8 +106,9 @@ def edit(selected):
                 message = Markup(
                     "<strong>Error!</strong> Unable to edit this version. " + str(e))
                 flash(message, 'danger')
-    return render_template('datasets/edit.html', 
+    return render_template('datasets/edit.html',
                            version=version, form=form)
+
 
 @datasets_blueprint.route('/init', methods=['GET', 'POST'])
 @login_required
@@ -115,7 +124,7 @@ def init():
                 db.session.commit()
                 message = Markup("Saved successfully!")
                 flash(message, 'success')
-                return redirect(url_for('datasets.select', 
+                return redirect(url_for('datasets.select',
                                         selected=version.name))
             except IntegrityError:
                 traceback.print_exc()
@@ -129,8 +138,9 @@ def init():
                 message = Markup(
                     "<strong>Error!</strong> Unable to save this version. " + str(e))
                 flash(message, 'danger')
-    return render_template('datasets/init.html', 
+    return render_template('datasets/init.html',
                            form=form)
+
 
 @datasets_blueprint.route('/branch/<selected>', methods=['GET', 'POST'])
 @login_required
@@ -159,15 +169,15 @@ def branch(selected):
                     categs = Category.list(task[0], parent.name)
                     for parent_categ in categs:
                         child_categ = Category(parent_categ.name,
-                                               version.id, 
+                                               version.id,
                                                task[0],
                                                position=parent_categ.position)
                         db.session.add(child_categ)
                 db.session.commit()
-                #TODO -- copy images from parent version (to join tbl)? Must be able to browse them in new branched version
+                # TODO -- copy images from parent version (to join tbl)? Must be able to browse them in new branched version
                 message = Markup("Saved successfully!")
                 flash(message, 'success')
-                return redirect(url_for('datasets.select', 
+                return redirect(url_for('datasets.select',
                                         selected=version.name))
             except IntegrityError:
                 traceback.print_exc()
@@ -181,8 +191,26 @@ def branch(selected):
                 message = Markup(
                     "<strong>Error!</strong> Unable to save this version. " + str(e))
                 flash(message, 'danger')
-    return render_template('datasets/branch.html', 
+    return render_template('datasets/branch.html',
                            form=form, selected=selected)
+
+
+def import_data(categories: List[str], objects: List[DataItems], selected: str, version: Version) -> None:
+    try:
+        db.session.bulk_save_objects(objects, return_defaults=True)
+        tmp = [TmpTable(item_id=obj.id,
+                        node_name=selected,
+                        category=cat) for obj, cat in zip(objects, categories)]
+        db.session.bulk_save_objects(tmp)
+    except Exception as ex:
+        log.error(ex)
+        db.session.rollback()
+    else:
+        # change status to STAGE which means that version is not empty
+        version.status = 2
+        db.session.commit()
+    return
+
 
 @datasets_blueprint.route('/import/<selected>', methods=['GET', 'POST'])
 @login_required
@@ -195,10 +223,41 @@ def import2ds(selected):
     form = ImportForm(request.form)
     if request.method == 'POST':
         if form.validate_on_submit():
-            # change status to STAGE which means that version is not empty
-            version.status = 2
-            db.session.commit()
-            #TODO implement actual images import. For your convenience:
+            src = form.flocation.data
+            if form.reason.data == 'moderation':
+                objects = []
+                for sample in get_data_samples(src):
+                    item2moderate = Moderation(src=src,
+                                               file=sample.path,
+                                               src_media_type=sample.media_type,
+                                               category=sample.category)
+                    objects.append(item2moderate)
+                try:
+                    db.session.bulk_save_objects(objects, return_defaults=True)
+                    db.session.commit()
+                except Exception as ex:
+                    log.error(ex)
+                    db.session.rollback()
+            else:
+                if form.category_select.data == 'folder':
+                    # TODO: handle exceptions, add s3 source
+                    # вынести куда нибудь commit_batch
+                    commit_batch = 1000
+                    objects, categories = [], []
+                    for sample in get_data_samples(src):
+                        data_item = DataItems(path=sample.path)
+                        objects.append(data_item)
+                        categories.append(sample.category)
+                        if len(objects) == commit_batch:
+                            import_data(categories, objects, selected, version)
+                            objects.clear()
+                    if len(objects):
+                        import_data(categories, objects, selected, version)
+                        objects.clear()
+
+            # version.status = 2
+            # db.session.commit()
+            # TODO implement actual images import. For your convenience:
             print('flocation', form.flocation.data)
             print('reason', form.reason.data)
             print('category_select', form.category_select.data)
@@ -213,11 +272,12 @@ def import2ds(selected):
             print('is_resize', bool(form.is_resize.data))
             print('resize_w', form.resize_w.data)
             print('resize_h', form.resize_w.data)
-            
-            #TODO update categories for current version, based on import results
+
+            # TODO update categories for current version, based on import results
             return redirect(url_for('datasets.select', selected=version.name))
-    return render_template('datasets/import.html', 
+    return render_template('datasets/import.html',
                            form=form, selected=selected, version=version)
+
 
 @datasets_blueprint.route('/commit/<selected>', methods=['GET', 'POST'])
 @login_required
@@ -231,12 +291,17 @@ def commit(selected):
     if request.method == 'POST':
         if form.validate_on_submit():
             try:
+                node_id = Version.query.filter_by(name=selected).with_entities(Version.id).first().id
+                items_to_commit = TmpTable.query.filter_by(node_name=selected).with_entities(TmpTable.item_id).all()
+                objects = [VersionItems(item_id=item.item_id, version_id=node_id) for item in items_to_commit]
+                db.session.bulk_save_objects(objects)
+                TmpTable.query.filter_by(node_name=selected).delete()
                 version.status = 3
                 db.session.commit()
-                #TODO freeze image_id's in joining table
+                # TODO freeze image_id's in joining table
                 message = Markup("Saved successfully!")
                 flash(message, 'success')
-                return redirect(url_for('datasets.select', 
+                return redirect(url_for('datasets.select',
                                         selected=version.name))
             except Exception as e:
                 traceback.print_exc()
@@ -244,8 +309,9 @@ def commit(selected):
                 message = Markup(
                     "<strong>Error!</strong> Unable to commit this version. " + str(e))
                 flash(message, 'danger')
-    return render_template('datasets/commit.html', 
+    return render_template('datasets/commit.html',
                            form=form, selected=selected, version=version)
+
 
 @datasets_blueprint.route('/merge/<selected>', methods=['GET', 'POST'])
 @login_required
@@ -258,9 +324,9 @@ def merge(selected):
     form = MergeForm(request.form)
     parents = Version.query.filter(Version.status == 3) \
                         .order_by(Version.created_at.desc())
-    form.target_select.choices = [(t.name, t.name) 
+    form.target_select.choices = [(t.name, t.name)
                                   for t in parents
-                                  if t.name != selected and 
+                                  if t.name != selected and
                                       not t.is_connected(child)]
     if request.method == 'POST':
         if form.validate_on_submit():
@@ -274,7 +340,7 @@ def merge(selected):
                 #TODO -- update categories for merged branch
                 message = Markup("Saved successfully!")
                 flash(message, 'success')
-                return redirect(url_for('datasets.merge_categs', 
+                return redirect(url_for('datasets.merge_categs',
                                         child=child.name,
                                         parent=version.name))
             except Exception as e:
@@ -283,7 +349,7 @@ def merge(selected):
                 message = Markup(
                     "<strong>Error!</strong> Unable to save this version. " + str(e))
                 flash(message, 'danger')
-    return render_template('datasets/merge.html', 
+    return render_template('datasets/merge.html',
                            form=form, selected=selected)
 
 @datasets_blueprint.route('/merge_categs/<parent>/<child>', methods=['GET', 'POST'])
@@ -345,7 +411,7 @@ def merge_categs(parent, child):
                 db.session.commit()
                 message = Markup("Saved successfully!")
                 flash(message, 'success')
-                return redirect(url_for('datasets.select', 
+                return redirect(url_for('datasets.select',
                                         selected=child.name))
             except Exception as e:
                 traceback.print_exc()
@@ -353,7 +419,7 @@ def merge_categs(parent, child):
                 message = Markup(
                     "<strong>Error!</strong> Unable to save this version. " + str(e))
                 flash(message, 'danger')
-    return render_template('datasets/merge_categs.html', 
-                           categs=categs, 
+    return render_template('datasets/merge_categs.html',
+                           categs=categs,
                            tasks=dict(Category.TASKS()),
                            child=child, parent=parent)
