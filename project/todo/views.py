@@ -44,7 +44,7 @@ def index():
     
     todoitems = ToDoItem.fetch_for_user(current_user.id)
     
-    return render_template('todo/index.html', todoitems=todoitems)
+    return render_template('todo/index.html', todoitems=todoitems, version=version)
 
 @todo_blueprint.route('/take/<item_id>', methods=['POST'])
 @login_required
