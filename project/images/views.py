@@ -1,21 +1,14 @@
 # project/users/views.py
 
 # IMPORTS
-from flask import render_template, Blueprint, request, redirect, url_for, send_from_directory
-from flask import flash, Markup, abort, session
-from sqlalchemy.exc import IntegrityError
-from flask_login import login_user, current_user, login_required, logout_user
-from itsdangerous import URLSafeTimedSerializer
-from threading import Thread
-from flask_mail import Message
-from datetime import datetime, timedelta
-import traceback
+from flask import render_template, Blueprint, redirect, url_for
+from flask import abort, session
+from flask_login import login_required
 
-from project import app, db, mail
-from project.models import User, Version, VersionItems, DataItems
+from project.models import Version, VersionItems, DataItems
 
 # CONFIG
-images_blueprint = Blueprint('images', __name__, 
+images_blueprint = Blueprint('images', __name__,
                              template_folder='templates',
                              url_prefix='/images')
 
@@ -44,13 +37,7 @@ def browse(selected):
         abort(404)
     image_ids = VersionItems.query.filter_by(version_id=8).with_entities(VersionItems.item_id)
     image_items = DataItems.query.filter(DataItems.id.in_(image_ids))
-    return render_template('images/list.html', version=version, image_items=image_items)
-
-
-# @images_blueprint.route('/uploads/<filename>')
-@images_blueprint.route('<filename>')
-def send_file(filename):
-    return send_from_directory("", filename)
+    return render_template('images/index.html', version=version, image_items=image_items)
 
 
 if __name__ == '__main__':
@@ -66,5 +53,3 @@ if __name__ == '__main__':
 
     res = image_paths.all()
     print(res)
-
-    return render_template('images/index.html', version=version)

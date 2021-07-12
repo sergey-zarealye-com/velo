@@ -3,7 +3,7 @@ from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_bcrypt import Bcrypt
-from flask_login import current_user, login_required
+from flask_login import login_required
 from flask_mail import Mail
 from flask_migrate import Migrate
 import os
