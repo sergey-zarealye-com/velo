@@ -34,7 +34,7 @@ if __name__ == "__main__":
             loop,
             'guest',
             'guest',
-            5673
+            5672
         )
     )
     loop.close()
