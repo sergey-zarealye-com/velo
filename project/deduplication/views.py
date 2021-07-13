@@ -25,8 +25,6 @@ dedup_blueprint = Blueprint(
 )
 
 
-print('\t\t', os.environ.get('STORAGE_DIR'))
-
 @dedup_blueprint.route('/uploads/<path:filename>')
 def download_file(filename):
     return send_from_directory(os.environ.get('STORAGE_DIR'), filename, as_attachment=True)
@@ -40,8 +38,6 @@ def task_confirmation(task_id, selected):
 @dedup_blueprint.route('/checkbox', methods=['POST'])
 def print_list():
     selected = request.form.getlist('test_checkbox')
-    print('\tSelected:', selected)
-    print(request.form)
     return redirect('/datasets/select/new_dataset')
 
 

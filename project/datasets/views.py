@@ -17,7 +17,6 @@ import graphviz
 from uuid import uuid4
 import traceback
 
-from .pipeline import pipeline
 from multiprocessing import Process, Queue
 from .rabbitmq_connector import send_message, get_message
 import json
