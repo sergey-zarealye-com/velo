@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from project import app, db, mail
 from project.models import User, Version, Category, ToDoItem, Moderation
 from .utils import natural_sort
+from .forms import NewBatchForm
 
 # CONFIG
 from ..datasets.forms import ImportForm
@@ -106,3 +107,16 @@ def moderate(item_id):
     todo.finished_at = datetime.now()
     db.session.commit()
     return redirect(url_for('todo.index'))
+
+@todo_blueprint.route('/new_batch', methods=['GET', 'POST'])
+@login_required
+def new_batch():
+    form = NewBatchForm(request.form)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            user_id = current_user.id
+            created_at = datetime.now()
+            #TODO -- add queue to download and preprocess videos and create todo items
+            return redirect(url_for('todo.index'))
+    return render_template('todo/new_batch.html',
+                           form=form)

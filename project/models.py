@@ -203,6 +203,16 @@ class Version(db.Model):
                                         parent_id=self.id).first()
         return edge is not None
     
+    def categs_no(self):
+        out = []
+        for task in Category.TASKS():
+            cl = Category.list(task[0], self.name)
+            out.append(task[1])
+            out.append(': <a href="/maintenance/categs_list/' + self.name + '">')
+            out.append(str(len(cl)))
+            out.append('</a> ')
+        return ''.join(out)
+    
 class VersionChildren(db.Model):
     __tablename__ = 'version_children'
     child_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False, primary_key=True)
