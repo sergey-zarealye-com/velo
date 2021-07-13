@@ -1,5 +1,7 @@
 {% extends "_base.html" %}
-{% block title %}Edit category{% endblock %}
+{% block title %}Edit category
+<a href="{{url_for('maintenance.categ_del', category_id=categ.id)}}" role="button" class="btn btn-danger float-right">Delete category</a>
+{% endblock %}
 {% from "_formshelper.html" import render_field %}
 {% block content %}
 

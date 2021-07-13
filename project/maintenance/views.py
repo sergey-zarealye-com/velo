@@ -205,3 +205,35 @@ def categ_down(category_id):
         flash(message, 'danger')
     return redirect(url_for('maintenance.categs_list', 
                                 selected=version.name))
+
+@maintenance_blueprint.route('/category/del/<category_id>')
+@login_required
+def categ_del(category_id):
+    categ = Category.query.get(category_id)
+    if categ is None:
+        abort(404)
+    version = categ.version
+    if version.status in [3]:
+        message = Markup(
+            "<strong>Warning!</strong> Unable to edit category to committed version. ")
+        flash(message, 'warning')
+        return redirect(url_for('maintenance.categs_list', 
+                                selected=version.name))
+    try:
+        categ_list = Category.list(categ.task, version.name)
+        upd = []
+        for i in range(categ.position + 1, len(categ_list)):
+            categ_list[i].position -= 1
+            upd.append(categ_list[i])
+        db.session.delete(categ)
+        db.session.commit()
+        message = Markup("Saved successfully!")
+        flash(message, 'success')
+    except Exception as e:
+        traceback.print_exc()
+        db.session.rollback()
+        message = Markup(
+            "<strong>Error!</strong> Unable to delete this category. " + str(e))
+        flash(message, 'danger')
+    return redirect(url_for('maintenance.categs_list', 
+                                selected=version.name))
