@@ -6,3 +6,9 @@ class AddCategoryForm(FlaskForm):
     name = StringField('Name', 
                      validators=[DataRequired(),
                                  Length(min=1, max=254)])
+    
+class EditCategoryForm(FlaskForm):
+    name = StringField('Name', 
+                     validators=[DataRequired(),
+                                 Length(min=1, max=254)])
+    

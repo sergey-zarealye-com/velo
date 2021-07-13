@@ -25,7 +25,13 @@
             </div>
             <ul class="list-group list-group-flush">
                 {% for categ in categs[task] %}
-                    <li class="list-group-item">{{categ.name}}</li>
+                    <li class="list-group-item">{{categ.name}}
+                        <div class="btn-group btn-group-sm float-right" role="group" aria-label="Basic example">
+                          <a href="{{url_for('maintenance.categ_edit', category_id=categ.id)}}" class="btn btn-light"><i class="far fa-edit"></i></a>
+                          <a href="{{url_for('maintenance.categ_up', category_id=categ.id)}}" class="btn btn-light"><i class="fas fa-arrow-up"></i></a>
+                          <a href="{{url_for('maintenance.categ_down', category_id=categ.id)}}" class="btn btn-light"><i class="fas fa-arrow-down"></i></a>
+                        </div>
+                    </li>
                 {% endfor %}
             </ul>
             <a href="{{url_for('maintenance.categ_add', selected=version.name, task_id=task)}}" 

@@ -250,14 +250,18 @@ class Category(db.Model):
         if position is not None:
             self.position = position
         else:
-            last_categ = Category.query \
-                .filter_by(version_id=version_id, task=task) \
-                .order_by(Category.position.desc()) \
-                .first()
+            last_categ = Category.get_last(version_id, task)
             if last_categ is None:
                 self.position = 0
             else:
                 self.position = last_categ.position + 1
+                
+    @staticmethod
+    def get_last(version_id, task):
+        return Category.query \
+                .filter_by(version_id=version_id, task=task) \
+                .order_by(Category.position.desc()) \
+                .first()
         
     @staticmethod
     def list(task, version_name):
