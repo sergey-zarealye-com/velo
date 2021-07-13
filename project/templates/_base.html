@@ -23,16 +23,16 @@
         <ul class="navbar-nav mr-auto">
           {% if current_user.is_authenticated %}
           <li class="nav-item {% if 'datasets' in request.path %}active{% endif %}">
-            <a class="nav-link" href="{{ url_for('datasets.list') }}">Datasets</a>
+            <a class="nav-link" href="{{ url_for('datasets.index') }}">Datasets</a>
           </li>
           <li class="nav-item {% if 'images' in request.path %}active{% endif %}">
-            <a class="nav-link" href="{{ url_for('images.list') }}">Browse</a>
+            <a class="nav-link" href="{{ url_for('images.index') }}">Browse</a>
           </li>
           <li class="nav-item {% if 'maintenance' in request.path %}active{% endif %}">
             <a class="nav-link" href="{{ url_for('maintenance.index') }}">Maintenance</a>
           </li>
           <li class="nav-item {% if 'todo' in request.path %}active{% endif %}">
-            <a class="nav-link" href="{{ url_for('todo.list') }}">ToDo</a>
+            <a class="nav-link" href="{{ url_for('todo.index') }}">ToDo</a>
           </li>
           
           <li class="nav-item dropdown">

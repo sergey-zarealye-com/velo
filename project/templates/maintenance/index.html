@@ -16,10 +16,23 @@
   </li>
 </ul>
 
-<ul class="list-group list-group-flush">
-{% for category in categs %}
-  <li class="list-group-item">{{category.name}}</li>
-{% endfor %}  
-</ul>
+<div class="card-columns">
+    {% for task in categs.keys() %}
+        <div class="card m-4">
+            
+            <div class="card-header">
+                {{tasks[task]}}
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for categ in categs[task] %}
+                    <li class="list-group-item">{{categ.name}}</li>
+                {% endfor %}
+            </ul>
+            <a href="{{url_for('maintenance.categ_add', selected=version.name, task_id=task)}}" 
+                class="btn btn-primary btn-small m-4">Add category
+            </a>
+        </div>
+    {% endfor %}
+</div>
 
 {% endblock %}

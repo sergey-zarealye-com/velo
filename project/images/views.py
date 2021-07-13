@@ -1,7 +1,8 @@
 # project/users/views.py
 
 # IMPORTS
-from flask import render_template, Blueprint, request, redirect, url_for, flash, Markup, abort
+from flask import render_template, Blueprint, request, redirect, url_for
+from flask import flash, Markup, abort, session
 from sqlalchemy.exc import IntegrityError
 from flask_login import login_user, current_user, login_required, logout_user
 from itsdangerous import URLSafeTimedSerializer
@@ -21,10 +22,13 @@ images_blueprint = Blueprint('images', __name__,
 
 
 # ROUTES
-@images_blueprint.route('/list')
+@images_blueprint.route('/index')
 @login_required
-def list():
-    first_one = Version.get_first()
+def index():
+    if 'selected_version' in session:
+        first_one = Version.query.filter_by(name=session['selected_version']).first()
+    else:
+        first_one = Version.get_first()
     if first_one is None:
         abort(404)
     return redirect(url_for('images.browse', selected=first_one.name))
@@ -32,7 +36,10 @@ def list():
 @images_blueprint.route('/browse/<selected>')
 @login_required
 def browse(selected):    
-    version = Version.query.filter_by(name=selected).first()
+    if 'selected_version' in session:
+        version = Version.query.filter_by(name=session['selected_version']).first()
+    else:
+        version = Version.query.filter_by(name=selected).first()
     if version is None:
         abort(404)
-    return render_template('images/list.html', version=version)    
+    return render_template('images/index.html', version=version)    

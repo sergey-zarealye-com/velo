@@ -1,6 +1,7 @@
 from project import db, bcrypt
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 from sqlalchemy.dialects.postgresql import JSON
+from sqlalchemy import and_, or_
 from datetime import datetime
 import re
 
@@ -132,14 +133,24 @@ class Version(db.Model):
     
     @staticmethod    
     def nodes_def(sel, url_prefix='/datasets/select'):
-        TPL1 = '%(id)s[URL="%(prefix)s/%(id)s", style="bold"];\n'
-        TPL2 = '%(id)s[URL="%(prefix)s/%(id)s"];'
+        STYLE_SEL = 'filled'
+        COLOR = 'white'
+        COLOR_SEL = 'lightgrey'
+        STYLE_COMMIT = 'bold'
+        TPL = '%(id)s[URL="%(prefix)s/%(id)s", style="%(style)s", fillcolor="%(color)s"];\n'
         out = []
         for v in Version.versions():
+            style = []
+            color = COLOR
             if v.name == sel:
-                out.append(TPL1 % dict(id=v.name, prefix=url_prefix))
-            else:
-                out.append(TPL2 % dict(id=v.name, prefix=url_prefix))
+                style.append(STYLE_SEL)
+                color = COLOR_SEL
+            if v.status == 3:
+                style.append(STYLE_COMMIT)
+            out.append(TPL % dict(id=v.name, 
+                                   prefix=url_prefix,
+                                   style = ','.join(style),
+                                   color=color))
         return ''.join(out)
     
     @staticmethod
@@ -170,6 +181,7 @@ class Version(db.Model):
             out['init'] = True
             out['edit'] = True
             out['import'] = True
+            out['merge'] = True
         elif self.status == 2:
             out['init'] = True
             out['edit'] = True
@@ -177,13 +189,18 @@ class Version(db.Model):
             out['split'] = True
             out['commit'] = True
             out['browse'] = True
+            out['merge'] = True
         elif self.status == 3:
             out['branch'] = True
-            out['merge'] = True
             out['init'] = True
             out['checkout'] = True
             out['browse'] = True
         return out
+    
+    def is_connected(self, child):
+        edge = VersionChildren.query.filter_by(child_id=child.id, 
+                                        parent_id=self.id).first()
+        return edge is not None
     
 class VersionChildren(db.Model):
     __tablename__ = 'version_children'
@@ -202,20 +219,89 @@ class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     version_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False)
     name = db.Column(db.String, unique=False, nullable=False)
+    task = db.Column(db.SmallInteger, nullable=False) # 1=CV classes, 2=NLP classes
+    position = db.Column(db.Integer, nullable=False) # position related to Model outputs, numbering starts from ZERO
     
     version = db.relationship("Version")
     
-    def __init__(self, name, version_id):
+    @staticmethod
+    def TASKS():
+        return [(1, 'Vision'), 
+                (2, 'NLP')]
+    
+    def __init__(self, name, version_id, task, position=None):
         self.name = name
         self.version_id = version_id
+
+        self.task = task
+        if position is not None:
+            self.position = position
+        else:
+            last_categ = Category.query \
+                                .filter_by(version_id=version_id, task=task) \
+                                .order_by(Category.position.desc()) \
+                                .first()
+            if last_categ is None:
+                self.position = 0
+            else:
+                self.position = last_categ.position + 1
+        
+    @staticmethod
+    def list(task, version_name):
+        version = Version.query.filter_by(name=version_name).first()
+        if version is None:
+            return []
+        return Category.query \
+                    .filter_by(version_id=version.id, task=task) \
+                    .order_by(Category.position) \
+                    .all()
+
+class ToDoItem(db.Model):
+    __tablename__ = 'todo_items'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    version_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False)
+    started_at = db.Column(db.DateTime, nullable=True)
+    finished_at = db.Column(db.DateTime, nullable=True)
+    file_path = db.Column(db.String, unique=True, nullable=False)
+    title = db.Column(db.String, unique=False, nullable=True)
+    description = db.Column(db.String, unique=False, nullable=True)
+    audio_text = db.Column(db.String, unique=False, nullable=True)
+    gt_category = db.Column(db.String, unique=False, nullable=False)
+    assigned_categories_json = db.Column(db.String, unique=False, nullable=True)
+    
+    user = db.relationship("User")
+    version = db.relationship("Version")
+
+    def __init__(self, file_path, title, description, gt_category):
+        self.file_path = file_path
+        self.title = title
+        self.description = description
+        self.gt_category = gt_category
+        self.created_at = datetime.now()
+        self.user_id = None
+        self.version_id = None
+        self.assigned_categories_json = None
+        
+    @staticmethod
+    def fetch_for_user(user_id, skip=0, limit=25):
+        return ToDoItem.query.filter(or_(
+            ToDoItem.started_at.is_(None),
+            and_(
+                ToDoItem.started_at.isnot(None),  
+                ToDoItem.finished_at.is_(None),  
+                ToDoItem.user_id == user_id
+            )
+        )).order_by(ToDoItem.created_at) \
+            .limit(limit).offset(skip)
 
 
 class Deduplication(db.Model):
     __tablename__ = 'deduplication'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    # user who has created this task
     task_uid = db.Column(db.String)
+    # user who has created this task
     # user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    # 0 - just started 1 - finished
     stages_status = db.Column(JSON)
     result = db.Column(JSON)

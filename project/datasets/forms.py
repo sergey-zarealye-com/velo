@@ -71,4 +71,6 @@ class CommitForm(FlaskForm):
     pass
 
 class MergeForm(FlaskForm):
-    target_select = SelectField('Merge into', coerce=str)
+    target_select = SelectField('Merge from', coerce=str)
+    
+    
