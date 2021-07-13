@@ -52,12 +52,5 @@ class CommitForm(FlaskForm):
     pass
 
 
-
-class ImportLabelMap(FlaskForm):
-    path = StringField('Path',
-                       validators=[DataRequired(),
-                                   Length(min=1, max=254)])
-
-
 class MergeForm(FlaskForm):
     target_select = SelectField('Merge from', coerce=str)

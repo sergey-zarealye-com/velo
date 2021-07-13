@@ -2,7 +2,7 @@ import enum
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Generator, List
+from typing import Generator, Dict, Union
 
 from project.video_utils import ffmpeg_job
 
@@ -13,10 +13,8 @@ audio_extensions = ['.mp3', '.wav']
 
 # TODO: в конфиг
 OUT_DIR = Path("./project/static/images/tmp")
-
-
-# if not OUT_DIR.exists():
-#     OUT_DIR.mkdir()
+if not OUT_DIR.exists():
+    OUT_DIR.mkdir()
 
 
 class MediaType(str, enum.Enum):
@@ -33,7 +31,7 @@ class MediaType(str, enum.Enum):
 @dataclass
 class DataSample:
     path: str
-    category: str
+    category: Union[str, int]
     media_type: MediaType
 
 
@@ -45,7 +43,7 @@ def get_media_type(file: Path) -> MediaType:
     return MediaType.VIDEO
 
 
-def get_data_samples(data_path: str, labels: List[str]) -> Generator[DataSample, None, None]:
+def get_data_samples(data_path: str, labels: Dict[str, int]) -> Generator[DataSample, None, None]:
     data_path = Path(data_path)
     # если это один файл
     if data_path.is_file():
@@ -67,5 +65,5 @@ def get_data_samples(data_path: str, labels: List[str]) -> Generator[DataSample,
                 for file in item.iterdir():
                     if file.is_file():
                         media_type = get_media_type(file)
-                        sample = DataSample(str(file), label, media_type)
+                        sample = DataSample(str(file), labels[label], media_type)
                         yield sample

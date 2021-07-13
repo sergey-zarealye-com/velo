@@ -1,6 +1,6 @@
-from typing import List, Tuple
+from typing import List, Dict
 
-from project.models import VersionChildren, Category
+from project.models import VersionChildren, DataItems, VersionItems
 
 
 def get_nodes_above(sess, node_id) -> List[int]:
@@ -21,9 +21,21 @@ def get_nodes_above(sess, node_id) -> List[int]:
     return sorted(list(set([item for t in q for item in t])))
 
 
-def get_labels_of_version(version: int) -> List[Tuple[int, str]]:
+def get_items_of_nodes(node_ids: List[int]) -> List[DataItems]:
+    item_ids = VersionItems \
+        .query \
+        .filter(VersionItems.version_id.in_(node_ids)) \
+        .with_entities(VersionItems.item_id) \
+        .all()
+    return DataItems.query.filter(DataItems.id.in_(item_ids)).all()
+
+
+def get_labels_of_version(version: int) -> Dict[str, int]:
+    """
+    return: {'erotic': 0, 'fighting': 1, ...}
+    """
     labels = Category.query.filter(Category.version_id == version).with_entities(Category.name, Category.id).all()
-    return [(item.id, item.name) for item in labels]
+    return {item.name: item.id for item in labels}
 
 
 if __name__ == '__main__':
@@ -35,5 +47,5 @@ if __name__ == '__main__':
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    res = get_labels_of_version(1)
-    print(res)
+    res = get_nodes_above(session, 2)
+    items = get_items_of_nodes(res)

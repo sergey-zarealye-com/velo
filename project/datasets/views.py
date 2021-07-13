@@ -12,12 +12,12 @@ from flask_login import current_user, login_required
 
 from project import db
 from project.models import Version, VersionChildren, DataItems, TmpTable, VersionItems, Category, Moderation
-from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm, ImportLabelMap
+from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm
 import graphviz
 from uuid import uuid4
 import traceback
 
-from .queries import get_labels_of_version
+from .queries import get_labels_of_version, get_nodes_above, get_items_of_nodes
 from .utils import get_data_samples
 
 log = logging.getLogger(__name__)
@@ -202,7 +202,7 @@ def import_data(categories: List[str], objects: List[DataItems], selected: str, 
         db.session.bulk_save_objects(objects, return_defaults=True)
         tmp = [TmpTable(item_id=obj.id,
                         node_name=selected,
-                        category=cat) for obj, cat in zip(objects, categories)]
+                        category_id=cat) for obj, cat in zip(objects, categories)]
         db.session.bulk_save_objects(tmp)
     except Exception as ex:
         log.error(ex)
@@ -226,13 +226,12 @@ def import2ds(selected):
     if request.method == 'POST':
         if form.validate_on_submit():
             src = form.flocation.data
-            id_labels = get_labels_of_version(version.id)
-            labels = [item[1] for item in id_labels]
+            label_ids = get_labels_of_version(version.id)
             if form.reason.data == 'moderation':
                 objects, version_objects = [], []
                 category = form.category.choices[form.category.data - 1][1]
                 general_category = form.general_category.data
-                for sample in get_data_samples(src, labels):
+                for sample in get_data_samples(src, label_ids):
                     item2moderate = Moderation(src=src,
                                                file=sample.path,
                                                src_media_type=sample.media_type,
@@ -251,16 +250,18 @@ def import2ds(selected):
                     # вынести куда нибудь commit_batch
                     commit_batch = 1000
                     objects, categories = [], []
-                    for sample in get_data_samples(src, labels):
+                    for sample in get_data_samples(src, label_ids):
                         data_item = DataItems(path=sample.path)
                         objects.append(data_item)
                         categories.append(sample.category)
                         if len(objects) == commit_batch:
                             import_data(categories, objects, selected, version)
                             objects.clear()
+                            categories.clear()
                     if len(objects):
                         import_data(categories, objects, selected, version)
                         objects.clear()
+                        categories.clear()
 
             # version.status = 2
             # db.session.commit()
@@ -300,8 +301,14 @@ def commit(selected):
         if form.validate_on_submit():
             try:
                 node_id = Version.query.filter_by(name=selected).with_entities(Version.id).first().id
-                items_to_commit = TmpTable.query.filter_by(node_name=selected).with_entities(TmpTable.item_id).all()
-                objects = [VersionItems(item_id=item.item_id, version_id=node_id) for item in items_to_commit]
+                items_to_commit = TmpTable.query \
+                    .filter_by(node_name=selected) \
+                    .with_entities(TmpTable.item_id, TmpTable.category_id) \
+                    .all()
+
+                objects = [VersionItems(item_id=item.item_id,
+                                        version_id=node_id,
+                                        category_id=item.category_id) for item in items_to_commit]
                 db.session.bulk_save_objects(objects)
                 TmpTable.query.filter_by(node_name=selected).delete()
                 version.status = 3
@@ -318,20 +325,6 @@ def commit(selected):
                     "<strong>Error!</strong> Unable to commit this version. " + str(e))
                 flash(message, 'danger')
     return render_template('datasets/commit.html',
-                           form=form, selected=selected, version=version)
-
-
-@datasets_blueprint.route('/labelmap/<selected>', methods=['GET', 'POST'])
-@login_required
-def labelmap(selected):
-    version = Version.query.filter_by(name=selected).first()
-    if version is None:
-        abort(404)
-    form = ImportLabelMap(request.form)
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            pass
-    return render_template('datasets/label_import.html',
                            form=form, selected=selected, version=version)
 
 
@@ -446,3 +439,15 @@ def merge_categs(parent, child):
                            categs=categs,
                            tasks=dict(Category.TASKS()),
                            child=child, parent=parent)
+
+
+@datasets_blueprint.route('/checkout/<selected>', methods=['GET', 'POST'])
+@login_required
+def checkout(selected):
+    """Получить список DataItems выбранной версии"""
+    version = Version.query.filter_by(name=selected).first()
+    if version is None:
+        abort(404)
+    nodes = get_nodes_above(db.session, version.id)
+    data_items = get_items_of_nodes(nodes)
+    return redirect(url_for('datasets.select', selected=version.name))

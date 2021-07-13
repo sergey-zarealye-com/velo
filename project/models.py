@@ -177,14 +177,13 @@ class Version(db.Model):
 
     def actions_dict(self):
         actions = ['init', 'edit', 'import', 'split', 'commit',
-                   'branch', 'merge', 'checkout', 'browse', 'label_map']
+                   'branch', 'merge', 'checkout', 'browse']
         out = dict([(a, False) for a in actions])
         if self.status == 1:
             out['init'] = True
             out['edit'] = True
             out['import'] = True
             out['merge'] = True
-            out['label_map'] = True
         elif self.status == 2:
             out['init'] = True
             out['edit'] = True
@@ -193,7 +192,6 @@ class Version(db.Model):
             out['commit'] = True
             out['browse'] = True
             out['merge'] = True
-            out['label_map'] = True
         elif self.status == 3:
             out['branch'] = True
             out['init'] = True
@@ -288,7 +286,7 @@ class VersionItems(db.Model):
     __tablename__ = 'version_items'
     item_id = db.Column(db.Integer, db.ForeignKey('data_items.id'), nullable=False)
     version_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False)
-    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
     __table_args__ = (
         PrimaryKeyConstraint('item_id', 'version_id'),
     )
@@ -298,10 +296,9 @@ class TmpTable(db.Model):
     __tablename__ = 'tmp_table'
     item_id = db.Column(db.Integer, db.ForeignKey('data_items.id'), nullable=False)
     node_name = db.Column(db.String, db.ForeignKey('versions.name'), nullable=False)
-    # TODO: make category as ForeignKey
-    category = db.Column(db.String, nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
     __table_args__ = (
-        PrimaryKeyConstraint('item_id', 'node_name', 'category'),
+        PrimaryKeyConstraint('item_id', 'node_name'),
     )
 
 
