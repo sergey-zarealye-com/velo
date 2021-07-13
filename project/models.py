@@ -217,5 +217,5 @@ class Deduplication(db.Model):
     task_uid = db.Column(db.String)
     # user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     # 0 - just started 1 - finished
-    status = db.Column(db.SmallInteger, nullable=False)
+    stages_status = db.Column(JSON)
     result = db.Column(JSON)

@@ -1,7 +1,6 @@
 from connectors import run_async_rabbitmq_connection
-from improsch.pipeline import build_pipeline
+from improsch.pipeline import Preprocessor
 from functools import partial
-from conveyor import build_conveyor, handle_config
 import json
 import aio_pika
 import asyncio
@@ -51,8 +50,7 @@ def run(pipeline, login: str, passw: str, port: int):
     async def print_pipeline_result(request):
         print('\tGot request:')
         print(request)
-        img_dir = request["directory"]
-        result = pipeline(img_dir, request['id'])
+        result = pipeline(request)
 
         result['id'] = request['id']
         result['type'] = 'result'
@@ -78,6 +76,12 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     config = parse_config(args.config)
+    processor = Preprocessor(
+        storage_path=config['storage_path'],
+        saving_pool_size=config['saving_pool_size'],
+        dedup_batch_size=config['dedup_batch_size'],
+        dedup_index_path=config['dedup_index_path']
+    )
 
     run_func = partial(
         run,
@@ -86,11 +90,4 @@ if __name__ == '__main__':
         port=config['rabbit_port']
     )
 
-    build_conveyor(
-        config,
-        args.pipeline,
-        handle_config,
-        params_mapper,
-        build_pipeline,
-        run_func
-    )
+    run(processor.preprocessing, login=config['rabbit_login'], passw=config['rabbit_passw'], port=config['rabbit_port'])

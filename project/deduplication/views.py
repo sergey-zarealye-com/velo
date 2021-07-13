@@ -49,12 +49,13 @@ def show_dedup(task_id):
         abort(404)
 
     if task.result is None:
-        return render_template('datasets/taskPending.html', task_id=task.task_uid)
+        statuses = task.stages_status
+        return render_template('datasets/taskPending.html', task_id=task.task_uid, statuses=statuses)
 
     page_length = request.args.get("num_items")
     page_num = request.args.get("page_num")
 
-    dedup_result = task.result['deduplication'][0]
+    dedup_result = task.result['deduplication']
     images = [
         {
             'item_index': i,

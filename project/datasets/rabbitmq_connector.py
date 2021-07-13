@@ -25,8 +25,7 @@ def send_message(queue_name: str, queue):
                 task_id, message = queue.get()  # blocking operation
 
                 new_task_entry = Deduplication(
-                    task_uid=task_id,
-                    status=0
+                    task_uid=task_id
                 )
                 db.session.add(new_task_entry)
                 db.session.commit()
@@ -65,15 +64,21 @@ def get_message(queue_name: str, queue):
             async with rabbit_queue.iterator() as queue_iter:
                 async for message in queue_iter:
                     async with message.process():
-                        print("\tGot response:")
                         response = json.loads(message.body.decode('utf-8'))
                         task_id = response['id']
                         task_entry = Deduplication.query.filter_by(task_uid=task_id).first()
 
                         if task_entry:
-                            print(response)
-                            task_entry.result = response
-                            queue.put(response)
-                            db.session.commit()
+                            if response['type'] == 'result':
+                                print('\tGot result:')
+                                print(response)
+                                task_entry.result = response
+                                queue.put(response)
+                                db.session.commit()
+                            elif response['type'] == 'status_update':
+                                print('\t Got status update')
+                                print(response)
+                                task_entry.stages_status = response
+                                db.session.commit()
 
     loop.run_until_complete(func(loop, queue_name, queue))

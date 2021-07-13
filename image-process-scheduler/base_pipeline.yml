@@ -7,7 +7,7 @@ stages:
 filter_func:
   function: true
   args:
-    min_size: [224, 224]
+    - min_size
 
 read:
   args:
@@ -18,7 +18,7 @@ read:
 
 resize:
   args:
-    dst_size: [224, 224]
+    - dst_size
   inputs:
     - images
   outputs:

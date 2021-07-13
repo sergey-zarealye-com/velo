@@ -1,4 +1,7 @@
 storage_path: /storage1/mrowl/image_storage/
+dedup_index_path: /storage1/mrowl/image_indexes/
+saving_pool_size: 3
+dedup_batch_size: 64
 rabbit_login: guest
 rabbit_passw: guest
 rabbit_port: 5673
