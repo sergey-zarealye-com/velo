@@ -10,6 +10,7 @@
           {% if is_active['browse'] %}<a class="nav-item nav-link active m-2" href="{{url_for('images.browse', selected=version.name)}}">Browse</a>{% endif %}
           {% if is_active['init'] %}<a class="nav-item nav-link active m-2" href="{{url_for('datasets.init')}}">Init</a>{% endif %}
           {% if is_active['edit'] %}<a class="nav-item nav-link active m-2" href="{{url_for('datasets.edit', selected=version.name)}}">Edit</a>{% endif %}
+          {% if is_active['label_map'] %}<a class="nav-item nav-link active m-2" href="{{url_for('datasets.labelmap', selected=version.name)}}">Import label map</a>{% endif %}
           {% if is_active['branch'] %}<a class="nav-item nav-link active m-2" href="{{url_for('datasets.branch', selected=version.name)}}">Branch</a>{% endif %}
           {% if is_active['commit'] %}<a class="nav-item nav-link active m-2" href="{{url_for('datasets.commit', selected=version.name)}}">Commit</a>{% endif %}
           {% if is_active['merge'] %}<a class="nav-item nav-link active m-2" href="{{url_for('datasets.merge', selected=version.name)}}">Merge</a>{% endif %}
@@ -29,6 +30,6 @@
         {{ maptext | safe }}
     </div>
   </div>
-</div> 
+</div>
 
 {% endblock %}

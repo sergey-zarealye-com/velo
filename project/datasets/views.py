@@ -12,11 +12,12 @@ from flask_login import current_user, login_required
 
 from project import db
 from project.models import Version, VersionChildren, DataItems, TmpTable, VersionItems, Category, Moderation
-from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm
+from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm, ImportLabelMap
 import graphviz
 from uuid import uuid4
 import traceback
 
+from .queries import get_labels_of_version
 from .utils import get_data_samples
 
 log = logging.getLogger(__name__)
@@ -56,6 +57,7 @@ def select(selected):
                            rnd=str(uuid4()),
                            version=version,
                            is_active=is_active)
+
 
 @datasets_blueprint.route('/index')
 @login_required
@@ -163,8 +165,8 @@ def branch(selected):
                 vc = VersionChildren(version.id, parent.id)
                 db.session.add(vc)
                 db.session.commit()
-                #Copy categories from parent version:
-                #TODO inefficient, in case of error rollback not possible and new version is already created!
+                # Copy categories from parent version:
+                # TODO inefficient, in case of error rollback not possible and new version is already created!
                 for task in Category.TASKS():
                     categs = Category.list(task[0], parent.name)
                     for parent_categ in categs:
@@ -224,11 +226,13 @@ def import2ds(selected):
     if request.method == 'POST':
         if form.validate_on_submit():
             src = form.flocation.data
+            id_labels = get_labels_of_version(version.id)
+            labels = [item[1] for item in id_labels]
             if form.reason.data == 'moderation':
-                objects = []
-                category = form.category.choices[form.category.data-1][1]
+                objects, version_objects = [], []
+                category = form.category.choices[form.category.data - 1][1]
                 general_category = form.general_category.data
-                for sample in get_data_samples(src):
+                for sample in get_data_samples(src, labels):
                     item2moderate = Moderation(src=src,
                                                file=sample.path,
                                                src_media_type=sample.media_type,
@@ -247,7 +251,7 @@ def import2ds(selected):
                     # вынести куда нибудь commit_batch
                     commit_batch = 1000
                     objects, categories = [], []
-                    for sample in get_data_samples(src):
+                    for sample in get_data_samples(src, labels):
                         data_item = DataItems(path=sample.path)
                         objects.append(data_item)
                         categories.append(sample.category)
@@ -317,6 +321,20 @@ def commit(selected):
                            form=form, selected=selected, version=version)
 
 
+@datasets_blueprint.route('/labelmap/<selected>', methods=['GET', 'POST'])
+@login_required
+def labelmap(selected):
+    version = Version.query.filter_by(name=selected).first()
+    if version is None:
+        abort(404)
+    form = ImportLabelMap(request.form)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            pass
+    return render_template('datasets/label_import.html',
+                           form=form, selected=selected, version=version)
+
+
 @datasets_blueprint.route('/merge/<selected>', methods=['GET', 'POST'])
 @login_required
 def merge(selected):
@@ -327,11 +345,11 @@ def merge(selected):
         abort(400)
     form = MergeForm(request.form)
     parents = Version.query.filter(Version.status == 3) \
-                        .order_by(Version.created_at.desc())
+        .order_by(Version.created_at.desc())
     form.target_select.choices = [(t.name, t.name)
                                   for t in parents
                                   if t.name != selected and
-                                      not t.is_connected(child)]
+                                  not t.is_connected(child)]
     if request.method == 'POST':
         if form.validate_on_submit():
             try:
@@ -341,7 +359,7 @@ def merge(selected):
                 vc = VersionChildren(child.id, version.id)
                 db.session.add(vc)
                 db.session.commit()
-                #TODO -- update categories for merged branch
+                # TODO -- update categories for merged branch
                 message = Markup("Saved successfully!")
                 flash(message, 'success')
                 return redirect(url_for('datasets.merge_categs',
@@ -355,6 +373,7 @@ def merge(selected):
                 flash(message, 'danger')
     return render_template('datasets/merge.html',
                            form=form, selected=selected)
+
 
 @datasets_blueprint.route('/merge_categs/<parent>/<child>', methods=['GET', 'POST'])
 @login_required

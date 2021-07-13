@@ -1,7 +1,6 @@
-from typing import List
+from typing import List, Tuple
 
-from project.models import VersionChildren
-from project.models import Moderation
+from project.models import VersionChildren, Category
 
 
 def get_nodes_above(sess, node_id) -> List[int]:
@@ -22,14 +21,19 @@ def get_nodes_above(sess, node_id) -> List[int]:
     return sorted(list(set([item for t in q for item in t])))
 
 
+def get_labels_of_version(version: int) -> List[Tuple[int, str]]:
+    labels = Category.query.filter(Category.version_id == version).with_entities(Category.name, Category.id).all()
+    return [(item.id, item.name) for item in labels]
+
+
 if __name__ == '__main__':
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
+    from project.models import Category, Moderation
 
     engine = create_engine("postgresql://velo:123@localhost:5432/velo")
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    q = Moderation.query.distinct("src").all()
-    for item in q:
-        print(item)
+    res = get_labels_of_version(1)
+    print(res)

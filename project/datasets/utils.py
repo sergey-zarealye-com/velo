@@ -1,17 +1,22 @@
 import enum
+import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Generator
+from typing import Generator, List
 
 from project.video_utils import ffmpeg_job
+
+log = logging.getLogger(__name__)
 
 image_extensions = ['.jpg', '.png', '.bmp']
 audio_extensions = ['.mp3', '.wav']
 
 # TODO: в конфиг
 OUT_DIR = Path("./project/static/images/tmp")
-if not OUT_DIR.exists():
-    OUT_DIR.mkdir()
+
+
+# if not OUT_DIR.exists():
+#     OUT_DIR.mkdir()
 
 
 class MediaType(str, enum.Enum):
@@ -40,7 +45,7 @@ def get_media_type(file: Path) -> MediaType:
     return MediaType.VIDEO
 
 
-def get_data_samples(data_path: str) -> Generator[DataSample, None, None]:
+def get_data_samples(data_path: str, labels: List[str]) -> Generator[DataSample, None, None]:
     data_path = Path(data_path)
     # если это один файл
     if data_path.is_file():
@@ -56,6 +61,9 @@ def get_data_samples(data_path: str) -> Generator[DataSample, None, None]:
         for item in data_path.iterdir():
             if item.is_dir():
                 label = item.name
+                if label not in labels:
+                    log.warning(f"Folder name {label} not in labels of current version")
+                    continue
                 for file in item.iterdir():
                     if file.is_file():
                         media_type = get_media_type(file)
