@@ -1,0 +1,43 @@
+stages:
+  - read
+  - resize
+  - save
+  - deduplication
+
+filter_func:
+  function: true
+  args:
+    min_size: [224, 224]
+
+read:
+  args:
+    - filter_func
+  outputs:
+    - images
+    - imagenames
+
+resize:
+  args:
+    dst_size: [224, 224]
+  inputs:
+    - images
+  outputs:
+    - resized_images
+
+save:
+  task_id: true
+  inputs:
+    - resized_images
+    - imagenames
+  outputs:
+    - storage_imagenames
+
+deduplication:
+  nullsrc:
+    data_dir
+  args:
+    batch_size: 64
+  inputs:
+    - resized_images
+    - storage_imagenames
+  outputs:

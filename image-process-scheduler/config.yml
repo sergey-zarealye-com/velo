@@ -1,0 +1,4 @@
+storage_path: /storage1/mrowl/image_storage/
+rabbit_login: guest
+rabbit_passw: guest
+rabbit_port: 5673
