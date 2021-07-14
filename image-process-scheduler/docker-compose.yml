@@ -11,6 +11,6 @@ services:
         depends_on:
             - rabbit
         volumes:
-            - /storage1/mrowl/smoke/:/image_storage
-            - /storage1/mrowl/dedup_index/:/dedup_index
+            - <image_dir>:/image_storage
+            - <dedup_dir>:/dedup_index
         runtime: nvidia
