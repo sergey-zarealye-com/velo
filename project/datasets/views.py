@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import List
+from typing import List, Dict
 
 from flask import render_template, Blueprint, request, redirect, url_for
 from flask import flash, Markup, abort, session
@@ -21,7 +21,6 @@ import uuid
 from .queries import get_labels_of_version, get_nodes_above, get_items_of_nodes
 from .utils import get_data_samples
 
-
 # Processes for communication module
 sending_queue: Queue = Queue()
 sending_process = Process(
@@ -36,7 +35,6 @@ pulling_process = Process(
     args=('deduplication_result_1', pulling_queue)
 )
 pulling_process.start()
-
 
 log = logging.getLogger(__name__)
 
@@ -282,20 +280,7 @@ def import2ds(selected):
 
                     # TODO: handle exceptions, add s3 source
                     # вынести куда нибудь commit_batch
-                    commit_batch = 1000
-                    objects, categories = [], []
-                    for sample in get_data_samples(src, label_ids):
-                        data_item = DataItems(path=sample.path)
-                        objects.append(data_item)
-                        categories.append(sample.category)
-                        if len(objects) == commit_batch:
-                            import_data(categories, objects, selected, version)
-                            objects.clear()
-                            categories.clear()
-                    if len(objects):
-                        import_data(categories, objects, selected, version)
-                        objects.clear()
-                        categories.clear()
+                    fillup_tmp_table(label_ids, selected, src, version)
 
             # version.status = 2
             # db.session.commit()
@@ -315,11 +300,37 @@ def import2ds(selected):
             print('resize_w', form.resize_w.data)
             print('resize_h', form.resize_w.data)
             print('general_category', form.general_category.data)
-            
-            #TODO update categories for current version, based on import results
+
+            # TODO update categories for current version, based on import results
             # return redirect(url_for('datasets.select', selected=version.name))
             return redirect(url_for('deduplication.task_confirmation', task_id=task_id, selected=version.name))
-    return render_template('datasets/import.html',  form=form, selected=selected, version=version)
+    return render_template('datasets/import.html', form=form, selected=selected, version=version)
+
+
+def fillup_tmp_table(label_ids: Dict[str, int],
+                     selected: str,
+                     src: str,
+                     version: Version,
+                     commit_batch: int = 1000) -> None:
+    """
+    Заполнить временную таблицу
+    функция проходит по указанной директории src, добавляет найденные файлы в таблицу DataItems,
+    заполняет таблицу TmpTable
+    """
+    objects, categories = [], []
+    for sample in get_data_samples(src, label_ids):
+        data_item = DataItems(path=sample.path)
+        objects.append(data_item)
+        categories.append(sample.category)
+        if len(objects) == commit_batch:
+            import_data(categories, objects, selected, version)
+            objects.clear()
+            categories.clear()
+    if len(objects):
+        import_data(categories, objects, selected, version)
+        objects.clear()
+        categories.clear()
+    return
 
 
 @datasets_blueprint.route('/commit/<selected>', methods=['GET', 'POST'])
