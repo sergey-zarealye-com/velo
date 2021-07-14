@@ -61,8 +61,18 @@ Accelerate your next web project and start with this Flask App Blueprint. This G
 2. Initialize and run database migrations
     4. Run `flask db upgrade`
 
+# 4. Image preprocessor
+1. Создайте две директории для работы с картинками (<image_dir>) и хранения индекса (<dedup_dir>).
+2. Добавьте пути к этим директориям в image-process-scheduler/docker-compose.yml
+3. В директории image-process-scheduler собирается образ:
+    cd image-process-scheduler
+    docker build -t improsch .
+4. Запускается docker-compose:
+    docker-compose up # show logs
+    docker-compose up -d # detached
+5. Примерно после 3-5 секунд сервис готов к работе, можно запускать flask
 
-## 4. Deploy
+## 5. Deploy
 1. Run locally
     1. Open Postgres.app
     2. Run `. venv/bin/activate`
