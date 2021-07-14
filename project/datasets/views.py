@@ -1,6 +1,3 @@
-# project/users/views.py
-
-# IMPORTS
 import logging
 import os
 from typing import List
@@ -267,6 +264,22 @@ def import2ds(selected):
                     db.session.rollback()
             else:
                 if form.category_select.data == 'folder':
+                    # send message to preprocessor
+                    task_id = str(uuid.uuid4())
+                    # TODO check if task_id already exist in database
+
+                    sending_queue.put(
+                        (task_id, json.dumps({
+                            'id': task_id,
+                            'directory': form.flocation.data,
+                            'is_size_control': form.is_size_control.data,
+                            'min_size': form.min_size.data,
+                            'is_resize': bool(form.is_resize.data),
+                            'dst_size': (int(form.resize_h.data), int(form.resize_w.data)),
+                            'deduplication': bool(form.is_dedup.data),
+                        }))
+                    )
+
                     # TODO: handle exceptions, add s3 source
                     # вынести куда нибудь commit_batch
                     commit_batch = 1000
@@ -302,25 +315,11 @@ def import2ds(selected):
             print('resize_w', form.resize_w.data)
             print('resize_h', form.resize_w.data)
             print('general_category', form.general_category.data)
-
-            task_id = str(uuid.uuid4())
-
-            sending_queue.put(
-                (task_id, json.dumps({
-                    'id': task_id,
-                    'directory': form.flocation.data,
-                    'is_size_control': form.is_size_control.data,
-                    'min_size': form.min_size.data,
-                    'is_resize': bool(form.is_resize.data),
-                    'dst_size': (int(form.resize_h.data), int(form.resize_w.data)),
-                    'deduplication': bool(form.is_dedup.data),
-                }))
-            )
             
             #TODO update categories for current version, based on import results
             # return redirect(url_for('datasets.select', selected=version.name))
             return redirect(url_for('deduplication.task_confirmation', task_id=task_id, selected=version.name))
-    return render_template('datasets/import.html', 
+    return render_template('datasets/import.html',  form=form, selected=selected, version=version)
 
 
 @datasets_blueprint.route('/commit/<selected>', methods=['GET', 'POST'])

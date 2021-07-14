@@ -29,7 +29,12 @@ class NNfeatureExtractor(FeatureExtractor, torch.nn.Module):
 
         torch.nn.Module.__init__(self)
 
-        self.model = torch.hub.load(repo, torch_model_name, pretrained=True)
+        # self.model = torch.hub.load(
+        #     repo,
+        #     torch_model_name,
+        #     pretrained=True
+        # )
+        self.model = torch.load('hub/googlenet.pth')
         self.model.eval()
         self.model.fc = torch.nn.Identity()
 

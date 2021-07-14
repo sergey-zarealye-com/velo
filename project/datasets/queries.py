@@ -1,5 +1,7 @@
 from typing import List, Dict
-
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from project.models import Category, Moderation
 from project.models import VersionChildren, DataItems, VersionItems
 
 
@@ -39,10 +41,6 @@ def get_labels_of_version(version: int) -> Dict[str, int]:
 
 
 if __name__ == '__main__':
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-    from project.models import Category, Moderation
-
     engine = create_engine("postgresql://velo:123@localhost:5432/velo")
     Session = sessionmaker(bind=engine)
     session = Session()

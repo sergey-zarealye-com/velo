@@ -6,11 +6,12 @@ import aio_pika
 import asyncio
 from argparse import ArgumentParser
 import yaml
+import time
 
 
-async def send_message_back(message, loop):
+async def send_message_back(message, loop, login, passw, port, host):
     connection = await aio_pika.connect_robust(
-        "amqp://guest:guest@127.0.0.1:5673/",
+        f"amqp://{login}:{passw}@{host}:{port}/",
         loop=loop
     )
 
@@ -46,7 +47,7 @@ def params_mapper(config):
     return kwargs
 
 
-def run(pipeline, login: str, passw: str, port: int):
+def run(pipeline, login: str, passw: str, port: int, host: str):
     async def print_pipeline_result(request):
         print('\tGot request:')
         print(request)
@@ -57,9 +58,10 @@ def run(pipeline, login: str, passw: str, port: int):
 
         result_string = json.dumps(result)
 
-        await send_message_back(result_string, asyncio.get_event_loop())
+        await send_message_back(result_string, asyncio.get_event_loop(), login, passw, port, host)
 
-    run_async_rabbitmq_connection('deduplication_1', print_pipeline_result, login, passw, port)
+    print("Run async connector")
+    run_async_rabbitmq_connection('deduplication_1', print_pipeline_result, login, passw, port, host)
 
 
 def parse_config(config_path: str):
@@ -70,6 +72,8 @@ def parse_config(config_path: str):
 
 
 if __name__ == '__main__':
+    print('Sleeping...')
+    time.sleep(5.)
     parser = ArgumentParser()
     parser.add_argument('--config', type=str, default='config.yml')
     parser.add_argument('--pipeline', type=str, default='base_pipeline.yml')
@@ -90,4 +94,10 @@ if __name__ == '__main__':
         port=config['rabbit_port']
     )
 
-    run(processor.preprocessing, login=config['rabbit_login'], passw=config['rabbit_passw'], port=config['rabbit_port'])
+    run(
+        processor.preprocessing,
+        login=config['rabbit_login'],
+        passw=config['rabbit_passw'],
+        port=config['rabbit_port'],
+        host=config["rabbit_host"]
+    )

@@ -35,10 +35,18 @@ def task_confirmation(task_id, selected):
     return render_template('datasets/taskConfirmed.html', task_id=task_id, selected=selected)
 
 
-@dedup_blueprint.route('/checkbox', methods=['POST'])
-def print_list():
+@dedup_blueprint.route('/checkbox/<task_id>', methods=['POST'])
+def print_list(task_id):
     selected = request.form.getlist('test_checkbox')
-    return redirect('/datasets/select/new_dataset')
+    task = Deduplication.query.filter_by(task_uid=task_id).first()
+    if task is None:
+        abort(404)
+
+    dedup_result = task.result['deduplication']
+    filenames_to_remove = [dedup_result[i][0] for i in selected]
+    print('\tFilenames to remove:', filenames_to_remove)
+
+    return redirect('/')
 
 
 @dedup_blueprint.route('/<task_id>', methods=['GET'])
@@ -68,5 +76,6 @@ def show_dedup(task_id):
 
     return render_template(
         'datasets/deduplication.html',
-        images=images
+        images=images,
+        task_id=task_id
     )

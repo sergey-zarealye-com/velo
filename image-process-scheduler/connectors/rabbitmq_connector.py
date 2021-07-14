@@ -11,12 +11,14 @@ async def main(
     processing_func: Callable,
     login: str,
     passw: str,
-    port: int
+    port: int,
+    host: str
 ):
     connection: Any = await aio_pika.connect_robust(
-        f"amqp://{login}:{passw}@127.0.0.1:{port}/", loop=loop,
+        f"amqp://{login}:{passw}@{host}:{port}/", loop=loop,
         port=5673
     )
+    print("Successful connected to", f"amqp://{login}:{passw}@{host}:{port}/")
 
     async with connection:
         # Creating channel
@@ -32,9 +34,9 @@ async def main(
                     await processing_func(options)
 
 
-async def send_message(message, loop, routing_key: str):
+async def send_message(message, loop, routing_key: str, login, passw, port, host):
     connection: Any = await aio_pika.connect_robust(
-        "amqp://guest:guest@127.0.0.1:5673/",
+        f"amqp://{login}:{passw}@{host}:{port}/",
         loop=loop
     )
 
@@ -53,6 +55,7 @@ def run_async_rabbitmq_connection(
     login: str,
     passw: str,
     port: int,
+    host: str,
     loop: Optional[AbstractEventLoop] = None,
 ):
     if not loop:
@@ -61,7 +64,7 @@ def run_async_rabbitmq_connection(
     loop.run_until_complete(
         main(
             loop, queue_name, processing_function,
-            login, passw, port
+            login, passw, port, host
         )
     )
     # loop.close()
