@@ -1,6 +1,6 @@
 from typing import List, Dict
 
-from project.models import VersionChildren, DataItems, VersionItems
+from project.models import VersionChildren, DataItems, VersionItems, Category
 
 
 def get_nodes_above(sess, node_id) -> List[int]:
