@@ -1,6 +1,14 @@
 {% extends "_base.html" %}
-{% block title %}To do{% endblock %}
+{% block title %}To do
+<a href="{{url_for('todo.new_batch')}}" role="button" class="btn btn-primary float-right">New batch</a>
+{% endblock %}
+
+{% from "helpers.html" import version_details %}
 {% block content %}
+
+<div class="container">
+    {{ version_details(version) }}
+</div>
 
 <table class="table table-striped">
   <thead>

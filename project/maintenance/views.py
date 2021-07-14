@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 
 from project import app, db, mail
 from project.models import User, Version, Category
-from .forms import AddCategoryForm
+from .forms import AddCategoryForm, EditCategoryForm
 import traceback
 
 
@@ -98,3 +98,142 @@ def models_list(selected):
     models = []
     return render_template('maintenance/models_list.html', 
                            version=version, models=models)    
+
+@maintenance_blueprint.route('/category/edit/<category_id>', methods=['GET', 'POST'])
+@login_required
+def categ_edit(category_id):
+    categ = Category.query.get(category_id)
+    if categ is None:
+        abort(404)
+    version = categ.version
+    if version.status in [3]:
+        message = Markup(
+            "<strong>Warning!</strong> Unable to edit category to committed version. ")
+        flash(message, 'warning')
+        return redirect(url_for('maintenance.categs_list', 
+                                selected=version.name))
+    form = EditCategoryForm(request.form)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            try:
+                categ.name = form.name.data
+                db.session.commit()
+                message = Markup("Saved successfully!")
+                flash(message, 'success')
+                return redirect(url_for('maintenance.categs_list', 
+                                        selected=version.name))
+            except Exception as e:
+                traceback.print_exc()
+                db.session.rollback()
+                message = Markup(
+                    "<strong>Error!</strong> Unable to save this category. " + str(e))
+                flash(message, 'danger')
+    return render_template('maintenance/categ_edit.html', 
+                           form=form,
+                           categ=categ,
+                           selected=version.name)
+
+@maintenance_blueprint.route('/category/up/<category_id>', methods=['GET', 'POST'])
+@login_required
+def categ_up(category_id):
+    categ = Category.query.get(category_id)
+    if categ is None:
+        abort(404)
+    version = categ.version
+    if version.status in [3]:
+        message = Markup(
+            "<strong>Warning!</strong> Unable to edit category to committed version. ")
+        flash(message, 'warning')
+        return redirect(url_for('maintenance.categs_list', 
+                                selected=version.name))
+    if categ.position == 0:
+        message = Markup(
+            "<strong>Warning!</strong> Category was not changed. ")
+        flash(message, 'warning')
+        return redirect(url_for('maintenance.categs_list', 
+                                selected=version.name))
+    try:
+        categ_list = Category.list(categ.task, version.name)
+        prev_categ = categ_list[categ.position - 1]
+        categ.position -= 1
+        prev_categ.position += 1
+        db.session.commit()
+        message = Markup("Saved successfully!")
+        flash(message, 'success')
+    except Exception as e:
+        traceback.print_exc()
+        db.session.rollback()
+        message = Markup(
+            "<strong>Error!</strong> Unable to save this category. " + str(e))
+        flash(message, 'danger')
+    return redirect(url_for('maintenance.categs_list', 
+                                selected=version.name))
+
+@maintenance_blueprint.route('/category/down/<category_id>')
+@login_required
+def categ_down(category_id):
+    categ = Category.query.get(category_id)
+    if categ is None:
+        abort(404)
+    version = categ.version
+    if version.status in [3]:
+        message = Markup(
+            "<strong>Warning!</strong> Unable to edit category to committed version. ")
+        flash(message, 'warning')
+        return redirect(url_for('maintenance.categs_list', 
+                                selected=version.name))
+    lc = Category.get_last(categ.version_id, categ.task)
+    if categ.position == lc.position:
+        message = Markup(
+            "<strong>Warning!</strong> Category was not changed. ")
+        flash(message, 'warning')
+        return redirect(url_for('maintenance.categs_list', 
+                                selected=version.name))
+    try:
+        categ_list = Category.list(categ.task, version.name)
+        next_categ = categ_list[categ.position + 1]
+        categ.position += 1
+        next_categ.position -= 1
+        db.session.commit()
+        message = Markup("Saved successfully!")
+        flash(message, 'success')
+    except Exception as e:
+        traceback.print_exc()
+        db.session.rollback()
+        message = Markup(
+            "<strong>Error!</strong> Unable to save this category. " + str(e))
+        flash(message, 'danger')
+    return redirect(url_for('maintenance.categs_list', 
+                                selected=version.name))
+
+@maintenance_blueprint.route('/category/del/<category_id>')
+@login_required
+def categ_del(category_id):
+    categ = Category.query.get(category_id)
+    if categ is None:
+        abort(404)
+    version = categ.version
+    if version.status in [3]:
+        message = Markup(
+            "<strong>Warning!</strong> Unable to edit category to committed version. ")
+        flash(message, 'warning')
+        return redirect(url_for('maintenance.categs_list', 
+                                selected=version.name))
+    try:
+        categ_list = Category.list(categ.task, version.name)
+        upd = []
+        for i in range(categ.position + 1, len(categ_list)):
+            categ_list[i].position -= 1
+            upd.append(categ_list[i])
+        db.session.delete(categ)
+        db.session.commit()
+        message = Markup("Saved successfully!")
+        flash(message, 'success')
+    except Exception as e:
+        traceback.print_exc()
+        db.session.rollback()
+        message = Markup(
+            "<strong>Error!</strong> Unable to delete this category. " + str(e))
+        flash(message, 'danger')
+    return redirect(url_for('maintenance.categs_list', 
+                                selected=version.name))

@@ -1,3 +1,5 @@
+from sqlalchemy import PrimaryKeyConstraint
+
 from project import db, bcrypt
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 from sqlalchemy.dialects.postgresql import JSON
@@ -19,7 +21,7 @@ class User(db.Model):
     last_logged_in = db.Column(db.DateTime, nullable=True)
     current_logged_in = db.Column(db.DateTime, nullable=True)
     role = db.Column(db.String, default='user')
-    
+
     def __init__(self, email, password, email_confirmation_sent_on=None, role='user'):
         self.email = email
         self.password = password
@@ -72,17 +74,18 @@ class User(db.Model):
     def __repr__(self):
         return '<User {}>'.format(self.email)
 
+
 class Version(db.Model):
     __tablename__ = 'versions'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String, unique=True, nullable=False)
-    status = db.Column(db.SmallInteger, nullable=False) # 1=empty 2=stage 3=versioned
+    status = db.Column(db.SmallInteger, nullable=False)  # 1=empty 2=stage 3=versioned
     description = db.Column(db.String, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    
+
     user = db.relationship("User")
-    
+
     """
         Status defines allowed operations according to state diagram https://bit.ly/3x9Uv6e
         
@@ -101,18 +104,15 @@ class Version(db.Model):
  empty->empty [label="Edit"];
  stage->stage [label="Edit"];
 }
-        
-        
-        
     """
-    
+
     def __init__(self, name, description, user_id):
         self.name = Version.safe_id(name)
         self.description = description
         self.user_id = user_id
-        self.status = 1 #empty
+        self.status = 1  # empty
         self.created_at = datetime.now()
-        
+
     @staticmethod
     def safe_id(s):
         tokens = re.findall(r'\w+', s)
@@ -122,16 +122,16 @@ class Version(db.Model):
             return ('_'.join(tokens)).lower()
         else:
             raise Exception('Illegal name')
-    
+
     @staticmethod
     def versions():
         return Version.query.all()
-    
+
     @staticmethod
     def get_first():
         return Version.query.first()
-    
-    @staticmethod    
+
+    @staticmethod
     def nodes_def(sel, url_prefix='/datasets/select'):
         STYLE_SEL = 'filled'
         COLOR = 'white'
@@ -147,12 +147,12 @@ class Version(db.Model):
                 color = COLOR_SEL
             if v.status == 3:
                 style.append(STYLE_COMMIT)
-            out.append(TPL % dict(id=v.name, 
-                                   prefix=url_prefix,
-                                   style = ','.join(style),
-                                   color=color))
+            out.append(TPL % dict(id=v.name,
+                                  prefix=url_prefix,
+                                  style=','.join(style),
+                                  color=color))
         return ''.join(out)
-    
+
     @staticmethod
     def edges():
         TPL = "%s->%s;\n"
@@ -164,17 +164,17 @@ class Version(db.Model):
                 if ch is not None:
                     out.append(TPL % (v.name, ch.name))
         return ''.join(out)
-    
+
     @staticmethod
-    def dot_str( sel):
+    def dot_str(sel):
         TPL = """digraph "dsvers" {
         %s
         %s
         }"""
         return TPL % (Version.nodes_def(sel), Version.edges())
-    
+
     def actions_dict(self):
-        actions = ['init', 'edit', 'import', 'split', 'commit', 
+        actions = ['init', 'edit', 'import', 'split', 'commit',
                    'branch', 'merge', 'checkout', 'browse']
         out = dict([(a, False) for a in actions])
         if self.status == 1:
@@ -196,19 +196,33 @@ class Version(db.Model):
             out['checkout'] = True
             out['browse'] = True
         return out
-    
+
     def is_connected(self, child):
-        edge = VersionChildren.query.filter_by(child_id=child.id, 
-                                        parent_id=self.id).first()
+        edge = VersionChildren.query.filter_by(child_id=child.id,
+                                               parent_id=self.id).first()
         return edge is not None
-    
+
+    def categs_no(self):
+        out = []
+        for task in Category.TASKS():
+            cl = Category.list(task[0], self.name)
+            out.append(task[1])
+            out.append(': <a href="/maintenance/categs_list/' + self.name + '">')
+            out.append(str(len(cl)))
+            out.append('</a> ')
+        return ''.join(out)
+
+
 class VersionChildren(db.Model):
     __tablename__ = 'version_children'
     child_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False, primary_key=True)
     parent_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False, primary_key=True)
     child = db.relationship("Version", foreign_keys=[child_id])
     parents = db.relationship("Version", foreign_keys=[parent_id])
-    
+    __table_args__ = (
+        PrimaryKeyConstraint('child_id', 'parent_id'),
+    )
+
     def __init__(self, child_id, parent_id):
         self.child_id = child_id
         self.parent_id = parent_id
@@ -219,16 +233,16 @@ class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     version_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False)
     name = db.Column(db.String, unique=False, nullable=False)
-    task = db.Column(db.SmallInteger, nullable=False) # 1=CV classes, 2=NLP classes
-    position = db.Column(db.Integer, nullable=False) # position related to Model outputs, numbering starts from ZERO
-    
+    task = db.Column(db.SmallInteger, nullable=False)  # 1=CV classes, 2=NLP classes
+    position = db.Column(db.Integer, nullable=False)  # position related to Model outputs, numbering starts from ZERO
+
     version = db.relationship("Version")
-    
+
     @staticmethod
     def TASKS():
-        return [(1, 'Vision'), 
+        return [(1, 'Vision'),
                 (2, 'NLP')]
-    
+
     def __init__(self, name, version_id, task, position=None):
         self.name = name
         self.version_id = version_id
@@ -237,24 +251,67 @@ class Category(db.Model):
         if position is not None:
             self.position = position
         else:
-            last_categ = Category.query \
-                                .filter_by(version_id=version_id, task=task) \
-                                .order_by(Category.position.desc()) \
-                                .first()
+            last_categ = Category.get_last(version_id, task)
             if last_categ is None:
                 self.position = 0
             else:
                 self.position = last_categ.position + 1
-        
+
+    @staticmethod
+    def get_last(version_id, task):
+        return Category.query \
+            .filter_by(version_id=version_id, task=task) \
+            .order_by(Category.position.desc()) \
+            .first()
+
     @staticmethod
     def list(task, version_name):
         version = Version.query.filter_by(name=version_name).first()
         if version is None:
             return []
         return Category.query \
-                    .filter_by(version_id=version.id, task=task) \
-                    .order_by(Category.position) \
-                    .all()
+            .filter_by(version_id=version.id, task=task) \
+            .order_by(Category.position) \
+            .all()
+
+
+class DataItems(db.Model):
+    __tablename__ = 'data_items'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    path = db.Column(db.String, unique=True, nullable=False)
+
+
+class VersionItems(db.Model):
+    __tablename__ = 'version_items'
+    item_id = db.Column(db.Integer, db.ForeignKey('data_items.id'), nullable=False)
+    version_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
+    __table_args__ = (
+        PrimaryKeyConstraint('item_id', 'version_id'),
+    )
+
+
+class TmpTable(db.Model):
+    __tablename__ = 'tmp_table'
+    item_id = db.Column(db.Integer, db.ForeignKey('data_items.id'), nullable=False)
+    node_name = db.Column(db.String, db.ForeignKey('versions.name'), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
+    __table_args__ = (
+        PrimaryKeyConstraint('item_id', 'node_name'),
+    )
+
+
+class Moderation(db.Model):
+    __tablename__ = 'moderation'
+    src = db.Column(db.String, nullable=False)
+    file = db.Column(db.String, nullable=False)
+    src_media_type = db.Column(db.String, nullable=False)
+    category = db.Column(db.String, nullable=True)
+    general_category = db.Column(db.String, nullable=False)
+    __table_args__ = (
+        PrimaryKeyConstraint('src', 'file'),
+    )
+
 
 class ToDoItem(db.Model):
     __tablename__ = 'todo_items'
@@ -270,7 +327,7 @@ class ToDoItem(db.Model):
     audio_text = db.Column(db.String, unique=False, nullable=True)
     gt_category = db.Column(db.String, unique=False, nullable=False)
     assigned_categories_json = db.Column(db.String, unique=False, nullable=True)
-    
+
     user = db.relationship("User")
     version = db.relationship("Version")
 
@@ -283,14 +340,14 @@ class ToDoItem(db.Model):
         self.user_id = None
         self.version_id = None
         self.assigned_categories_json = None
-        
+
     @staticmethod
     def fetch_for_user(user_id, skip=0, limit=25):
         return ToDoItem.query.filter(or_(
             ToDoItem.started_at.is_(None),
             and_(
-                ToDoItem.started_at.isnot(None),  
-                ToDoItem.finished_at.is_(None),  
+                ToDoItem.started_at.isnot(None),
+                ToDoItem.finished_at.is_(None),
                 ToDoItem.user_id == user_id
             )
         )).order_by(ToDoItem.created_at) \

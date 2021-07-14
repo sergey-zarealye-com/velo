@@ -1,7 +1,7 @@
 {% macro version_details(version) %}
    <div class="row">
     <div class="col-2">
-    Selected:
+    Dataset version:
     </div>
     <div class="col-10">
     {{version.name}}
@@ -29,6 +29,14 @@
     </div>
     <div class="col-10">
     
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-2">
+    Categories No:
+    </div>
+    <div class="col-10">
+    {{version.categs_no() | safe}}
     </div>
   </div>
 

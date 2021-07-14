@@ -3,15 +3,17 @@ from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_bcrypt import Bcrypt
-from flask_login import current_user, login_required
+from flask_login import login_required
 from flask_mail import Mail
 from flask_migrate import Migrate
 import os
 
-
 # CONFIG
+import config
+
 app = Flask(__name__, instance_relative_config=True)
-app.config.from_object(os.environ['APP_SETTINGS'])
+# app.config.from_object(os.environ['APP_SETTINGS'])
+app.config.from_object(config.DevelopmentConfig)
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -44,6 +46,7 @@ app.register_blueprint(images_blueprint)
 app.register_blueprint(todo_blueprint)
 app.register_blueprint(maintenance_blueprint)
 app.register_blueprint(dedup_blueprint)
+
 
 # ROUTES
 @app.route('/', methods=['GET', 'POST'])
