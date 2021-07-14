@@ -26,7 +26,6 @@ options = null;
         });
         el.off('mouseover');
         el.addClass('easySelectable');
-        console.log("!!!")
         if (options.state) {
             el.find(options.item).addClass('es-selectable');
             el.on('mousedown', options.item, function (e) {
@@ -34,13 +33,10 @@ options = null;
                 var offset = $(this).offset();
                 // var hasClass = $(this).hasClass('es-selected');
                 var hasSelect = $(this).data("has-select");
-                console.log($(this)[0].id,' was: ',hasSelect)
                 var prev_el = false;
                 el.on('mouseover', options.item, function (e) {
                     if (prev_el == $(this).index()) return true;
                     prev_el = $(this).index();
-                    // var hasClass2 = $(this).hasClass('es-selected-no-class');
-                    // var hasClass2 = $(this).attr("has-select",true)
                     var hasClass2 = $(this).data("has-select");
 
                     $(this).removeClass('es-unselected-has-class').
@@ -49,7 +45,6 @@ options = null;
                             removeClass('es-selected-has-class')
 
                     if (!hasClass2) {
-                        console.log('h1');
                         if ($(this).data("has-class")){
                             $(this).addClass('es-selected-has-class').
                                     trigger('selected');
@@ -64,7 +59,6 @@ options = null;
                         selected_items_set.add({"li": $(this), "div": el});
                         update_selected_items_text();
                     } else {
-                        console.log('h2');
                         if ($(this).data("has-class")){
                             $(this).addClass('es-unselected-has-class').
                                     trigger('unselected');
@@ -73,11 +67,6 @@ options = null;
                                     trigger('unselected');
                         }
                         $(this).data("has-select",false)
-                        // if ($(this).hasClass("es-selected")) {
-                        //     $(this).removeClass('es-selected').trigger('unselected');
-                        // } else if ($(this).hasClass("es-selected-has-class")) {
-                        //     $(this).removeClass('es-selected-has-class').addClass('es-unselected-has-class').trigger('unselected');
-                        // }
                         el.trigger('unselected');
                         options.onSelecting($(this))
                         options.onUnSelected($(this));
@@ -95,7 +84,6 @@ options = null;
                     removeClass('es-unselected-has-class').
                     removeClass('es-selected-has-class')
                 if (!hasSelect) {
-                    console.log('h3');
                     prev_el = $(this).index();
                     if ($(this).data("has-class")){
                         $(this).addClass('es-selected-has-class').
@@ -105,18 +93,12 @@ options = null;
                                 trigger('selected');
                     }
                     $(this).data("has-select",true)
-                    // if ($(this).hasClass('es-unselected-has-class')){
-                    //     $(this).removeClass('es-unselected-has-class').addClass('es-selected-has-class').trigger('selected');
-                    // } else {
-                    //     $(this).addClass('es-selected').trigger('selected');
-                    // }
                     el.trigger('selected');
                     options.onSelecting($(this));
                     options.onSelected($(this));
                     selected_items_set.add({"li": $(this), "div": el});
                     update_selected_items_text();
                 } else {
-                    console.log('h4');
                     prev_el = $(this).index();
                     if ($(this).data("has-class")){
                         $(this).addClass('es-unselected-has-class').
@@ -126,11 +108,6 @@ options = null;
                                 trigger('unselected');
                     }
                     $(this).data("has-select",false)
-                    // if ($(this).hasClass("es-selected")) {
-                    //     $(this).removeClass('es-selected').trigger('unselected');
-                    // } else if ($(this).hasClass("es-selected-has-class")) {
-                    //     $(this).removeClass('es-selected-has-class').addClass('es-unselected-has-class').trigger('unselected');
-                    // }
                     el.trigger('unselected');
                     options.onSelecting($(this));
                     options.onUnSelected($(this));
@@ -143,7 +120,6 @@ options = null;
                 }
                 var relativeX = (e.pageX - offset.left);
                 var relativeY = (e.pageY - offset.top);
-                console.log($(this)[0].id, ' now: ',$(this).data("has-select"))
             });
             $(document).on('mouseup', function () {
                 el.off('mouseover');
