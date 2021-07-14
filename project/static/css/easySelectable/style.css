@@ -1,0 +1,18 @@
+* {margin: 0; padding: 0;}
+body {font-family: 'roboto'; background: #f7f7f7;}
+
+#wrap {width: 1260px; margin: 80px auto;}
+#wrap section {margin-top: 30px;}
+#wrap .wrap__title {margin-bottom: 15px; color: #444;}
+#wrap .wrap__title .small {font-size: 11px; color: #666; margin-left: 20px;}
+#wrap .wrap__table {border-collapse: collapse; table-layout: fixed; width: 100%;}
+#wrap .wrap__table th {color: #222; border: 1px solid #ccc; padding: 10px; text-align: left;}
+#wrap .wrap__table th:nth-child(1) {width: 80px;}
+#wrap .wrap__table th:nth-child(2) {width: 80px;}
+#wrap .wrap__table th:nth-child(3) {width: 150px;}
+#wrap .wrap__table td {border: 1px solid #ccc; padding: 10px;}
+#easySelectable {display: flex; flex-wrap: wrap;}
+#easySelectable li.es-unselected-no-class {margin: 10px 10px 10px 0; background: #fff; transition: background 0.2s; width: 250px; height: 260px; color: #222; font-weight: bold; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0px 1px 1px #ccc;}
+#easySelectable li.es-selected-no-class {background: #2196F3; color: #fff;}
+#easySelectable li.es-unselected-has-class {margin: 10px 10px 10px 0; background: #dbdbdb; transition: background 0.2s; width: 250px; height: 260px; color: #000903; font-weight: bold; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0px 1px 1px #4d73a0;}
+#easySelectable li.es-selected-has-class {background: #21b1f3; color: #fcde52;}
