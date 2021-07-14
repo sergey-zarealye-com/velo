@@ -32,10 +32,10 @@ def save_multiprocess(images: List[np.ndarray], filepaths: List[str], task_id: s
 
     logging.info("Saving", len(images), "into storage", storage_path)
 
-    try:
-        os.mkdir(os.path.join(storage_path, task_id))
-    except Exception:
-        logging.error("Con't create dir for task", task_id)
+    # try:
+    #     os.mkdir(os.path.join(storage_path, task_id))
+    # except Exception as err:
+    #     logging.error("Can't create dir for task", err)
 
     new_filepaths = []
     for i, filename in enumerate(filepaths):

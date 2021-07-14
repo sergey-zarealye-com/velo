@@ -13,6 +13,7 @@ from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm
 import graphviz
 from uuid import uuid4
 import traceback
+from distutils.dir_util import copy_tree
 
 from multiprocessing import Process, Queue
 from .rabbitmq_connector import send_message, get_message
@@ -263,13 +264,21 @@ def import2ds(selected):
             else:
                 if form.category_select.data == 'folder':
                     # send message to preprocessor
+                    storage_dir = os.getenv("STORAGE_DIR")
                     task_id = str(uuid.uuid4())
+                    while os.path.isdir(os.path.join(storage_dir, task_id)):
+                        task_id = str(uuid.uuid4())
                     # TODO check if task_id already exist in database
+
+                    dst_dir = os.path.join(storage_dir, task_id)
+                    os.mkdir(dst_dir)
+                    copy_tree(form.flocation.data, dst_dir)
 
                     sending_queue.put(
                         (task_id, json.dumps({
                             'id': task_id,
-                            'directory': form.flocation.data,
+                            # 'directory': form.flocation.data,
+                            'directory': task_id,
                             'is_size_control': form.is_size_control.data,
                             'min_size': form.min_size.data,
                             'is_resize': bool(form.is_resize.data),

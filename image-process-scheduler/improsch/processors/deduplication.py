@@ -77,6 +77,7 @@ class ImageIndex:
 
             with open(os.path.join(index_dir, FILENAMES_JSON_NAME)) as file:
                 self.id_to_filename: Dict[int, str] = json.load(file)
+                self.id_to_filename = {int(k): v for k, v in self.id_to_filename.items()}
         else:
             self.index = faiss.index_factory(feat_dim, "Flat", faiss.METRIC_INNER_PRODUCT)
             self.index_config = {

@@ -4,7 +4,7 @@ APP_SETTINGS="config.DevelopmentConfig"
 SECRET_KEY="123"
 #SET DATABASE URL IF YOU ARE NOT USING SQLITE
 DATABASE_URL="postgresql://velo:123@localhost:5432/velo"
-STORAGE_DIR = '/media/alexander/D/datasets/Napoleon/test_dataset_full'
+STORAGE_DIR = '/storage1/mrowl/image_storage'
 RABBIT_LOGIN = 'guest'
 RABBIT_PASSW = 'guest'
 RABBIT_PORT = 5673

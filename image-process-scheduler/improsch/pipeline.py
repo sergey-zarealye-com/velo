@@ -18,9 +18,10 @@ class Preprocessor:
     ):
         create_new = True
         if os.path.isdir(dedup_index_path):
-            create_new = False
+            if os.path.isfile(os.path.join(dedup_index_path, 'index.faiss')):
+                create_new = False
 
-        self.deduplicator = Deduplicator(dedup_index_path, 8, create_new=True)
+        self.deduplicator = Deduplicator(dedup_index_path, 8, create_new=create_new)
         self.storage_path = storage_path
         self.dedup_batch_size = dedup_batch_size
         self.saving_pool_size = saving_pool_size

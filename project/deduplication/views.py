@@ -13,7 +13,8 @@ from flask import (
 from flask_login import current_user, login_required
 from project import app
 
-from project.models import Deduplication
+from project.models import Deduplication, Version
+from project.datasets.views import fillup_tmp_table, get_labels_of_version
 
 
 # CONFIG
@@ -35,23 +36,42 @@ def task_confirmation(task_id, selected):
     return render_template('datasets/taskConfirmed.html', task_id=task_id, selected=selected)
 
 
-@dedup_blueprint.route('/checkbox/<task_id>', methods=['POST'])
-def print_list(task_id):
+@dedup_blueprint.route('/checkbox/<task_id>/<selected_ds>', methods=['POST'])
+def print_list(task_id, selected_ds):
     selected = request.form.getlist('test_checkbox')
+    import pdb
+    pdb.set_trace()
     task = Deduplication.query.filter_by(task_uid=task_id).first()
     if task is None:
         abort(404)
 
+    version = Version.query.filter_by(name=selected_ds).first()
+    label_ids = get_labels_of_version(version.id)
+
     dedup_result = task.result['deduplication']
-    filenames_to_remove = [dedup_result[i][0] for i in selected]
+    filenames_to_remove = [
+        os.path.join(os.getenv("STORAGE_DIR"), dedup_result[int(i)][0]) for i in selected
+    ]
     print('\tFilenames to remove:', filenames_to_remove)
+    for filename in filenames_to_remove:
+        try:
+            os.remove(filename)
+        except Exception as err:
+            print(err)
 
-    return redirect('/')
+    fillup_tmp_table(
+        label_ids,
+        selected_ds,
+        os.path.join(os.getenv("STORAGE_DIR"), task_id),
+        version
+    )
+
+    return redirect('/dataset/select', selected=selected_ds)
 
 
-@dedup_blueprint.route('/<task_id>', methods=['GET'])
+@dedup_blueprint.route('/<task_id>/<selected_ds>', methods=['GET'])
 @login_required
-def show_dedup(task_id):
+def show_dedup(task_id, selected_ds):
     task = Deduplication.query.filter_by(task_uid=task_id).first()
     if task is None:
         abort(404)
@@ -77,5 +97,6 @@ def show_dedup(task_id):
     return render_template(
         'datasets/deduplication.html',
         images=images,
-        task_id=task_id
+        task_id=task_id,
+        selected_ds=selected_ds
     )

@@ -1,11 +1,11 @@
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Tuple
 import cv2
 import numpy as np
 import os
 
 
-def get_image_reader(filter_func: Optional[Callable[[np.ndarray], bool]]):
-    def read(data_dir: str) -> np.ndarray:
+def get_image_reader(filter_func: Optional[Callable[[np.ndarray], bool]] = None):
+    def read(data_dir: str) -> Tuple[List[np.ndarray], List[str]]:
         images: List[np.ndarray] = []
         imagenames = []
 
@@ -25,6 +25,6 @@ def get_image_reader(filter_func: Optional[Callable[[np.ndarray], bool]]):
                     # TODO alerting
                     continue
 
-            return images, imagenames
+        return images, imagenames
 
     return read

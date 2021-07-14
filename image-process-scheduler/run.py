@@ -7,6 +7,7 @@ import asyncio
 from argparse import ArgumentParser
 import yaml
 import time
+import os
 
 
 async def send_message_back(message, loop, login, passw, port, host):
@@ -47,10 +48,12 @@ def params_mapper(config):
     return kwargs
 
 
-def run(pipeline, login: str, passw: str, port: int, host: str):
+def run(pipeline, login: str, passw: str, port: int, host: str, image_storage: str):
     async def print_pipeline_result(request):
         print('\tGot request:')
         print(request)
+        request["directory"] = os.path.join(image_storage, request["directory"])
+        print("\tDirectory:\t", request["directory"])
         result = pipeline(request)
 
         result['id'] = request['id']
@@ -99,5 +102,6 @@ if __name__ == '__main__':
         login=config['rabbit_login'],
         passw=config['rabbit_passw'],
         port=config['rabbit_port'],
-        host=config["rabbit_host"]
+        host=config["rabbit_host"],
+        image_storage=config["storage_path"]
     )
