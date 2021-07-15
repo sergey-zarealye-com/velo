@@ -32,6 +32,6 @@ def ffmpeg_job(input_fname: Path, thumbs_dir: str) -> List[str]:
 
 
 if __name__ == '__main__':
-    file = Path("/media/alexander/D/PycharmProjects/Napoleon/cv/tests/data/porn.mp4")
-    thumbs_dir = "tmp"
+    file = Path("C:/PyCharmProjects/Video_Annotation_System/nasa.mp4")
+    thumbs_dir = "C:/PyCharmProjects/Video_Annotation_System/out"
     ffmpeg_job(file, thumbs_dir)
