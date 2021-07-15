@@ -235,8 +235,7 @@ def import2ds(selected):
                     item2moderate = Moderation(src=src,
                                                file=sample.path,
                                                src_media_type=sample.media_type,
-                                               category=category,
-                                               general_category=general_category)
+                                               category=category)
                     objects.append(item2moderate)
                 try:
                     db.session.bulk_save_objects(objects, return_defaults=True)
