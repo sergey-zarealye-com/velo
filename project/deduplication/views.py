@@ -37,7 +37,7 @@ def task_confirmation(task_id, selected):
 
 
 @dedup_blueprint.route('/checkbox/<task_id>/<selected_ds>', methods=['POST'])
-def print_list(task_id, selected_ds):
+def save_result(task_id, selected_ds):
     selected = request.form.getlist('test_checkbox')
     import pdb
     pdb.set_trace()

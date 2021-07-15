@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 from flask import render_template, Blueprint, request, redirect, url_for
 from flask import flash, Markup, abort, session
@@ -14,6 +14,8 @@ import graphviz
 from uuid import uuid4
 import traceback
 from distutils.dir_util import copy_tree
+import sys
+import logging
 
 from multiprocessing import Process, Queue
 from .rabbitmq_connector import send_message, get_message
@@ -44,6 +46,41 @@ TMPDIR = os.path.join('project', 'static', 'tmp')
 datasets_blueprint = Blueprint('datasets', __name__,
                                template_folder='templates',
                                url_prefix='/datasets')
+
+
+def copy_directory(
+    src_dir: str,
+    dst_path: str,
+    task_id: str,
+    is_size_control: bool,
+    min_size: Tuple[int, int],
+    is_resize: bool,
+    dst_size: Tuple[int, int],
+    is_dedup: bool
+):
+    logging.info("Start copying data...")
+    sys.stdout.flush()
+
+    os.mkdir(dst_path)
+    copy_tree(src_dir, dst_path)
+
+    logging.info("Finish copying data")
+    logging.info("Sending task to queue...")
+    sys.stdout.flush()
+
+    sending_queue.put(
+        (task_id, json.dumps({
+            'id': task_id,
+            'directory': task_id,
+            'is_size_control': is_size_control,
+            'min_size': min_size,
+            'is_resize': bool(is_resize),
+            'dst_size': tuple(dst_size),
+            'deduplication': bool(is_dedup),
+        }))
+    )
+    logging.info("Sended")
+    sys.stdout.flush()
 
 
 # ROUTES
@@ -270,26 +307,27 @@ def import2ds(selected):
                         task_id = str(uuid.uuid4())
                     # TODO check if task_id already exist in database
 
-                    dst_dir = os.path.join(storage_dir, task_id)
-                    os.mkdir(dst_dir)
-                    copy_tree(form.flocation.data, dst_dir)
-
-                    sending_queue.put(
-                        (task_id, json.dumps({
-                            'id': task_id,
-                            # 'directory': form.flocation.data,
-                            'directory': task_id,
-                            'is_size_control': form.is_size_control.data,
-                            'min_size': form.min_size.data,
-                            'is_resize': bool(form.is_resize.data),
-                            'dst_size': (int(form.resize_h.data), int(form.resize_w.data)),
-                            'deduplication': bool(form.is_dedup.data),
-                        }))
+                    proc_to_copy_files = Process(
+                        target=copy_directory,
+                        args=(
+                            form.flocation.data,
+                            os.path.join(storage_dir, task_id),
+                            task_id,
+                            bool(form.is_size_control.data),
+                            (int(form.min_size.data), int(form.min_size.data)),
+                            bool(form.is_resize.data),
+                            (int(form.resize_h.data), int(form.resize_w.data)),
+                            bool(form.is_dedup.data)
+                        )
                     )
+                    proc_to_copy_files.start()
 
-                    # TODO: handle exceptions, add s3 source
-                    # вынести куда нибудь commit_batch
-                    fillup_tmp_table(label_ids, selected, src, version)
+                    # если включена дедупликация, то сохранение нужно после
+                    # процесса ручного отбора картинок (project/deduplication/views/def save_result)
+                    if not bool(form.is_dedup.data):
+                        # TODO: handle exceptions, add s3 source
+                        # вынести куда нибудь commit_batch
+                        fillup_tmp_table(label_ids, selected, src, version)
 
             # version.status = 2
             # db.session.commit()

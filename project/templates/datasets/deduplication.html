@@ -18,7 +18,7 @@
 
 <div class="card bg-light mb-3">
     <div class="card-body">
-        <form method="POST" action="{{ url_for('deduplication.print_list', task_id=task_id, selected_ds=selected_ds) }}">
+        <form method="POST" action="{{ url_for('deduplication.save_result', task_id=task_id, selected_ds=selected_ds) }}">
             {% for item in images %}
             <input type="checkbox" name="test_checkbox" value="{{ item.item_index }}">
             <p>Similarity: {{ item.similarity }}</p>
