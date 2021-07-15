@@ -306,8 +306,10 @@ class Moderation(db.Model):
     src = db.Column(db.String, nullable=False)
     file = db.Column(db.String, nullable=False)
     src_media_type = db.Column(db.String, nullable=False)
-    category = db.Column(db.String, nullable=True)
-    general_category = db.Column(db.String, nullable=False)
+    category = db.Column(db.String, nullable=False)
+    description = db.Column(db.String, nullable=True)
+    title = db.Column(db.String, nullable=True)
+    id = db.Column(db.Integer, nullable=False)
     __table_args__ = (
         PrimaryKeyConstraint('src', 'file'),
     )
@@ -331,12 +333,13 @@ class ToDoItem(db.Model):
     user = db.relationship("User")
     version = db.relationship("Version")
 
-    def __init__(self, file_path, title, description, gt_category):
+    def __init__(self, file_path, title, description, gt_category, id):
         self.file_path = file_path
         self.title = title
         self.description = description
         self.gt_category = gt_category
         self.created_at = datetime.now()
+        self.id = id
         self.user_id = None
         self.version_id = None
         self.assigned_categories_json = None

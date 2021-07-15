@@ -2,7 +2,7 @@ from typing import List, Dict
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from project.models import Category, Moderation
-from project.models import VersionChildren, DataItems, VersionItems
+from project.models import VersionChildren, DataItems, VersionItems, Category
 
 
 def get_nodes_above(sess, node_id) -> List[int]:

@@ -13,7 +13,7 @@ def ffmpeg_job(input_fname: Path, thumbs_dir: str) -> List[str]:
     :param thumbs_dir: путь куда складывать фреймы
     """
     out = f"{os.path.join(thumbs_dir, f'{input_fname.stem}_frame_' + '%0d' + IMG_EXT)}"
-    command = f"""ffmpeg -y -i {str(input_fname)} -vsync vfr -vf "select='eq(pict_type,PICT_TYPE_I)" -s 224:224 -frame_pts 1 {out} 2>&1"""
+    command = f"""ffmpeg -y -i {str(input_fname)} -vsync vfr -filter_complex "[0:v]select=eq(pict_type\,PICT_TYPE_I)[pre_thumbs];[pre_thumbs]select=gt(scene\,0.2),scale=256:256[thumbs]" -map [thumbs] {out} 2>&1"""
 
     process = subprocess.Popen(
         command,
@@ -32,6 +32,6 @@ def ffmpeg_job(input_fname: Path, thumbs_dir: str) -> List[str]:
 
 
 if __name__ == '__main__':
-    file = Path("/media/alexander/D/PycharmProjects/Napoleon/cv/tests/data/porn.mp4")
-    thumbs_dir = "tmp"
+    file = Path("C:/PyCharmProjects/Video_Annotation_System/nasa.mp4")
+    thumbs_dir = "C:/PyCharmProjects/Video_Annotation_System/out"
     ffmpeg_job(file, thumbs_dir)
