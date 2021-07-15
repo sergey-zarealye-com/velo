@@ -115,7 +115,7 @@ class ImageIndex:
                 (
                     self.id_to_filename[item[0]],
                     self.id_to_filename[item[1]],
-                    float(item[2])
+                    round(float(item[2]), 4)
                 )
             )
 

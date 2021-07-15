@@ -83,7 +83,11 @@ def show_dedup(task_id, selected_ds):
     page_length = request.args.get("num_items")
     page_num = request.args.get("page_num")
 
-    dedup_result = task.result['deduplication']
+    dedup_result = task.result.get('deduplication')
+
+    if not dedup_result:
+        return render_template('datasets/taskFinished.html', task_id=task.task_uid)
+
     images = [
         {
             'item_index': i,
@@ -95,7 +99,7 @@ def show_dedup(task_id, selected_ds):
     ]
 
     return render_template(
-        'datasets/deduplication.html',
+        'datasets/deduplication2.html',
         images=images,
         task_id=task_id,
         selected_ds=selected_ds
