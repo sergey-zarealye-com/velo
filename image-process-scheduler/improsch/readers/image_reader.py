@@ -28,3 +28,4 @@ def get_image_reader(filter_func: Optional[Callable[[np.ndarray], bool]] = None)
         return images, imagenames
 
     return read
+# http://217.79.62.70:5024/dedup/f317eeb1-f9d2-4fb5-b90d-37c269483237/init

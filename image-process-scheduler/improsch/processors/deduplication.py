@@ -1,7 +1,7 @@
 """Module to handle deduplication of images.
 Includes model for features extraction and model for neighbours searching."""
 import os
-from typing import Dict, Iterable, List, Optional, Sized, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 import torch
 import faiss
 import numpy as np

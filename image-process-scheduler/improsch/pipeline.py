@@ -39,8 +39,10 @@ class Preprocessor:
 
         images, imagenames = read_func(request['directory'])
 
-        if request['is_resize']:
+        if request['is_resize'] or request['deduplication']:
             resized_images = resize_batch(images, request['dst_size'])
+
+        if request['is_resize']:
             parted_filenames = save_multiprocess(
                 resized_images,
                 imagenames,
@@ -58,20 +60,13 @@ class Preprocessor:
             )
 
         if request['deduplication']:
-            if request['is_resize']:
-                dedup_result = self.deduplicator(
-                    resized_images,
-                    parted_filenames,
-                    request['directory'],
-                    batch_size=self.dedup_batch_size
-                )
-            else:
-                dedup_result = self.deduplicator(
-                    images,
-                    parted_filenames,
-                    request['directory'],
-                    batch_size=self.dedup_batch_size
-                )
+            dedup_result = self.deduplicator(
+                resized_images,
+                parted_filenames,
+                request['directory'],
+                batch_size=self.dedup_batch_size
+            )
+
             return {'deduplication': dedup_result}
 
         return {"status": "done"}
