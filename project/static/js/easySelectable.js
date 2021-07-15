@@ -134,7 +134,7 @@ options = null;
 
         $('[id^="class_id_"]').click(function () {
             selected_items_set.forEach((item) => {
-                document.getElementById('text_class_' + item["li"][0].id).innerHTML = $(this).val();
+                document.getElementById('text_class_' + item["li"][0].id).innerHTML = $(this).text();
                 item["li"].data("has-class",true)
                 item["li"].data("has-select",false)
                 item["li"].removeClass('es-selected').trigger('unselected');
@@ -146,21 +146,16 @@ options = null;
             });
             selected_items_set.clear();
             update_selected_items_text();
-            $(this).prop( "checked", false );
+            // $(this).prop( "checked", false );
         });
     })
 
     function update_selected_items_text() {
         $('#selected_items_amount').html("Selected (" + selected_items_set.size + ")");
-        var str = ''
-        selected_items_set.forEach((item) => {
-            str += item["li"][0].id + '\n'
-        });
-        $('#selected_items_list').html(str);
-    }
-
-
-    function handleClick(el) {
-        console.log("click")
+        // var str = ''
+        // selected_items_set.forEach((item) => {
+        //     str += item["li"][0].id + '\n'
+        // });
+        // $('#selected_items_list').html(str);
     }
 })(jQuery);
