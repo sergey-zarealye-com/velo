@@ -1,0 +1,5 @@
+rabbit_login: guest
+rabbit_passw: guest
+rabbit_port: 5672
+rabbit_host: rabbit
+queue_name: frames_extraction
