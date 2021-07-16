@@ -10,3 +10,5 @@ services:
         image: video_handler
         depends_on: 
             - rabbit
+        volumes:
+            - /storage1/mrowl/image_storage/videos:/storage

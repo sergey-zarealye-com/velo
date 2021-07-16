@@ -1,8 +1,14 @@
-from typing import Callable, Any
+from asyncio.events import get_event_loop
+from typing import Callable, Any, Union
 import asyncio
 import aio_pika
 import json
 import logging
+from multiprocessing import Process
+import nest_asyncio
+
+
+nest_asyncio.apply()
 
 
 class Connector:
@@ -23,6 +29,7 @@ class Connector:
         queue_name: str,
         processing_func: Callable
     ):
+
         connection: Any = await aio_pika.connect_robust(
             f"amqp://{self.login}:{self.passw}@{self.host}:{self.port}/",
             loop=self.loop
@@ -42,14 +49,35 @@ class Connector:
                         options = json.loads(message.body.decode('utf-8'))
                         await processing_func(options)
 
-    async def send_message(self, message, routing_key: str):
+    def send_message(self, message: Union[str, dict, list], routing_key: str):
+        sending_proc = Process(
+            target=self.run_send_function,
+            args=(message, routing_key)
+        )
+        sending_proc.start()
+        sending_proc.join()
+        logging.info("Message is sended")
+
+    def run_send_function(self, message: Union[str, dict, list], routing_key: str):
+        try:
+            loop = get_event_loop()
+        except Exception:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        loop.run_until_complete(self._send_message(message, routing_key, loop))
+
+    async def _send_message(self, message: Union[str, dict, list], routing_key: str, loop):
         connection: Any = await aio_pika.connect_robust(
             f"amqp://{self.login}:{self.passw}@{self.host}:{self.port}/",
-            loop=self.loop
+            loop=loop
         )
 
         async with connection:
             channel = await connection.channel()
+
+            if not isinstance(message, str):
+                message = json.dumps(message)
 
             await channel.default_exchange.publish(
                 aio_pika.Message(body=message.encode()),

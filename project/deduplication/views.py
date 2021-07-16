@@ -39,8 +39,7 @@ def task_confirmation(task_id, selected):
 @dedup_blueprint.route('/checkbox/<task_id>/<selected_ds>', methods=['POST'])
 def save_result(task_id, selected_ds):
     selected = request.form.getlist('test_checkbox')
-    import pdb
-    pdb.set_trace()
+
     task = Deduplication.query.filter_by(task_uid=task_id).first()
     if task is None:
         abort(404)
