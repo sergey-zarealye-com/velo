@@ -443,7 +443,10 @@ def merge_categs(parent, child):
 @datasets_blueprint.route('/checkout/<selected>', methods=['GET', 'POST'])
 @login_required
 def checkout(selected):
-    """Получить список DataItems выбранной версии"""
+    """
+    Получить список DataItems выбранной версии
+    для обучения в kuberflow
+    """
     version = Version.query.filter_by(name=selected).first()
     if version is None:
         abort(404)
