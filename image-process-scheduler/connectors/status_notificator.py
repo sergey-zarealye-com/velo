@@ -36,5 +36,5 @@ class Notificator:
             message[stage] = status.value
 
         message = json.dumps(message)
-
+        # TODO: неиспользуемая функция? не хватает аргументов
         asyncio.create_task(send_message(message, self.loop, self.routing_key))

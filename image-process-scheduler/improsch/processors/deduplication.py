@@ -1,18 +1,17 @@
 """Module to handle deduplication of images.
 Includes model for features extraction and model for neighbours searching."""
-import os
-from typing import Dict, List, Optional, Tuple, Union
-import torch
-import faiss
-import numpy as np
-import cv2
-from multiprocessing import Pool
-from threading import Thread
-from torch.multiprocessing import Pool as torch_pool
 from functools import partial
-import json
 import logging
+from multiprocessing import Pool
+import os
+from threading import Thread
+from typing import Dict, List, Optional, Tuple, Union
 
+import cv2
+import faiss
+import json
+import numpy as np
+import torch
 
 CONFIG_NAME = 'config.json'
 FILENAMES_JSON_NAME = 'ids_to_filenames.json'
@@ -39,10 +38,11 @@ class NNfeatureExtractor(FeatureExtractor, torch.nn.Module):
         self.model.fc = torch.nn.Identity()
 
     def get_embeddings(
-        self,
-        images: Union[torch.Tensor, np.ndarray],
-        batch_size: int,
-        device: str = 'cuda'
+            self,
+            images: Union[torch.Tensor, np.ndarray],
+            batch_size: int,
+            device: str = 'cuda'
+            # device: str = 'cpu'
     ) -> np.ndarray:
         if not isinstance(images, torch.Tensor):
             images = torch.Tensor(images).permute(0, 3, 1, 2)
@@ -66,7 +66,7 @@ class NNfeatureExtractor(FeatureExtractor, torch.nn.Module):
 
 
 class ImageIndex:
-    def __init__(self, index_dir: Optional[str] = None,  feat_dim: Optional[int] = None):
+    def __init__(self, index_dir: Optional[str] = None, feat_dim: Optional[int] = None):
         if not (index_dir or feat_dim is not None):
             raise AttributeError()
 
@@ -101,8 +101,8 @@ class ImageIndex:
         self.index_config['index_length'] += len(vectors)
 
     def _neighbours_indexes_to_filenames(
-        self,
-        neighbours: List[Tuple[int, int, float]]
+            self,
+            neighbours: List[Tuple[int, int, float]]
     ) -> List[Tuple[str, str, float]]:
         updated_neighbours = []
 
@@ -166,7 +166,7 @@ class Deduplicator:
         else:
             self.index = ImageIndex(index_path)
 
-        self.pool_size = pool_size
+        self.pool_size = pool_size or 1
         self.index_path = index_path
 
     def _get_filepaths(self, data_dir, chunk_size):
@@ -204,8 +204,8 @@ class Deduplicator:
             imagenames.append(filename)
 
             # calculates for every channel
-            img_mean += np.mean(img, axis=tuple(range(img.ndim-1)))
-            img_std += np.std(img, axis=tuple(range(img.ndim-1)))
+            img_mean += np.mean(img, axis=tuple(range(img.ndim - 1)))
+            img_std += np.std(img, axis=tuple(range(img.ndim - 1)))
             count_images += 1
 
         if not len(images):
@@ -223,10 +223,10 @@ class Deduplicator:
         return embeddings
 
     def _get_embeddings_from_dir(
-        self,
-        filepaths: List,
-        dst_size: Union[Tuple[int, int], List[int]],
-        batch_size: int
+            self,
+            filepaths: List,
+            dst_size: Union[Tuple[int, int], List[int]],
+            batch_size: int
     ):
         cpu_pool = Pool(min(self.pool_size, len(filepaths)))
         read_func = partial(self.read_images, dst_size=dst_size)
@@ -249,7 +249,7 @@ class Deduplicator:
 
         img_mean /= count_chunks
         img_std /= count_chunks
-        images = np.stack(images)
+        images = np.stack(images)  # type: ignore
 
         embeddings = self._get_embeddings(images, batch_size)
 
@@ -261,10 +261,10 @@ class Deduplicator:
         return neighbours
 
     def run_deduplication(
-        self,
-        data_dir: str,
-        dst_size: Union[Tuple[int, int], List[int]],
-        chunk_size: Optional[int] = None
+            self,
+            data_dir: str,
+            dst_size: Union[Tuple[int, int], List[int]],
+            chunk_size: Optional[int] = None
     ):
         filepaths = self._get_filepaths(data_dir, chunk_size)
         # TODO batch_size as parameter

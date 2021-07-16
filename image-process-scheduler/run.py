@@ -76,6 +76,7 @@ def parse_config(config_path: str):
 
 if __name__ == '__main__':
     print('Sleeping...')
+    # TODO: зачем sleep?
     time.sleep(5.)
     parser = ArgumentParser()
     parser.add_argument('--config', type=str, default='config.yml')
