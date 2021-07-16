@@ -41,7 +41,7 @@ class Connector:
             channel = await connection.channel()
 
             # Declaring queue
-            queue = await channel.declare_queue(queue_name, auto_delete=True)
+            queue = await channel.declare_queue(queue_name, auto_delete=False)
 
             async with queue.iterator() as queue_iter:
                 async for message in queue_iter:

@@ -44,7 +44,7 @@ def get_processing_func(storage_dir: str, connector: Connector, result_queue_nam
         #         files.append(file_path)
         
         # TODO write to database or don't? if flask will take it on
-        connector.send_message(
+        connector.run_send_function(
             {"id": request["id"]},
             result_queue_name
         )
@@ -53,7 +53,6 @@ def get_processing_func(storage_dir: str, connector: Connector, result_queue_nam
 
 
 def main():
-    time.sleep(5.)
     parser = argparse.ArgumentParser()
     parser.add_argument('--config_name', type=str, default='config.yml')
 

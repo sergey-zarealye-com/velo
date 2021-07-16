@@ -53,7 +53,7 @@ def get_message(queue_name: str, queue):
             channel = await connection.channel()
 
             # Declaring queue
-            rabbit_queue = await channel.declare_queue(queue_name, auto_delete=True)
+            rabbit_queue = await channel.declare_queue(queue_name, auto_delete=False)
 
             async with rabbit_queue.iterator() as queue_iter:
                 async for message in queue_iter:
