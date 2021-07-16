@@ -84,3 +84,15 @@ Accelerate your next web project and start with this Flask App Blueprint. This G
     2. Run `git add .`
     3. Run `git commit -a -m "Your Commit Message"`
     4. Run `git push origin master` to push to GitHub
+
+## Variables example:
+.flaskenv
+```
+STORAGE_DIR = '/home/velo/image_storage'
+```
+docker-compose.yml
+```
+volumes:
+    - /home/velo/image_storage/:/image_storage
+    - /home/velo/dedup_index/:/dedup_index
+```
