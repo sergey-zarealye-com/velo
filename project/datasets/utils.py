@@ -1,9 +1,11 @@
+import asyncio
 import enum
 import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Generator, Dict, Union
-from multiprocessing import Process, Queue
+from multiprocessing import Process
+import multiprocessing
 from project.todo.rabbitmq_connector import send_message, get_message
 import os
 import uuid
@@ -14,14 +16,15 @@ from project.video_utils import ffmpeg_job
 log = logging.getLogger(__name__)
 
 
-sending_queue: Queue = Queue()
+sending_queue = multiprocessing.Queue()
 sending_process = Process(
     target=send_message,
     args=('frames_extraction', sending_queue)
 )
 sending_process.start()
 
-pulling_queue: Queue = Queue()
+pulling_queue = multiprocessing.Queue()
+print("Объявление ", id(pulling_queue))
 pulling_process = Process(
     target=get_message,
     args=('frames_extraction_result', pulling_queue)
@@ -64,7 +67,7 @@ def get_media_type(file: Path) -> MediaType:
     return MediaType.VIDEO
 
 
-def get_data_samples(data_path_str: str, labels: Dict[str, int]) -> Generator[DataSample, None, None]:
+def get_data_samples(data_path_str: str, labels: Dict[str, int], cat, description, title, i) -> Generator[DataSample, None, None]:
     data_path: Path = Path(data_path_str)
     # если это один файл
     if data_path.is_file():
@@ -96,7 +99,11 @@ def get_data_samples(data_path_str: str, labels: Dict[str, int]) -> Generator[Da
                 "thumbs_dir": os.path.join(task_id, 'thumbs'),
                 "input_fname": os.path.join(task_id, data_path.name),
                 "input_fname_stem": data_path.stem,
-                "img_ext": ".jpg"
+                "img_ext": ".jpg",
+                "cat": cat,
+                "description": description,
+                "title": title,
+                "video_id": i
             })
             log.info(f"Created task {task_id}")
     # если папка

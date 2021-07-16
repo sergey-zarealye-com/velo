@@ -1,9 +1,9 @@
 import asyncio
-from typing import Any
-import aio_pika
 import json
 import os
+from typing import Any
 
+import aio_pika
 
 rabbit_login = os.getenv("RABBIT_LOGIN") or "guest"
 rabbit_passw = os.getenv("RABBIT_PASSW") or "guest"
@@ -45,7 +45,7 @@ def get_message(queue_name: str, queue):
     async def func(loop, queue_name, queue):
         connection: Any = await aio_pika.connect_robust(
             f"amqp://{rabbit_login}:{rabbit_passw}@{rabbit_host}:{rabbit_port}/", loop=loop,
-            port=5673
+            port=5672
         )
 
         async with connection:
@@ -60,7 +60,14 @@ def get_message(queue_name: str, queue):
                     async with message.process():
                         response = json.loads(message.body.decode('utf-8'))
                         task_id = response['id']
+                        # ToDo убрать после отладки
                         print("\tGot response with task_id:", task_id)
-                        # TODO написать реацию на то, что обработка завершена
+                        print(f"Connector queue = {id(queue)}")
+                        queue.put({"task_id": task_id,
+                                   "cat": response["cat"],
+                                   "description": response["description"],
+                                   "title": response["title"],
+                                   "video_id": response["video_id"]
+                                   })
 
     loop.run_until_complete(func(loop, queue_name, queue))

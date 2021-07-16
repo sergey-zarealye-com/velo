@@ -3,6 +3,8 @@
 # IMPORTS
 import os.path
 import re
+import time
+
 import numpy as np
 import logging
 import pandas as pd
@@ -23,7 +25,7 @@ from .forms import NewBatchForm
 # CONFIG
 from ..datasets.forms import ImportForm
 from ..datasets.queries import get_labels_of_version
-from ..datasets.utils import get_data_samples
+from ..datasets.utils import get_data_samples, pulling_queue
 
 todo_blueprint = Blueprint('todo', __name__,
                            template_folder='templates',
@@ -41,7 +43,30 @@ def index():
         version = Version.query.filter_by(name=session['selected_version']).first()
     else:
         version = Version.get_first()
+    # ToDo подумать как сделать лаконичнее (потом)
+    while not pulling_queue.empty():
+        data = pulling_queue.get()
+        path = os.path.join("/home/alexey/PycharmProjects/Napoleon/velo/project/static/images/tmp/videos", data['task_id'], 'thumbs')
+        file_list = os.listdir(path)
+        objects = []
+        for file in file_list:
+            sample_path = os.path.join(path, file)
+            item2moderate = Moderation(src=path,
+                                       file=sample_path,
+                                       src_media_type="VIDEO", #ToDO расхардкодить
+                                       category=data["cat"],
+                                       description=data["description"],
+                                       title=data["title"],
+                                       id=data["video_id"])
+            objects.append(item2moderate)
+        try:
+            db.session.bulk_save_objects(objects, return_defaults=True)
+            db.session.commit()
+        except Exception as ex:
+            log.error(ex)
+            db.session.rollback()
 
+    print("В def index() ", id(pulling_queue))
     q = Moderation.query.distinct("id").all()
     for i, t in enumerate(q):
         todo = ToDoItem.query.filter_by(id=t.id).first()
@@ -93,7 +118,7 @@ def item(item_id):
         categs[task[0]] = Category.list(task[0], version.name)
     rows_of_interesting = Moderation.query.filter_by(id=todo.id).all()
     images_paths = [row.file for row in rows_of_interesting]
-    images_paths = [(images_path.split(sep='/')[-1], i) for i, images_path in enumerate(natural_sort(images_paths))]
+    images_paths = [('/'.join(images_path.split(sep='/')[-3:]), i) for i, images_path in enumerate(natural_sort(images_paths))]
     return render_template('todo/item.html', todo=todo,
                            categs=categs,
                            frames=images_paths,
@@ -111,9 +136,9 @@ def moderate(item_id):
         version = Version.query.filter_by(name=session['selected_version']).first()
     else:
         abort(400)
+    # ToDO выяснить почему реквест стал приходить пустой
     req_values = request.values
     print(req_values)
-    # TODO -- save everything
     film_id = ToDoItem.query.filter_by(id=item_id).first().id
     rows_of_interesting = Moderation.query.filter_by(id=film_id).all()
     images_paths = [row.file for row in rows_of_interesting]
@@ -129,6 +154,7 @@ def moderate(item_id):
             Moderation.query.filter_by(file=images_path).delete()
             os.remove(images_path)
         else:
+            # ToDo реализовать сохранение в датасет
             item_to_save = TmpTable(
                 item_id=max_id,
                 node_name=version.name,
@@ -157,7 +183,7 @@ def new_batch():
             # TODO -- add queue to download and preprocess videos and create todo items
             with open(form.src.data) as f:
                 data = pd.read_csv(f)
-            
+
             paths, cats, titles, descriptions = [data.video_adress.values,
                                                  data.gt_category.values,
                                                  data.title.values,
@@ -169,21 +195,9 @@ def new_batch():
                 max_id = 0
             for i, (path, cat, title, description) in enumerate(zip(paths, cats, titles, descriptions), start=max_id+1):
                 objects = []
-                for sample in get_data_samples(path, version.id):
-                    item2moderate = Moderation(src=path,
-                                               file=sample.path,
-                                               src_media_type=sample.media_type,
-                                               category=cat,
-                                               description=description,
-                                               title=title,
-                                               id=i)
-                    objects.append(item2moderate)
-                try:
-                    db.session.bulk_save_objects(objects, return_defaults=True)
-                    db.session.commit()
-                except Exception as ex:
-                    log.error(ex)
-                    db.session.rollback()
+                # ToDo написать по человечески
+                for sample in get_data_samples(path, version.id, cat, description, title, i):
+                    pass
             return redirect(url_for('todo.index'))
     return render_template('todo/new_batch.html',
                            form=form)

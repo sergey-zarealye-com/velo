@@ -8,7 +8,7 @@ import subprocess
 
 def get_processing_func(storage_dir: str, connector: Connector, result_queue_name: str):
     async def processing_function(
-        request: dict,
+            request: dict,
     ):
         print("Got request:", request)
 
@@ -36,16 +36,14 @@ def get_processing_func(storage_dir: str, connector: Connector, result_queue_nam
         (output, err) = process.communicate()
         print("Subprocess finished")
 
-        # files = []
-        # for file in os.listdir(thumbs_dir):
-        #     m = re.match(f'{input_fname.stem}_frame_\d+{img_ext}', file)
-        #     if m:
-        #         file_path = os.path.join(thumbs_dir, file)
-        #         files.append(file_path)
-        
-        # TODO write to database or don't? if flask will take it on
         connector.run_send_function(
-            {"id": request["id"]},
+            {
+                "id": request["id"],
+                "cat": request["cat"],
+                "description": request["description"],
+                "title": request["title"],
+                "video_id": request["video_id"]
+            },
             result_queue_name
         )
 

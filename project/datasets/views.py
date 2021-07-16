@@ -24,6 +24,14 @@ import uuid
 from .queries import get_labels_of_version, get_nodes_above, get_items_of_nodes
 from .utils import get_data_samples
 
+log = logging.getLogger(__name__)
+
+# CONFIG
+TMPDIR = os.path.join('project', 'static', 'tmp')
+datasets_blueprint = Blueprint('datasets', __name__,
+                               template_folder='templates',
+                               url_prefix='/datasets')
+
 # Processes for communication module
 sending_queue: Queue = Queue()
 sending_process = Process(
@@ -33,19 +41,12 @@ sending_process = Process(
 sending_process.start()
 
 pulling_queue: Queue = Queue()
+# print("Объявление в датасетс", id(pulling_queue))
 pulling_process = Process(
     target=get_message,
     args=('deduplication_result_1', pulling_queue)
 )
 pulling_process.start()
-
-log = logging.getLogger(__name__)
-
-# CONFIG
-TMPDIR = os.path.join('project', 'static', 'tmp')
-datasets_blueprint = Blueprint('datasets', __name__,
-                               template_folder='templates',
-                               url_prefix='/datasets')
 
 
 def copy_directory(
