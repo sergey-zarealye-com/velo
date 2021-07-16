@@ -31,8 +31,26 @@ def unpack_func_for_saving(argument):
     return save_all(images, filepaths)
 
 
-def save_multiprocess(images: List[np.ndarray], filepaths: List[str], task_id: str, pool_size: int, storage_path: str):
-    # TODO: комментарий, что делает функция
+def save_multiprocess(
+    images: List[np.ndarray],
+    filepaths: List[str],
+    task_id: str,
+    pool_size: int,
+    storage_path: str
+) -> List[str]:
+    """Save input images to the storage in 'task_id' folder
+
+    Function uses multiprocessing pool for saving image by chunks.
+    Args:
+        images (List[np.ndarray]): input images
+        filepaths (List[str]): filenames of images in same order
+        task_id (str): name of folder to save images in
+        pool_size (int): count of processes
+        storage_path (str): path to storage
+
+    Returns:
+        List[str]: new path to save images
+    """
     assert len(images) == len(filepaths), RuntimeError("Lengths of images and filepaths are different")
     log.info(f"Saving {len(images)} into storage {storage_path}")
 
@@ -53,7 +71,7 @@ def save_multiprocess(images: List[np.ndarray], filepaths: List[str], task_id: s
             images[i:i + chunk_size],
             new_filepaths[i:i + chunk_size]
         ))
-    #TODO Что тут происходит? какие файлы куда сохраняем?
+
     pool = Pool(pool_size)
     pool.map(unpack_func_for_saving, chunks)
     pool.close()

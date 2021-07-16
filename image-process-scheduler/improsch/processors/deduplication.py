@@ -12,7 +12,6 @@ import faiss
 import json
 import numpy as np
 import torch
-from torch.multiprocessing import Pool as torch_pool
 
 CONFIG_NAME = 'config.json'
 FILENAMES_JSON_NAME = 'ids_to_filenames.json'
@@ -167,7 +166,7 @@ class Deduplicator:
         else:
             self.index = ImageIndex(index_path)
 
-        self.pool_size = pool_size
+        self.pool_size = pool_size or 1
         self.index_path = index_path
 
     def _get_filepaths(self, data_dir, chunk_size):
@@ -250,7 +249,7 @@ class Deduplicator:
 
         img_mean /= count_chunks
         img_std /= count_chunks
-        images = np.stack(images)
+        images = np.stack(images)  # type: ignore
 
         embeddings = self._get_embeddings(images, batch_size)
 
