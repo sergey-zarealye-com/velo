@@ -4,6 +4,7 @@ from typing import Any, Callable, Optional
 import aio_pika
 import json
 
+# TODO: импорты по PEP8 (везде)
 
 async def main(
     loop,
@@ -14,9 +15,10 @@ async def main(
     port: int,
     host: str
 ):
+    # TODO: убрать хардкод 5672
     connection: Any = await aio_pika.connect_robust(
         f"amqp://{login}:{passw}@{host}:{port}/", loop=loop,
-        port=5673
+        port=5672
     )
     print("Successful connected to", f"amqp://{login}:{passw}@{host}:{port}/")
 

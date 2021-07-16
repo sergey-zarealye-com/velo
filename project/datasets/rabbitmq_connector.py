@@ -50,9 +50,10 @@ def get_message(queue_name: str, queue):
     asyncio.set_event_loop(loop)
 
     async def func(loop, queue_name, queue):
+        # TODO: убрать хардкод порта
         connection: Any = await aio_pika.connect_robust(
             f"amqp://{rabbit_login}:{rabbit_passw}@{rabbit_host}:{rabbit_port}/", loop=loop,
-            port=5673
+            port=5672
         )
 
         async with connection:

@@ -1,11 +1,15 @@
+import logging
+from math import ceil
+from multiprocessing import Pool
+import os
+from pathlib import Path
 from typing import Iterable, List
+
 import numpy as np
 import cv2
-import logging
-from multiprocessing import Pool
-from math import ceil
-from pathlib import Path
-import os
+
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
 
 
 def save_image(img: np.ndarray, filepath: str):
@@ -28,9 +32,9 @@ def unpack_func_for_saving(argument):
 
 
 def save_multiprocess(images: List[np.ndarray], filepaths: List[str], task_id: str, pool_size: int, storage_path: str):
+    # TODO: комментарий, что делает функция
     assert len(images) == len(filepaths), RuntimeError("Lengths of images and filepaths are different")
-
-    logging.info("Saving", len(images), "into storage", storage_path)
+    log.info(f"Saving {len(images)} into storage {storage_path}")
 
     # try:
     #     os.mkdir(os.path.join(storage_path, task_id))
@@ -46,10 +50,10 @@ def save_multiprocess(images: List[np.ndarray], filepaths: List[str], task_id: s
 
     for i in range(0, len(images), chunk_size):
         chunks.append((
-            images[i:i+chunk_size],
-            new_filepaths[i:i+chunk_size]
+            images[i:i + chunk_size],
+            new_filepaths[i:i + chunk_size]
         ))
-
+    #TODO Что тут происходит? какие файлы куда сохраняем?
     pool = Pool(pool_size)
     pool.map(unpack_func_for_saving, chunks)
     pool.close()

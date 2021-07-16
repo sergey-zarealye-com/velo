@@ -49,14 +49,14 @@ datasets_blueprint = Blueprint('datasets', __name__,
 
 
 def copy_directory(
-    src_dir: str,
-    dst_path: str,
-    task_id: str,
-    is_size_control: bool,
-    min_size: Tuple[int, int],
-    is_resize: bool,
-    dst_size: Tuple[int, int],
-    is_dedup: bool
+        src_dir: str,
+        dst_path: str,
+        task_id: str,
+        is_size_control: bool,
+        min_size: Tuple[int, int],
+        is_resize: bool,
+        dst_size: Tuple[int, int],
+        is_dedup: bool
 ):
     logging.info("Start copying data...")
     sys.stdout.flush()
@@ -321,6 +321,7 @@ def import2ds(selected):
                         )
                     )
                     proc_to_copy_files.start()
+                    proc_to_copy_files.join()
 
                     # если включена дедупликация, то сохранение нужно после
                     # процесса ручного отбора картинок (project/deduplication/views/def save_result)
