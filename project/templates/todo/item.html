@@ -12,7 +12,7 @@
 {% from "_formshelper.html" import render_field %}
 {% block content %}
 
-    <form method="POST" action="{{ url_for('todo.moderate', item_id=todo.id) }}">
+{#    <form method="POST" action="{{ url_for('todo.moderate', item_id=todo.id) }}">#}
         <div class="container">
             {% for task in categs.keys() %}
                 {% if task == 1 %}
@@ -32,7 +32,7 @@
 {#                                                </select>#}
 {#                                            </p>#}
                                     <li class="card es-selectable es-unselected-no-class" style="border-width: 5px" id="{{ frame[0] }}"
-                                        has-class="false" has-select="false">
+                                        value="{{ frame[1] }}" has-class="false" has-select="false">
                                         <div id="text_class_{{ frame[0] }}">
                                         </div>
                                         <div>
@@ -131,10 +131,10 @@
                 {% endif %}
             {% endfor %}
             <div class="text-center">
-                <button class="btn btn-danger btn-lg" type="submit">Save</button>
+                <button class="btn btn-danger btn-lg" id="save_btn" value="{{ todo.id }}">Save</button>
             </div>
         </div>
-    </form>
+{#    </form>#}
 
 
 {% endblock %}

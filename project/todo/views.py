@@ -93,7 +93,7 @@ def item(item_id):
         categs[task[0]] = Category.list(task[0], version.name)
     rows_of_interesting = Moderation.query.filter_by(id=todo.id).all()
     images_paths = [row.file for row in rows_of_interesting]
-    images_paths = [(images_path.split(sep='/')[-1], i) for i, images_path in enumerate(natural_sort(images_paths))]
+    images_paths = [(images_path.replace('\\', '/').split(sep='/')[-1], i) for i, images_path in enumerate(natural_sort(images_paths))]
     return render_template('todo/item.html', todo=todo,
                            categs=categs,
                            frames=images_paths,
@@ -137,7 +137,8 @@ def moderate(item_id):
     todo.finished_at = datetime.now()
     db.session.commit()
     ToDoItem.query.filter_by(id=film_id).delete()
-    return redirect(url_for('todo.index'))
+    return {"status": True}
+    # return redirect(url_for('todo.index'))
 
 
 @todo_blueprint.route('/new_batch', methods=['GET', 'POST'])
