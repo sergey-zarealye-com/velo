@@ -5,7 +5,10 @@ from flask import render_template, Blueprint, redirect, url_for
 from flask import abort, session
 from flask_login import login_required
 
-from project.models import Version, VersionItems, DataItems
+from project import db
+from project.datasets.queries import get_nodes_above
+from project.images.queries import get_items_of_version
+from project.models import Version, VersionItems, DataItems, Category
 
 # CONFIG
 images_blueprint = Blueprint('images', __name__,
@@ -35,9 +38,9 @@ def browse(selected):
         version = Version.query.filter_by(name=selected).first()
     if version is None:
         abort(404)
-    image_ids = VersionItems.query.filter_by(version_id=8).with_entities(VersionItems.item_id)
-    image_items = DataItems.query.filter(DataItems.id.in_(image_ids))
-    return render_template('images/index.html', version=version, image_items=image_items)
+    nodes_of_version = get_nodes_above(db.session, version.id)
+    version_items = get_items_of_version(db.session, nodes_of_version)
+    return render_template('images/index.html', version=version, version_items=version_items)
 
 
 if __name__ == '__main__':
@@ -48,8 +51,18 @@ if __name__ == '__main__':
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    image_ids = VersionItems.query.filter_by(version_id=8).with_entities(VersionItems.item_id)
-    image_paths = DataItems.query.filter(DataItems.id.in_(image_ids))
+    # image_ids = VersionItems.query.filter_by(version_id=1).with_entities(VersionItems.item_id, VersionItems.category_id).all()
+    # image_paths = DataItems.query.filter(DataItems.id.in_(image_ids)).join(Category, Category.c.id == image_ids.category_id)
 
-    res = image_paths.all()
-    print(res)
+    # node_items = VersionItems.query.filter_by(version_id=1)
+    """
+    category_id
+    item_id
+    """
+    q = session.query(VersionItems, DataItems, Category) \
+        .filter(VersionItems.version_id == 1) \
+        .join(DataItems) \
+        .filter(Category.id == VersionItems.category_id)
+
+    for item in q.all():
+        print(item)

@@ -1,6 +1,7 @@
 velo/*
-project ./static/images/tmp/*
+project/static/images/tmp/*
 .flaskenv
+project/static/tmp/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -75,7 +75,7 @@ Accelerate your next web project and start with this Flask App Blueprint. This G
 ## 5. Deploy
 1. Run locally
     1. Open Postgres.app
-    2. Run `. venv/bin/activate`
+    2. Run `. velo/bin/activate`
     3. Run `flask run`
     4. Open in your browser: http://localhost:5000/
 
