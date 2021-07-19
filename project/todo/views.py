@@ -5,7 +5,7 @@ import os.path
 import re
 import time
 
-import numpy as np
+from pathlib import Path
 import logging
 import pandas as pd
 from flask import render_template, Blueprint, request, redirect, url_for
@@ -25,14 +25,14 @@ from .forms import NewBatchForm
 # CONFIG
 from ..datasets.forms import ImportForm
 from ..datasets.queries import get_labels_of_version
-from ..datasets.utils import get_data_samples, pulling_queue
+from ..datasets.utils import create_video_task, pulling_queue
 
 todo_blueprint = Blueprint('todo', __name__,
                            template_folder='templates',
                            url_prefix='/todo')
 
 log = logging.getLogger(__name__)
-ABS_PATH = os.path.abspath('static/images/tmp')
+ABS_PATH = Path.absolute(Path('project')).joinpath('static', 'images', 'tmp')
 
 
 # ROUTES
@@ -46,12 +46,12 @@ def index():
     # ToDo подумать как сделать лаконичнее (потом)
     while not pulling_queue.empty():
         data = pulling_queue.get()
-        path = os.path.join("/home/alexey/PycharmProjects/Napoleon/velo/project/static/images/tmp/videos", data['task_id'], 'thumbs')
+        path = ABS_PATH.joinpath(data['task_id'], 'thumbs')
         file_list = os.listdir(path)
         objects = []
         for file in file_list:
             sample_path = os.path.join(path, file)
-            item2moderate = Moderation(src=path,
+            item2moderate = Moderation(src=str(path),
                                        file=sample_path,
                                        src_media_type="VIDEO", #ToDO расхардкодить
                                        category=data["cat"],
@@ -117,8 +117,8 @@ def item(item_id):
     for task in Category.TASKS():
         categs[task[0]] = Category.list(task[0], version.name)
     rows_of_interesting = Moderation.query.filter_by(id=todo.id).all()
-    images_paths = [row.file for row in rows_of_interesting]
-    images_paths = [('/'.join(images_path.split(sep='/')[-3:]), i) for i, images_path in enumerate(natural_sort(images_paths))]
+    images_paths = [Path(row.file) for row in rows_of_interesting]
+    images_paths = [(images_path.anchor.join(images_path.parts[-3:]), i) for i, images_path in enumerate(natural_sort(images_paths))]
     return render_template('todo/item.html', todo=todo,
                            categs=categs,
                            frames=images_paths,
@@ -194,10 +194,8 @@ def new_batch():
             else:
                 max_id = 0
             for i, (path, cat, title, description) in enumerate(zip(paths, cats, titles, descriptions), start=max_id+1):
-                objects = []
                 # ToDo написать по человечески
-                for sample in get_data_samples(path, version.id, cat, description, title, i):
-                    pass
+                create_video_task(path, version.id, cat, description, title, i)
             return redirect(url_for('todo.index'))
     return render_template('todo/new_batch.html',
                            form=form)
