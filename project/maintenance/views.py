@@ -31,7 +31,9 @@ def index():
     else:
         version = Version.get_first()
     if version is None:
-        abort(404)
+        message = Markup("There was no version found!")
+        flash(message, 'warning')
+        return redirect(url_for('datasets.index'))
     return redirect(url_for('maintenance.categs_list', selected=version.name))
 
 @maintenance_blueprint.route('/categs_list/<selected>')
@@ -42,7 +44,9 @@ def categs_list(selected):
     else:
         version = Version.query.filter_by(name=selected).first()
     if version is None:
-        abort(404)
+        message = Markup("There was no version found!")
+        flash(message, 'warning')
+        return redirect(url_for('datasets.index'))
     categs = {}
     for task in TASKS:
         categs[task[0]] = Category.list(task[0], version.name)
@@ -56,6 +60,10 @@ def categ_add(task_id):
         version = Version.query.filter_by(name=session['selected_version']).first()
     else:
         abort(400)
+    if version is None:
+        message = Markup("There was no version found!")
+        flash(message, 'warning')
+        return redirect(url_for('datasets.index'))
     if version.status in [3]:
         message = Markup(
             "<strong>Warning!</strong> Unable to add category to committed version. ")
@@ -94,7 +102,9 @@ def models_list(selected):
     else:
         version = Version.query.filter_by(name=selected).first()
     if version is None:
-        abort(404)
+        message = Markup("There was no version found!")
+        flash(message, 'warning')
+        return redirect(url_for('datasets.index'))
     models = []
     return render_template('maintenance/models_list.html', 
                            version=version, models=models)    

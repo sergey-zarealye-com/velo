@@ -21,12 +21,14 @@ images_blueprint = Blueprint('images', __name__,
 @login_required
 def index():
     if 'selected_version' in session:
-        first_one = Version.query.filter_by(name=session['selected_version']).first()
+        version = Version.query.filter_by(name=session['selected_version']).first()
     else:
-        first_one = Version.get_first()
-    if first_one is None:
-        abort(404)
-    return redirect(url_for('images.browse', selected=first_one.name))
+        version = Version.get_first()
+    if version is None:
+        message = Markup("There was no version found!")
+        flash(message, 'warning')
+        return redirect(url_for('datasets.index'))
+    return redirect(url_for('images.browse', selected=version.name))
 
 
 @images_blueprint.route('/browse/<selected>')
@@ -37,7 +39,9 @@ def browse(selected):
     else:
         version = Version.query.filter_by(name=selected).first()
     if version is None:
-        abort(404)
+        message = Markup("There was no version found!")
+        flash(message, 'warning')
+        return redirect(url_for('datasets.index'))
     nodes_of_version = get_nodes_above(db.session, version.id)
     version_items = get_items_of_version(db.session, nodes_of_version)
     return render_template('images/index.html', version=version, version_items=version_items)

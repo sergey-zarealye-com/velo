@@ -41,7 +41,10 @@ def index():
         version = Version.query.filter_by(name=session['selected_version']).first()
     else:
         version = Version.get_first()
-
+    if version is None:
+        message = Markup("There was no version found!")
+        flash(message, 'warning')
+        return redirect(url_for('datasets.index'))
     q = Moderation.query.distinct("id").all()
     for i, t in enumerate(q):
         todo = ToDoItem.query.filter_by(id=t.id).first()
@@ -70,6 +73,10 @@ def take(item_id):
         version = Version.query.filter_by(name=session['selected_version']).first()
     else:
         version = Version.get_first()
+    if version is None:
+        message = Markup("There was no version found!")
+        flash(message, 'warning')
+        return redirect(url_for('datasets.index'))
     todo.started_at = datetime.now()
     todo.user_id = current_user.id
     todo.version_id = version.id
@@ -88,6 +95,10 @@ def item(item_id):
         version = Version.query.filter_by(name=session['selected_version']).first()
     else:
         version = Version.get_first()
+    if version is None:
+        message = Markup("There was no version found!")
+        flash(message, 'warning')
+        return redirect(url_for('datasets.index'))
     categs = {}
     for task in Category.TASKS():
         categs[task[0]] = Category.list(task[0], version.name)
