@@ -1,4 +1,12 @@
-Для работы требуется RabbitMQ.
+Для работы требуется RabbitMQ. Можно развернуть отдельный контейнер с RabbitMQ или запустить его на холсте или воспользоваться docker-compose.yml в папке image-process-scheduler.
+
+Для того, чтобы запустить docker compose, соберите образ improsch:
+
+    cd image-process-scheduler
+    docker build -t improsch . # осторожно, очень тяжёлый образ
+    docker-compose up -d
+
+Если RabbitMQ запускается в отдельном контейнере:
 
     docker pull rabbitmq:3-management
     docker run --rm -it --hostname my-rabbit -p 15672:15672 -p 5672:5672 rabbitmq:3-management
@@ -14,7 +22,13 @@
 
 За предобработку  изображений отвечает https://github.com/NRshka/image-process-scheduler
 
+Нужно отдельно установить faiss, который устанавливается через conda:
+    conda install faiss -c pytorch
+И пакеты из pypi:
+    pip install -r requirements.txt
+
 Для работы отдельно запустите image-process-scheduler:
     python run.py
+
 
 А потом приложение на flask.
