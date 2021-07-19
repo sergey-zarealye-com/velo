@@ -2,7 +2,7 @@
 Author: mee4dy@gmail.com
 */
 selected_items_set = new Set();
-selected_items_el = new Set();
+moderated_items_set = {};
 options = null;
 (function ($) {
     //selectable html elements
@@ -143,10 +143,36 @@ options = null;
                 item["div"].trigger('unselected');
                 options.onSelecting(item["li"]);
                 options.onUnSelected(item["li"]);
+                moderated_items_set[item["li"][0].value] = $(this).text()
             });
             selected_items_set.clear();
             update_selected_items_text();
             // $(this).prop( "checked", false );
+        });
+
+        $('#save_btn').click(function () {
+            console.log('ajax')
+            $.post( "/todo/moderate/"+$('#save_btn').attr("value"), moderated_items_set);
+            window.location.href = '/todo/index';
+            // $.ajax({
+            //    type: "POST",
+            //    contentType: "application/json; charset=utf-8",
+            //    url: "/todo/moderate/"+$('#save_btn').attr("value"),
+            //    data: JSON.stringify({"id": moderated_items_set}),
+            //    success: [],
+            //    dataType: "json"
+            // }).done(function(){
+            //    // $('#message').html('test');
+            //     console.log('/todo/index')
+            //     window.location.href = '/todo/index';
+            // }).fail(function(response){
+            //     console.log(response)
+            //     console.log('fail?')
+            //     console.log('/todo/index')
+            //     // $("html").html(response)
+            //     window.location.href = '/todo/index';
+            //    // $('#message').html(response['responseText']);
+            // });
         });
     })
 

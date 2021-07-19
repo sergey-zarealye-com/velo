@@ -136,7 +136,6 @@ def moderate(item_id):
         version = Version.query.filter_by(name=session['selected_version']).first()
     else:
         abort(400)
-    # ToDO выяснить почему реквест стал приходить пустой
     req_values = request.values
     print(req_values)
     film_id = ToDoItem.query.filter_by(id=item_id).first().id
@@ -163,7 +162,8 @@ def moderate(item_id):
     todo.finished_at = datetime.now()
     db.session.commit()
     ToDoItem.query.filter_by(id=film_id).delete()
-    return redirect(url_for('todo.index'))
+    return {"status": True}
+    # return redirect(url_for('todo.index'))
 
 
 @todo_blueprint.route('/new_batch', methods=['GET', 'POST'])
