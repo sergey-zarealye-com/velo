@@ -237,6 +237,7 @@ class Category(db.Model):
     name = db.Column(db.String, unique=False, nullable=False)
     task = db.Column(db.SmallInteger, nullable=False)  # 1=CV classes, 2=NLP classes
     position = db.Column(db.Integer, nullable=False)  # position related to Model outputs, numbering starts from ZERO
+    description = db.Column(db.String, nullable=True)
 
     version = db.relationship("Version")
 
@@ -249,6 +250,7 @@ class Category(db.Model):
         self.name = name
         self.version_id = version_id
         self.task = task
+        self.description = description
         if position is not None:
             self.position = position
         else:

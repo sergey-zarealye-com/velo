@@ -1,16 +1,16 @@
-"""migration
+"""Init
 
-Revision ID: 480de4efe89a
+Revision ID: a2c5ed6d633c
 Revises: 
-Create Date: 2021-07-14 15:24:34.181629
+Create Date: 2021-07-19 11:54:38.041158
 
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
+
 
 # revision identifiers, used by Alembic.
-revision = '480de4efe89a'
+revision = 'a2c5ed6d633c'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -24,19 +24,14 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('path')
     )
-    op.create_table('deduplication',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('task_uid', sa.String(), nullable=True),
-    sa.Column('stages_status', postgresql.JSON(astext_type=sa.Text()), nullable=True),
-    sa.Column('result', postgresql.JSON(astext_type=sa.Text()), nullable=True),
-    sa.PrimaryKeyConstraint('id')
-    )
     op.create_table('moderation',
     sa.Column('src', sa.String(), nullable=False),
     sa.Column('file', sa.String(), nullable=False),
     sa.Column('src_media_type', sa.String(), nullable=False),
-    sa.Column('category', sa.String(), nullable=True),
-    sa.Column('general_category', sa.String(), nullable=False),
+    sa.Column('category', sa.String(), nullable=False),
+    sa.Column('description', sa.String(), nullable=True),
+    sa.Column('title', sa.String(), nullable=True),
+    sa.Column('id', sa.Integer(), nullable=False),
     sa.PrimaryKeyConstraint('src', 'file')
     )
     op.create_table('users',
@@ -130,6 +125,5 @@ def downgrade():
     op.drop_table('versions')
     op.drop_table('users')
     op.drop_table('moderation')
-    op.drop_table('deduplication')
     op.drop_table('data_items')
     # ### end Alembic commands ###
