@@ -24,10 +24,10 @@ from .utils import natural_sort
 from .forms import NewBatchForm
 
 # CONFIG
-from ..datasets.forms import ImportForm
 from ..datasets.queries import get_labels_of_version
-from ..datasets.utils import create_video_task, pulling_queue
+from ..datasets.utils import pulling_queue
 from ..datasets.views import fillup_tmp_table
+from project.todo.utils import create_video_task
 
 todo_blueprint = Blueprint('todo', __name__,
                            template_folder='templates',
@@ -153,8 +153,7 @@ def moderate(item_id):
         if not os.path.exists(os.path.join(SAVE_PATH, category)):
             os.mkdir(os.path.join(SAVE_PATH, category))
         shutil.move(images_path, os.path.join(SAVE_PATH, category, Path(images_path).name))
-        Moderation.query.filter_by(file=images_path).delete()
-        # ToDo загрузка в s3
+    Moderation.query.filter_by(id=film_id).delete()
     fillup_tmp_table(get_labels_of_version(version.id), version.name, str(SAVE_PATH), version)
     folder = Path(images_paths[0]).parent.parent
     shutil.rmtree(folder, ignore_errors=True)
