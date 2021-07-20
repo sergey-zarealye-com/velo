@@ -1,6 +1,9 @@
 # project/users/views.py
 
 # IMPORTS
+import json
+import math
+from collections import Counter
 from flask import render_template, Blueprint, redirect, url_for
 from flask import abort, session
 from flask_login import login_required
@@ -30,8 +33,21 @@ def index():
 
 
 @images_blueprint.route('/browse/<selected>')
+@images_blueprint.route('/browse/<selected>&page=<page>&items=<items>')
+@images_blueprint.route('/browse/<selected>&page=<page>&items=<items>&filters=<filters>')
 @login_required
-def browse(selected):
+def browse(selected, page=1, items=50, filters=None):
+    print('filters',filters)
+    try:
+        items = int(items)
+        page = int(page)
+        if filters is not None:
+            filters=json.loads(filters)
+            session['browse_filters'] = filters
+    except Exception as e:
+        print(e)
+        abort(404)
+    print(selected, page, items, f"[{(page-1)*items}:{(page)*items}]", filters)
     if 'selected_version' in session:
         version = Version.query.filter_by(name=session['selected_version']).first()
     else:
@@ -40,7 +56,19 @@ def browse(selected):
         abort(404)
     nodes_of_version = get_nodes_above(db.session, version.id)
     version_items = get_items_of_version(db.session, nodes_of_version)
-    return render_template('images/index.html', version=version, version_items=version_items)
+    classes_info = dict(Counter(getattr(item, 'label') for item in version_items))
+    if session['browse_filters'] is not None:
+        version_items = [item for item in version_items if item.label in session['browse_filters']]
+    print('browse_filters', session['browse_filters'])
+    return render_template('browse/item.html',
+                           version=version,
+                           version_items=version_items[(page-1)*items:(page)*items],
+                           ds_length=len(version_items),
+                           classes_info=classes_info,
+                           pages=int(math.ceil(len(version_items) / int(items))),
+                           page=page,
+                           items=items,
+                           filters=session['browse_filters'])
 
 
 if __name__ == '__main__':
