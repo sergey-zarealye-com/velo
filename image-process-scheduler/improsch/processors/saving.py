@@ -21,7 +21,7 @@ def save_all(images: Iterable[np.ndarray], filepaths: Iterable[str]):
     for img, filepath in zip(images, filepaths):
         try:
             save_image(img, filepath)
-            logging.info("Saved image to", filepath)
+            logging.info(f"Saved image to {filepath}")
         except Exception as err:
             logging.error(f"Error while saving: {str(err)}")
 
