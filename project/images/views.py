@@ -4,7 +4,7 @@
 import json
 import math
 from collections import Counter
-from flask import render_template, Blueprint, redirect, url_for
+from flask import render_template, Blueprint, redirect, url_for, flash
 from flask import abort, session
 from flask_login import login_required
 from markupsafe import Markup
@@ -19,6 +19,7 @@ images_blueprint = Blueprint('images', __name__,
                              template_folder='templates',
                              url_prefix='/images')
 
+# TODO: сделать логгер, вынести в него все принты
 
 # ROUTES
 @images_blueprint.route('/index')
@@ -38,17 +39,17 @@ def index():
 @images_blueprint.route('/browse/<selected>&page=<page>&items=<items>&filters=<filters>')
 @login_required
 def browse(selected, page=1, items=50, filters=None):
-    print('filters',filters)
+    print('filters', filters)
     try:
         items = int(items)
         page = int(page)
         if filters is not None:
-            filters=json.loads(filters)
+            filters = json.loads(filters)
             session['browse_filters'] = filters
     except Exception as e:
         print(e)
         abort(404)
-    print(selected, page, items, f"[{(page-1)*items}:{(page)*items}]", filters)
+    print(selected, page, items, f"[{(page - 1) * items}:{(page) * items}]", filters)
     if 'selected_version' in session:
         version = Version.query.filter_by(name=session['selected_version']).first()
     else:
@@ -60,18 +61,21 @@ def browse(selected, page=1, items=50, filters=None):
     nodes_of_version = get_nodes_above(db.session, version.id)
     version_items = get_items_of_version(db.session, nodes_of_version)
     classes_info = dict(Counter(getattr(item, 'label') for item in version_items))
-    if session['browse_filters'] is not None:
+    if "browse_filters" in session:
         version_items = [item for item in version_items if item.label in session['browse_filters']]
-    print('browse_filters', session['browse_filters'])
+        cur_filters = session['browse_filters']
+    else:
+        cur_filters = None
+
     return render_template('browse/item.html',
                            version=version,
-                           version_items=version_items[(page-1)*items:(page)*items],
+                           version_items=version_items[(page - 1) * items:(page) * items],
                            ds_length=len(version_items),
                            classes_info=classes_info,
                            pages=int(math.ceil(len(version_items) / int(items))),
                            page=page,
                            items=items,
-                           filters=session['browse_filters'])
+                           filters=cur_filters)
 
 
 if __name__ == '__main__':
