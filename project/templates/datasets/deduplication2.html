@@ -72,6 +72,17 @@
 </style>
 
 
+<script type="text/javascript">
+	function check_top(end_index) {
+  	for (let i = 0; i <= end_index; i++) {
+    	document.getElementById("image" + String(i)).click();
+    }
+
+    return false;
+  }
+</script>
+
+
 <div class="card bg-light mb-3">
     <div class="card-body">
         <form method="POST" action="{{ url_for('deduplication.save_result', task_id=task_id, selected_ds=selected_ds) }}">
@@ -81,7 +92,7 @@
                     <ul>
                         <li><input type="checkbox" id="{{ 'cb_' + item.item_index|string + '_1' }}"/>
                             <label for="{{ 'cb_' + item.item_index|string + '_1' }}">
-                                <img src="{{ url_for('deduplication.download_file', filename=item.image1) }}"/>
+                                <img id="{{ "image" + item.item_index|string }}" src="{{ url_for('deduplication.download_file', filename=item.image1) }}"/>
                             </label>
                         </li>
                         <li>
@@ -89,6 +100,8 @@
                                 <img src="{{ url_for('deduplication.download_file', filename=item.image2) }}"/>
                             </label>
                         </li>
+                    <br/>
+                    <button type="button" onclick="check_top({{ item.item_index }});">Check all top</button>
                     </ul>
                 </div>
                 <br/>

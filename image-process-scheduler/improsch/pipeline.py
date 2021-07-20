@@ -1,10 +1,6 @@
 import os
 import logging
-from typing import Any, Callable, Dict, Optional, Tuple
-from functools import partial
 
-from connectors import Notificator, Statuses
-from improsch.processors import deduplication
 from .processors import Deduplicator, resize_batch, save_multiprocess
 from .filters import get_filter_by_min_size
 from .readers import get_image_reader

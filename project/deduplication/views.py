@@ -65,7 +65,7 @@ def save_result(task_id, selected_ds):
         version
     )
 
-    return redirect('/dataset/select', selected=selected_ds)
+    return redirect(f'/dataset/select/{selected_ds}')
 
 
 @dedup_blueprint.route('/<task_id>/<selected_ds>', methods=['GET'])
