@@ -1,7 +1,10 @@
 # project/users/views.py
 
 # IMPORTS
-from flask import render_template, Blueprint, redirect, url_for, flash
+import json
+import math
+from collections import Counter
+from flask import render_template, Blueprint, redirect, url_for
 from flask import abort, session
 from flask_login import login_required
 from markupsafe import Markup
@@ -22,19 +25,30 @@ images_blueprint = Blueprint('images', __name__,
 @login_required
 def index():
     if 'selected_version' in session:
-        version = Version.query.filter_by(name=session['selected_version']).first()
+        first_one = Version.query.filter_by(name=session['selected_version']).first()
     else:
-        version = Version.get_first()
-    if version is None:
-        message = Markup("There was no version found!")
-        flash(message, 'warning')
-        return redirect(url_for('datasets.index'))
-    return redirect(url_for('images.browse', selected=version.name))
+        first_one = Version.get_first()
+    if first_one is None:
+        abort(404)
+    return redirect(url_for('images.browse', selected=first_one.name))
 
 
 @images_blueprint.route('/browse/<selected>')
+@images_blueprint.route('/browse/<selected>&page=<page>&items=<items>')
+@images_blueprint.route('/browse/<selected>&page=<page>&items=<items>&filters=<filters>')
 @login_required
-def browse(selected):
+def browse(selected, page=1, items=50, filters=None):
+    print('filters',filters)
+    try:
+        items = int(items)
+        page = int(page)
+        if filters is not None:
+            filters=json.loads(filters)
+            session['browse_filters'] = filters
+    except Exception as e:
+        print(e)
+        abort(404)
+    print(selected, page, items, f"[{(page-1)*items}:{(page)*items}]", filters)
     if 'selected_version' in session:
         version = Version.query.filter_by(name=session['selected_version']).first()
     else:
@@ -45,7 +59,19 @@ def browse(selected):
         return redirect(url_for('datasets.index'))
     nodes_of_version = get_nodes_above(db.session, version.id)
     version_items = get_items_of_version(db.session, nodes_of_version)
-    return render_template('images/index.html', version=version, version_items=version_items)
+    classes_info = dict(Counter(getattr(item, 'label') for item in version_items))
+    if session['browse_filters'] is not None:
+        version_items = [item for item in version_items if item.label in session['browse_filters']]
+    print('browse_filters', session['browse_filters'])
+    return render_template('browse/item.html',
+                           version=version,
+                           version_items=version_items[(page-1)*items:(page)*items],
+                           ds_length=len(version_items),
+                           classes_info=classes_info,
+                           pages=int(math.ceil(len(version_items) / int(items))),
+                           page=page,
+                           items=items,
+                           filters=session['browse_filters'])
 
 
 if __name__ == '__main__':
