@@ -12,6 +12,7 @@ import faiss
 import json
 import numpy as np
 import torch
+from torchvision import transforms
 
 CONFIG_NAME = 'config.json'
 FILENAMES_JSON_NAME = 'ids_to_filenames.json'
@@ -37,15 +38,25 @@ class NNfeatureExtractor(FeatureExtractor, torch.nn.Module):
         self.model.eval()
         self.model.fc = torch.nn.Identity()
 
+        self.preprocess = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=[0.485, 0.456, 0.406],
+                std=[0.229, 0.224, 0.225]
+            )
+        ])
+
     def get_embeddings(
             self,
-            images: Union[torch.Tensor, np.ndarray],
+            images: np.ndarray,
             batch_size: int,
             device: str = 'cuda'
             # device: str = 'cpu'
     ) -> np.ndarray:
-        if not isinstance(images, torch.Tensor):
-            images = torch.Tensor(images).permute(0, 3, 1, 2)
+        # if not isinstance(images, torch.Tensor):
+        #     images = torch.Tensor(images).permute(0, 3, 1, 2)
+
+        images = torch.stack([self.preprocess(img) for img in images])
 
         dataset = torch.utils.data.TensorDataset(images)
         dataloader = torch.utils.data.DataLoader(
@@ -91,8 +102,8 @@ class ImageIndex:
     def add_vectors(self, vectors, filenames: List[str]):
         # we found cosine similarity using inner product
         # so vectors shoul be normalized
-        vectors = np.array(vectors)
-        faiss.normalize_L2(vectors)
+        # vectors = np.array(vectors)
+        # faiss.normalize_L2(vectors)
         self.index.add(vectors)
 
         for i, name in enumerate(filenames):
@@ -124,8 +135,8 @@ class ImageIndex:
     def find_neighbours(self, vectors):
         # we found cosine similarity using inner product
         # so vectors shoul be normalized
-        vectors = np.array(vectors)
-        faiss.normalize_L2(vectors)
+        # vectors = np.array(vectors)
+        # faiss.normalize_L2(vectors)
         distances, indexes = self.index.search(vectors, 2)
 
         neighbours = []
@@ -256,6 +267,7 @@ class Deduplicator:
         return embeddings, imagenames
 
     def process_embeddings(self, embeddings, imagenames: List[str], data_dir: str):
+        faiss.normalize_L2(embeddings)
         self.index.add_vectors(embeddings, imagenames)
         neighbours = self.index.find_neighbours(embeddings)
         return neighbours
