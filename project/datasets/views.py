@@ -367,6 +367,9 @@ def fillup_tmp_table(label_ids: Dict[str, int],
     """
     objects, categories = [], []
     for sample in get_data_samples(src, label_ids):
+        res = DataItems.query.filter_by(path=sample.path).first()
+        if res:
+            continue
         data_item = DataItems(path=sample.path)
         objects.append(data_item)
         categories.append(sample.category)

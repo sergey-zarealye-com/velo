@@ -3,6 +3,7 @@
 # IMPORTS
 import os.path
 import re
+import shutil
 import time
 
 from pathlib import Path
@@ -26,6 +27,7 @@ from .forms import NewBatchForm
 from ..datasets.forms import ImportForm
 from ..datasets.queries import get_labels_of_version
 from ..datasets.utils import create_video_task, pulling_queue
+from ..datasets.views import fillup_tmp_table
 
 todo_blueprint = Blueprint('todo', __name__,
                            template_folder='templates',
@@ -34,6 +36,9 @@ todo_blueprint = Blueprint('todo', __name__,
 log = logging.getLogger(__name__)
 ABS_PATH = Path.absolute(Path('project')).joinpath('static', 'images', 'tmp')
 
+SAVE_PATH = Path.absolute(Path(os.getcwd())).joinpath('save_dir')
+if not SAVE_PATH.exists():
+    SAVE_PATH.mkdir()
 
 # ROUTES
 @todo_blueprint.route('/index')
@@ -142,27 +147,20 @@ def moderate(item_id):
     rows_of_interesting = Moderation.query.filter_by(id=film_id).all()
     images_paths = [row.file for row in rows_of_interesting]
     images_paths = [images_path for i, images_path in enumerate(natural_sort(images_paths))]
-    objects = []
-    items = TmpTable.query.distinct('item_id').all()
-    if items:
-        max_id = max([item.id for item in items]) + 1
-    else:
-        max_id = 0
-    for images_path, value in zip(images_paths, req_values.values()):
-        if value == '-1':
-            Moderation.query.filter_by(file=images_path).delete()
-            os.remove(images_path)
-        else:
-            # ToDo реализовать сохранение в датасет
-            item_to_save = TmpTable(
-                item_id=max_id,
-                node_name=version.name,
-                category_id=Category.query.filter_by(version_id=version.id)
-            )
+    for k, v in req_values.items():
+        images_path = images_paths[int(k)]
+        category = v
+        if not os.path.exists(os.path.join(SAVE_PATH, category)):
+            os.mkdir(os.path.join(SAVE_PATH, category))
+        shutil.move(images_path, os.path.join(SAVE_PATH, category, Path(images_path).name))
+        Moderation.query.filter_by(file=images_path).delete()
+        # ToDo загрузка в s3
+    fillup_tmp_table(get_labels_of_version(version.id), version.name, str(SAVE_PATH), version)
+    folder = Path(images_paths[0]).parent.parent
+    shutil.rmtree(folder, ignore_errors=True)
     todo.finished_at = datetime.now()
     db.session.commit()
-    ToDoItem.query.filter_by(id=film_id).delete()
-    return {"status": True}
+    return f"status: {True}"
     # return redirect(url_for('todo.index'))
 
 

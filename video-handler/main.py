@@ -22,6 +22,8 @@ def get_processing_func(storage_dir: str, connector: Connector, result_queue_nam
             "input_fname+stem": input_fname_stem
         })
 
+        # ToDo загрузка видео по ссылке
+
         out = f"{os.path.join(thumbs_dir, f'{input_fname_stem}_frame_' + '%0d' + img_ext)}"
         command = f"""ffmpeg -y -i {str(input_fname)} -vsync vfr -filter_complex "[0:v]select=eq(pict_type\,PICT_TYPE_I)[pre_thumbs];[pre_thumbs]select=gt(scene\,0.2),scale=256:256[thumbs]" -map [thumbs] {out} 2>&1"""
 
