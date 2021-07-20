@@ -1,9 +1,7 @@
 """Category description to be used as docs/requirements
-
 Revision ID: 7b176dc0ee69
 Revises: a2c5ed6d633c
 Create Date: 2021-07-19 12:05:34.966342
-
 """
 from alembic import op
 import sqlalchemy as sa
