@@ -3,34 +3,45 @@
 {% from "_formshelper.html" import render_field, checkbox, select %}
 {% block content %}
 
-    <div class="card bg-light mb-3">
-        <div class="card-body">
-            <form action="{{ url_for('datasets.import2ds', selected=selected) }}" method="post" name="editform">
-                {{ form.csrf_token }}
+
+<div class="card bg-light mb-3">
+    <div class="card-body">
+        <form action="{{ url_for('datasets.import2ds', selected=selected) }}" method="post" name="editform">
+            {{ form.csrf_token }}
+            <div class="form-group mb-4">
+              {{ form.flocation.label }}
+              {{ render_field(form.flocation, class="form-control") }}
+            </div>
+            {{ select(form.reason, {}) }}
+            {{ select(form.category_select, {'data-bind': 'value: category_select'}) }}
+            <div data-bind="visible: category_select()=='set'">
+            {{ select(form.category, {}) }}
+            </div>
+            <div class="form-group mb-4">
+            {{checkbox(form.is_score_model, {'data-bind': 'checked: is_score_model'})}}
+            </div>
+            <div data-bind="visible: is_score_model()">
+            {{ select(form.score_model, {}) }}
+            </div>
+            <div class="form-group mb-4">
+              {{ checkbox(form.is_dedup, {'data-bind': 'checked: is_dedup'}) }}
+            </div>
+            <div data-bind="visible: is_dedup()">
                 <div class="form-group mb-4">
-                    {{ form.flocation.label }}
-                    {{ render_field(form.flocation, class="form-control") }}
-                </div>
-                {{ select(form.reason, {}) }}
-                {{ select(form.category_select, {'data-bind': 'value: category_select'}) }}
-                <div data-bind="visible: category_select()=='set'">
-                    {{ select(form.category, {}) }}
-                    {{ select(form.general_category, {}) }}
+                    {{ select(form.dedup_model, {}) }}
                 </div>
                 <div class="form-group mb-4">
-                    {{ checkbox(form.is_score_model, {'data-bind': 'checked: is_score_model'}) }}
+                    {{ select(form.is_dedup_automatic, {'data-bind': 'checked: is_dedup_automatic'}) }}
                 </div>
-                <div data-bind="visible: is_score_model()">
-                    {{ select(form.score_model, {}) }}
+                <div class="form-group mb-4" data-bind="visible: is_dedup_automatic()">
+                    <p>The value indicates the minimum similarity for images that are considered as copies.
+                        Images from pairs with a bigger similarity value will be removed. </p>
+                    {{ select(form.dedup_treshold, {}) }}
                 </div>
-                <div class="form-group mb-4">
-                    {{ checkbox(form.is_dedup, {}) }}
-                </div>
-                <div class="form-row">
-                    <div class="form-group col-md-4">
-                        {{ checkbox(form.is_size_control, {'data-bind': 'checked: is_size_control'}) }}
-                    </div>
-                    <div class="form-group col-md-8" data-bind="visible: is_size_control()">
+            </div>
+            <div class="form-row">
+                <div class="form-group col-md-4">
+                  {{ checkbox(form.is_size_control, {'data-bind': 'checked: is_size_control'}) }}
                         <div class="form-group">
                             {{ form.min_size.label }}
                             {{ render_field(form.min_size, class="form-control") }}
@@ -68,15 +79,16 @@
         </div>
     </div>
 
-    <script>
-        var bindings = {
-            is_score_model: ko.observable({{ form.is_score_model.checked and 'true' or 'false'}}),
-            is_size_control: ko.observable({{ form.is_size_control.checked and 'true' or 'false'}}),
-            is_resize: ko.observable({{ form.is_resize.checked and 'true' or 'false'}}),
-            category_select: ko.observable("folder"),
-        };
-        ko.applyBindings(bindings);
-    </script>
-
+<script>
+var bindings = {
+    is_score_model: ko.observable({{ form.is_score_model.checked and 'true' or 'false'}}),
+    is_size_control: ko.observable({{ form.is_size_control.checked and 'true' or 'false'}}),
+    is_resize: ko.observable({{ form.is_resize.checked and 'true' or 'false'}}),
+    category_select: ko.observable("folder"),
+    is_dedup: ko.observable({{ form.is_dedup.checked and 'true' or 'false'}}),
+    is_dedup_automatic: ko.observable({{ form.is_dedup_automatic.checked and 'true' or 'false'}}),
+};
+ko.applyBindings(bindings);
+</script>
 
 {% endblock %}

@@ -1,0 +1,102 @@
+{% extends "_base.html" %}
+{% block title %}Deduplication{% endblock %}
+{% from "_formshelper.html" import render_field, checkbox, select %}
+{% block content %}
+
+
+<style>
+    ul {
+        display: flex;
+        list-style-type: none;
+        position: relative;
+        float: left;
+    }
+
+    li {
+        display: inline-block;
+        flex: 50%;
+        padding: 5px;
+    }
+
+    input[type="checkbox"][id^="cb"] {
+        display: none;
+    }
+
+    label {
+        border: 1px solid #fff;
+        padding: 10px;
+        display: block;
+        position: relative;
+        margin: 10px;
+        cursor: pointer;
+    }
+
+    label:before {
+        background-color: white;
+        color: white;
+        content: " ";
+        display: block;
+        border-radius: 50%;
+        border: 1px solid grey;
+        position: absolute;
+        top: -5px;
+        left: -5px;
+        width: 25px;
+        height: 25px;
+        text-align: center;
+        line-height: 28px;
+        transition-duration: 0.4s;
+        transform: scale(0);
+    }
+
+    label img {
+        transition-duration: 0.2s;
+        transform-origin: 50% 50%;
+    }
+
+    :checked + label {
+        border-color: #ddd;
+    }
+
+    :checked + label:before {
+        content: "✓";
+        background-color: grey;
+        transform: scale(1);
+    }
+
+    :checked + label img {
+        transform: scale(0.9);
+        box-shadow: 0 0 5px #333;
+        z-index: -1;
+    }
+</style>
+
+
+<div class="card bg-light mb-3">
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('deduplication.save_result', task_id=task_id, selected_ds=selected_ds) }}">
+            {% for item in images %}
+                <div>
+                    <p>Similarity: {{ item.similarity }}</p>
+                    <ul>
+                        <li><input type="checkbox" id="{{ 'cb_' + item.item_index|string + '_1' }}"/>
+                            <label for="{{ 'cb_' + item.item_index|string + '_1' }}">
+                                <img src="{{ url_for('deduplication.download_file', filename=item.image1) }}"/>
+                            </label>
+                        </li>
+                        <li>
+                            <label for="{{ 'cb_' + item.item_index|string + '_1' }}">
+                                <img src="{{ url_for('deduplication.download_file', filename=item.image2) }}"/>
+                            </label>
+                        </li>
+                    </ul>
+                </div>
+                <br/>
+            {% endfor %}
+            <input type="submit" action="submit">
+        </form>
+    </div>
+</div>
+
+
+{% endblock %}

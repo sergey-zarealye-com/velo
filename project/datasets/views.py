@@ -1,9 +1,6 @@
-# project/users/views.py
-
-# IMPORTS
 import logging
 import os
-from typing import List
+from typing import List, Dict, Tuple
 
 from flask import render_template, Blueprint, request, redirect, url_for
 from flask import flash, Markup, abort, session
@@ -16,7 +13,14 @@ from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm
 import graphviz
 from uuid import uuid4
 import traceback
+from distutils.dir_util import copy_tree
+import sys
+import logging
 
+from multiprocessing import Process, Queue
+from .rabbitmq_connector import send_message, get_message
+import json
+import uuid
 from .queries import get_labels_of_version, get_nodes_above, get_items_of_nodes
 from .utils import get_data_samples
 
@@ -27,6 +31,57 @@ TMPDIR = os.path.join('project', 'static', 'tmp')
 datasets_blueprint = Blueprint('datasets', __name__,
                                template_folder='templates',
                                url_prefix='/datasets')
+
+# Processes for communication module
+sending_queue: Queue = Queue()
+sending_process = Process(
+    target=send_message,
+    args=('deduplication_1', sending_queue)
+)
+sending_process.start()
+
+pulling_queue: Queue = Queue()
+# print("Объявление в датасетс", id(pulling_queue))
+pulling_process = Process(
+    target=get_message,
+    args=('deduplication_result_1', pulling_queue)
+)
+pulling_process.start()
+
+
+def copy_directory(
+        src_dir: str,
+        dst_path: str,
+        task_id: str,
+        is_size_control: bool,
+        min_size: Tuple[int, int],
+        is_resize: bool,
+        dst_size: Tuple[int, int],
+        is_dedup: bool
+):
+    logging.info("Start copying data...")
+    sys.stdout.flush()
+
+    os.mkdir(dst_path)
+    copy_tree(src_dir, dst_path)
+
+    logging.info("Finish copying data")
+    logging.info("Sending task to queue...")
+    sys.stdout.flush()
+
+    sending_queue.put(
+        (task_id, json.dumps({
+            'id': task_id,
+            'directory': task_id,
+            'is_size_control': is_size_control,
+            'min_size': min_size,
+            'is_resize': bool(is_resize),
+            'dst_size': tuple(dst_size),
+            'deduplication': bool(is_dedup),
+        }))
+    )
+    logging.info("Sended")
+    sys.stdout.flush()
 
 
 # ROUTES
@@ -245,22 +300,35 @@ def import2ds(selected):
                     db.session.rollback()
             else:
                 if form.category_select.data == 'folder':
-                    # TODO: handle exceptions, add s3 source
-                    # вынести куда нибудь commit_batch
-                    commit_batch = 1000
-                    objects, categories = [], []
-                    for sample in get_data_samples(src, label_ids):
-                        data_item = DataItems(path=sample.path)
-                        objects.append(data_item)
-                        categories.append(sample.category)
-                        if len(objects) == commit_batch:
-                            import_data(categories, objects, selected, version)
-                            objects.clear()
-                            categories.clear()
-                    if len(objects):
-                        import_data(categories, objects, selected, version)
-                        objects.clear()
-                        categories.clear()
+                    # send message to preprocessor
+                    storage_dir = os.getenv("STORAGE_DIR")
+                    task_id = str(uuid.uuid4())
+                    while os.path.isdir(os.path.join(storage_dir, task_id)):
+                        task_id = str(uuid.uuid4())
+                    # TODO check if task_id already exist in database
+
+                    proc_to_copy_files = Process(
+                        target=copy_directory,
+                        args=(
+                            form.flocation.data,
+                            os.path.join(storage_dir, task_id),
+                            task_id,
+                            bool(form.is_size_control.data),
+                            (int(form.min_size.data), int(form.min_size.data)),
+                            bool(form.is_resize.data),
+                            (int(form.resize_h.data), int(form.resize_w.data)),
+                            bool(form.is_dedup.data)
+                        )
+                    )
+                    proc_to_copy_files.start()
+                    proc_to_copy_files.join()
+
+                    # если включена дедупликация, то сохранение нужно после
+                    # процесса ручного отбора картинок (project/deduplication/views/def save_result)
+                    if not bool(form.is_dedup.data):
+                        # TODO: handle exceptions, add s3 source
+                        # вынести куда нибудь commit_batch
+                        fillup_tmp_table(label_ids, selected, src, version)
 
             # version.status = 2
             # db.session.commit()
@@ -282,9 +350,38 @@ def import2ds(selected):
             print('general_category', form.general_category.data)
 
             # TODO update categories for current version, based on import results
-            return redirect(url_for('datasets.select', selected=version.name))
-    return render_template('datasets/import.html',
-                           form=form, selected=selected, version=version)
+            # return redirect(url_for('datasets.select', selected=version.name))
+            return redirect(url_for('deduplication.task_confirmation', task_id=task_id, selected=version.name))
+    return render_template('datasets/import.html', form=form, selected=selected, version=version)
+
+
+def fillup_tmp_table(label_ids: Dict[str, int],
+                     selected: str,
+                     src: str,
+                     version: Version,
+                     commit_batch: int = 1000) -> None:
+    """
+    Заполнить временную таблицу
+    функция проходит по указанной директории src, добавляет найденные файлы в таблицу DataItems,
+    заполняет таблицу TmpTable
+    """
+    objects, categories = [], []
+    for sample in get_data_samples(src, label_ids):
+        res = DataItems.query.filter_by(path=sample.path).first()
+        if res:
+            continue
+        data_item = DataItems(path=sample.path)
+        objects.append(data_item)
+        categories.append(sample.category)
+        if len(objects) == commit_batch:
+            import_data(categories, objects, selected, version)
+            objects.clear()
+            categories.clear()
+    if len(objects):
+        import_data(categories, objects, selected, version)
+        objects.clear()
+        categories.clear()
+    return
 
 
 @datasets_blueprint.route('/commit/<selected>', methods=['GET', 'POST'])

@@ -2,6 +2,7 @@ from sqlalchemy import PrimaryKeyConstraint
 
 from project import db, bcrypt
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
+from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy import and_, or_
 from datetime import datetime
 import re
@@ -103,9 +104,6 @@ class Version(db.Model):
  empty->empty [label="Edit"];
  stage->stage [label="Edit"];
 }
-        
-        
-        
     """
 
     def __init__(self, name, description, user_id):
@@ -249,6 +247,7 @@ class Category(db.Model):
     def __init__(self, name, version_id, task, position=None):
         self.name = name
         self.version_id = version_id
+
         self.task = task
         self.description = description
         if position is not None:
@@ -358,3 +357,13 @@ class ToDoItem(db.Model):
             )
         )).order_by(ToDoItem.created_at) \
             .limit(limit).offset(skip)
+
+
+class Deduplication(db.Model):
+    __tablename__ = 'deduplication'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    task_uid = db.Column(db.String)
+    # user who has created this task
+    # user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    stages_status = db.Column(JSON)
+    result = db.Column(JSON)

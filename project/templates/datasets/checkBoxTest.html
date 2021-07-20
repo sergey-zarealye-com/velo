@@ -1,0 +1,14 @@
+<html>
+     <head>
+     </head>
+    <body>
+    <form method='POST' action="{{ url_for('home') }}">
+         {{ test.csrf_token }}
+        {% for i in test %}
+        <input type="checkbox" name="test" value="{{i}}">
+        <label>{{i}}</label>
+        {% endfor %}
+    <input type="submit" action="submit">
+    </form>
+    </body>
+</html>
