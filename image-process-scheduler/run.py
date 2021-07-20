@@ -75,9 +75,11 @@ def parse_config(config_path: str):
 
 
 if __name__ == '__main__':
-    print('Sleeping...')
-    # TODO: зачем sleep?
-    time.sleep(5.)
+    if os.getenv("IS_DOCKER"):
+        # let rabbitmq in docker-compose time to start
+        print('Sleeping...')
+        time.sleep(5.)
+
     parser = ArgumentParser()
     parser.add_argument('--config', type=str, default='config.yml')
     parser.add_argument('--pipeline', type=str, default='base_pipeline.yml')

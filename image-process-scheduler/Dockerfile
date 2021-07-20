@@ -3,6 +3,7 @@ WORKDIR /improch
 
 ENV PATH="/root/miniconda3/bin:${PATH}"
 ARG PATH="/root/miniconda3/bin:${PATH}"
+ENV IS_DOCKER="True"
 
 RUN apt-get update
 RUN apt-get install -y --upgrade cmake
