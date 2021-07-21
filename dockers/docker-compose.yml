@@ -1,0 +1,22 @@
+version: "2.3"
+
+services:
+  rabbit:
+    image: rabbitmq:3-management
+    ports:
+      - 15673:15672
+      - 5673:5672
+  ffmpeg:
+    image: moderation
+    depends_on:
+      - rabbit
+    volumes:
+      - /home/alexey/PycharmProjects/Napoleon/velo/:/storage
+  improsch:
+    image: improsch
+    depends_on:
+      - rabbit
+    volumes:
+      - /storage1/mrowl/image_storage/:/image_storage
+      - /storage1/mrowl/dedup_index/:/dedup_index
+    runtime: nvidia

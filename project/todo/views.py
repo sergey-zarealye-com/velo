@@ -172,7 +172,6 @@ def moderate(item_id):
     todo.finished_at = datetime.now()
     db.session.commit()
     return f"status: {True}"
-    # return redirect(url_for('todo.index'))
 
 
 @todo_blueprint.route('/new_batch', methods=['GET', 'POST'])
