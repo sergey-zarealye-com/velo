@@ -1,9 +1,9 @@
 import os
 import logging
 
-from .processors import Deduplicator, resize_batch, save_multiprocess
+from .processors import Deduplicator, resize_batch, save_multiprocess, perceptual_hash_detector
 from .filters import get_filter_by_min_size
-from .readers import get_image_reader
+from .readers import get_image_reader, get_image_reader_pil
 
 logging.basicConfig(level=logging.INFO)
 
@@ -27,17 +27,28 @@ class Preprocessor:
         self.saving_pool_size = saving_pool_size
 
     def preprocessing(self, request):
-        if request['is_size_control']:
+        if request.get('type') == 'merge_control':
+            get_reader_func = get_image_reader_pil
+        else:
+            get_reader_func = get_image_reader
+
+        if request.get('is_size_control'):
             min_size = request['min_size']
 
             if isinstance(min_size, (int, float)):
                 min_size = (min_size, min_size)
 
-            read_func = get_image_reader(get_filter_by_min_size(min_size))
+            read_func = get_reader_func(get_filter_by_min_size(min_size))
         else:
-            read_func = get_image_reader()
+            read_func = get_reader_func()
 
         images, imagenames = read_func(request['directory'])
+
+        if request.get('merge_check'):
+            names_mapping = request['names_mapping']
+            imagenames = [names_mapping[name] for name in imagenames]
+            adj_relation = perceptual_hash_detector(images, imagenames)
+            return adj_relation
 
         if request['is_resize'] or request['deduplication']:
             resized_images = resize_batch(images, request['dst_size'])

@@ -57,7 +57,7 @@ def run(pipeline, login: str, passw: str, port: int, host: str, image_storage: s
         result = pipeline(request)
 
         result['id'] = request['id']
-        result['type'] = 'result'
+        result['type'] =  request.get('type') or 'result'
 
         result_string = json.dumps(result)
 

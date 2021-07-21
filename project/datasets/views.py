@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import List, Dict, Tuple
+from typing import List, Dict, Set, Tuple
 
 from flask import render_template, Blueprint, request, redirect, url_for
 from flask import flash, Markup, abort, session
@@ -16,6 +16,7 @@ import traceback
 from distutils.dir_util import copy_tree
 import sys
 import logging
+import shutil
 
 from multiprocessing import Process, Queue
 from .rabbitmq_connector import send_message, get_message
@@ -81,6 +82,41 @@ def copy_directory(
     )
     logging.info("Sended")
     sys.stdout.flush()
+
+
+def send_merge_control_request(filepaths: List[str]):
+    storage_dir = os.getenv('STORAGE_DIR')
+    assert storage_dir, "STORAGE_DIR can't be empty"
+
+    task_id = str(uuid.uuid4())
+    while task_id in os.listdir(storage_dir):
+        task_id = str(uuid.uuid4())
+
+    task_dir = os.path.join(storage_dir, task_id)
+    os.mkdir(task_dir)
+
+    names_mapping: Dict[str, str] = {}
+    unique_names: Set[str] = set()
+    while len(unique_names) < len(filepaths):
+        unique_names.add(str(uuid.uuid4()))
+    unique_names = list(unique_names)  # type: ignore
+
+    # copy files to storage
+    for src_path, dst_filename in zip(filepaths, unique_names):
+        dst_path = os.path.join(task_dir, dst_filename)
+        shutil.copy(src_path, dst_path)
+        names_mapping[dst_path] = src_path
+
+    sending_queue.put((
+        task_id,
+        json.dumps({
+            'id': task_id,
+            'type': 'merge_control',
+            'directory': task_dir,
+            'merge_check': True,
+            'names_mapping': names_mapping
+        })
+    ))
 
 
 # ROUTES
@@ -423,6 +459,15 @@ def commit(selected):
 @datasets_blueprint.route('/merge/<selected>', methods=['GET', 'POST'])
 @login_required
 def merge(selected):
+    path = '/storage1/mrowl/smoke'
+    send_merge_control_request(
+        list(
+            map(
+                lambda x: os.path.join(path, x),
+                os.listdir(path)
+            )
+        )
+    )
     child = Version.query.filter_by(name=selected).first()
     if child is None:
         abort(404)

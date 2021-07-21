@@ -29,7 +29,9 @@ def send_message(queue_name: str, queue):
             channel = await connection.channel()
 
             while True:
+                print('waiting for message...')
                 task_id, message = queue.get()  # blocking operation
+                print('got message', message)
 
                 new_task_entry = Deduplication(
                     task_uid=task_id
@@ -82,5 +84,7 @@ def get_message(queue_name: str, queue):
                                 print(response)
                                 task_entry.stages_status = response
                                 db.session.commit()
+                            elif response['type'] == 'merge_control':
+                                print('MERGE CONTROL RESULT')
 
     loop.run_until_complete(func(loop, queue_name, queue))

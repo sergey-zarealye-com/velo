@@ -13,6 +13,8 @@ import json
 import numpy as np
 import torch
 from torchvision import transforms
+import imagehash
+from PIL import Image
 
 CONFIG_NAME = 'config.json'
 FILENAMES_JSON_NAME = 'ids_to_filenames.json'
@@ -296,3 +298,20 @@ class Deduplicator:
         saving_index_proc.start()
 
         return neighbours
+
+
+def perceptual_hash_detector(images, filenames: List[str]):
+    hashes: List[np.ndarray] = []
+    adj_relat: Dict[str, List[str]] = {}
+
+    for image, imagename1 in zip(images, filenames):
+        image_hash = imagehash.phash(image)
+        adj_relat[imagename1] = []
+
+        for previous_image_hash, imagename2 in zip(hashes, filenames):
+            if np.all(image_hash == previous_image_hash):
+                adj_relat[imagename1].append(imagename2)
+
+        hashes.append(image_hash)
+
+    return adj_relat
