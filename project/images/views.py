@@ -80,6 +80,7 @@ def browse(selected, page=1, items=50, filters=None):
         cur_filters = session['browse_filters']
     else:
         cur_filters = None
+        version_items_filtr = version_items
 
     return render_template('browse/item.html',
                            version=version,
