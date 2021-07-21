@@ -5,7 +5,7 @@ services:
     image: rabbitmq:3-management
     ports:
       - 15673:15672
-      - 5673:5672
+      - 5672:5672
   ffmpeg:
     image: moderation
     depends_on:
