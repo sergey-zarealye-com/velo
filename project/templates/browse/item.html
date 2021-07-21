@@ -135,8 +135,7 @@
                                  id="text_class_{{ item["id"] }}">{{ item["label"] }}</div>
                             <div class="card-body text-primary" style="padding: 5px">
                                 <img class="card-img"
-
-                                     src="{{ url_for('images.download_file', filename=item["path"]) }}"
+                                     src="{{ url_for('images.download_file', filename=item.path) }}"
                                      alt="...***...">
                             </div>
                         </li>

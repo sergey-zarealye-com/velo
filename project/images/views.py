@@ -3,10 +3,10 @@
 # IMPORTS
 import json
 import math
-import os
 import ntpath
 from collections import Counter
-from flask import render_template, Blueprint, redirect, url_for
+
+from flask import render_template, Blueprint, redirect, url_for, flash
 from flask import abort, session, send_from_directory
 from flask_login import login_required
 from markupsafe import Markup
@@ -14,12 +14,13 @@ from markupsafe import Markup
 from project import db
 from project.datasets.queries import get_nodes_above
 from project.images.queries import get_items_of_version
-from project.models import Version, VersionItems, DataItems, Category
+from project.models import Version
 
 # CONFIG
 images_blueprint = Blueprint('images', __name__,
                              template_folder='templates',
                              url_prefix='/images')
+
 
 # TODO: сделать логгер, вынести в него все принты
 
@@ -38,9 +39,13 @@ def index():
 
 @images_blueprint.route('/uploads/<path:filename>')
 def download_file(filename):
+    # todo: исправить костыль
     filename = filename.replace('\\', '/')
     head, tail = ntpath.split(filename)
+    if not os.path.exists(head):
+        head = "/" + head
     return send_from_directory(head, tail, as_attachment=True)
+
 
 @images_blueprint.route('/browse/<selected>')
 @images_blueprint.route('/browse/<selected>&page=<page>&items=<items>')
@@ -74,7 +79,6 @@ def browse(selected, page=1, items=50, filters=None):
         cur_filters = session['browse_filters']
     else:
         cur_filters = None
-
     return render_template('browse/item.html',
                            version=version,
                            version_items=version_items[(page - 1) * items:(page) * items],
@@ -87,25 +91,10 @@ def browse(selected, page=1, items=50, filters=None):
 
 
 if __name__ == '__main__':
+    import os
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
     engine = create_engine("postgresql://velo:123@localhost:5432/velo")
     Session = sessionmaker(bind=engine)
     session = Session()
-
-    # image_ids = VersionItems.query.filter_by(version_id=1).with_entities(VersionItems.item_id, VersionItems.category_id).all()
-    # image_paths = DataItems.query.filter(DataItems.id.in_(image_ids)).join(Category, Category.c.id == image_ids.category_id)
-
-    # node_items = VersionItems.query.filter_by(version_id=1)
-    """
-    category_id
-    item_id
-    """
-    q = session.query(VersionItems, DataItems, Category) \
-        .filter(VersionItems.version_id == 1) \
-        .join(DataItems) \
-        .filter(Category.id == VersionItems.category_id)
-
-    for item in q.all():
-        print(item)

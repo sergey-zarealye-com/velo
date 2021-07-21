@@ -2,24 +2,18 @@
 
 # IMPORTS
 import os.path
-import re
 import shutil
-import time
 
 from pathlib import Path
 import logging
 import pandas as pd
 from flask import render_template, Blueprint, request, redirect, url_for
 from flask import flash, Markup, abort, session
-from sqlalchemy.exc import IntegrityError
-from flask_login import login_user, current_user, login_required, logout_user
-from itsdangerous import URLSafeTimedSerializer
-from threading import Thread
-from flask_mail import Message
-from datetime import datetime, timedelta
+from flask_login import current_user, login_required
+from datetime import datetime
 
-from project import app, db, mail
-from project.models import User, Version, Category, ToDoItem, Moderation, DataItems, TmpTable, VersionItems
+from project import db
+from project.models import Version, Category, ToDoItem, Moderation
 from .utils import natural_sort
 from .forms import NewBatchForm
 
