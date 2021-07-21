@@ -3,9 +3,11 @@
 # IMPORTS
 import json
 import math
+import os
+import ntpath
 from collections import Counter
-from flask import render_template, Blueprint, redirect, url_for, flash
-from flask import abort, session
+from flask import render_template, Blueprint, redirect, url_for
+from flask import abort, session, send_from_directory
 from flask_login import login_required
 from markupsafe import Markup
 
@@ -33,6 +35,12 @@ def index():
         abort(404)
     return redirect(url_for('images.browse', selected=first_one.name))
 
+
+@images_blueprint.route('/uploads/<path:filename>')
+def download_file(filename):
+    filename = filename.replace('\\', '/')
+    head, tail = ntpath.split(filename)
+    return send_from_directory(head, tail, as_attachment=True)
 
 @images_blueprint.route('/browse/<selected>')
 @images_blueprint.route('/browse/<selected>&page=<page>&items=<items>')
