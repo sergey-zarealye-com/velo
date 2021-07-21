@@ -3,9 +3,11 @@
 # IMPORTS
 import json
 import math
+import os
+import ntpath
 from collections import Counter
 from flask import render_template, Blueprint, redirect, url_for
-from flask import abort, session
+from flask import abort, session, send_from_directory
 from flask_login import login_required
 
 from project import db
@@ -32,6 +34,12 @@ def index():
     return redirect(url_for('images.browse', selected=first_one.name))
 
 
+@images_blueprint.route('/uploads/<path:filename>')
+def download_file(filename):
+    filename = filename.replace('\\', '/')
+    head, tail = ntpath.split(filename)
+    return send_from_directory(head, tail, as_attachment=True)
+
 @images_blueprint.route('/browse/<selected>')
 @images_blueprint.route('/browse/<selected>&page=<page>&items=<items>')
 @images_blueprint.route('/browse/<selected>&page=<page>&items=<items>&filters=<filters>')
@@ -57,9 +65,12 @@ def browse(selected, page=1, items=50, filters=None):
     nodes_of_version = get_nodes_above(db.session, version.id)
     version_items = get_items_of_version(db.session, nodes_of_version)
     classes_info = dict(Counter(getattr(item, 'label') for item in version_items))
-    if session['browse_filters'] is not None:
+    if "browse_filters" in session:
         version_items = [item for item in version_items if item.label in session['browse_filters']]
-    print('browse_filters', session['browse_filters'])
+        cur_filters = session['browse_filters']
+    else:
+        cur_filters = None
+
     return render_template('browse/item.html',
                            version=version,
                            version_items=version_items[(page-1)*items:(page)*items],
@@ -68,7 +79,7 @@ def browse(selected, page=1, items=50, filters=None):
                            pages=int(math.ceil(len(version_items) / int(items))),
                            page=page,
                            items=items,
-                           filters=session['browse_filters'])
+                           filters=cur_filters)
 
 
 if __name__ == '__main__':
