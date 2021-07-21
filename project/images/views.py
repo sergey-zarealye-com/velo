@@ -76,16 +76,17 @@ def browse(selected, page=1, items=50, filters=None):
     version_items = get_items_of_version(db.session, nodes_of_version)
     classes_info = dict(Counter(getattr(item, 'label') for item in version_items))
     if "browse_filters" in session:
-        version_items = [item for item in version_items if item.label in session['browse_filters']]
+        version_items_filtr = [item for item in version_items if item.label in session['browse_filters']]
         cur_filters = session['browse_filters']
     else:
         cur_filters = None
+
     return render_template('browse/item.html',
                            version=version,
-                           version_items=version_items[(page - 1) * items:(page) * items],
+                           version_items=version_items_filtr[(page-1)*items:(page)*items],
                            ds_length=len(version_items),
                            classes_info=classes_info,
-                           pages=int(math.ceil(len(version_items) / int(items))),
+                           pages=int(math.ceil(len(version_items_filtr) / int(items))),
                            page=page,
                            items=items,
                            filters=cur_filters)
@@ -99,3 +100,19 @@ if __name__ == '__main__':
     engine = create_engine("postgresql://velo:123@localhost:5432/velo")
     Session = sessionmaker(bind=engine)
     session = Session()
+
+    # image_ids = VersionItems.query.filter_by(version_id=1).with_entities(VersionItems.item_id, VersionItems.category_id).all()
+    # image_paths = DataItems.query.filter(DataItems.id.in_(image_ids)).join(Category, Category.c.id == image_ids.category_id)
+
+    # node_items = VersionItems.query.filter_by(version_id=1)
+    """
+    category_id
+    item_id
+    """
+    q = session.query(VersionItems, DataItems, Category) \
+        .filter(VersionItems.version_id == 1) \
+        .join(DataItems) \
+        .filter(Category.id == VersionItems.category_id)
+
+    for item in q.all():
+        print(item)

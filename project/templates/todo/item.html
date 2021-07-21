@@ -2,7 +2,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/easySelectable/style.css') }}">
 {% block javascript %}
     <script src="{{ url_for('static', filename='js/jquery-3.5.1.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/easySelectable.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/easySelectableBrowse.js') }}"></script>
 {% endblock %}
 
 {% extends "_base.html" %}
@@ -21,39 +21,16 @@
                             <h5>{{ tasks[task] }}</h5>
                             <div class="card-columns easySelectable" id="easySelectable">
                                 {% for frame in frames %}
-{#                                    <div>#}
-{#                                    <p class="card-text">#}
-{#                                                <select class="form-control"#}
-{#                                                        name="categ_task[{{ task }}]_frame[{{ frame[1] }}]">#}
-{#                                                    <option value="-1" selected></option>#}
-{#                                                    {% for categ in categs[task] %}#}
-{#                                                        <option value="{{ categ.id }}">{{ categ.name }}</option>#}
-{#                                                    {% endfor %}#}
-{#                                                </select>#}
-{#                                            </p>#}
-                                    <li class="card es-selectable es-unselected-no-class" style="border-width: 5px" id="{{ frame[0] }}"
+                                    <li class="card border-secondary mb-3 selectable-item" style="max-width: 13rem;" id="{{ frame[0] }}"
                                         value="{{ frame[1] }}" has-class="false" has-select="false">
-                                        <div id="text_class_{{ frame[0] }}">
-                                        </div>
-                                        <div>
+                                        <div class="card-header text-center"
+                                        id="text_class_{{ frame[0] }}"></div>
+                                        <div class="card-body text-primary" style="padding: 5px">
                                         <img class="card-img"
-                                             style="max-height:100%;ax-width:100%;height:auto;width:auto;"
                                              src="{{ url_for('static', filename='images/tmp/' + frame[0]) }}"
                                              alt="...***...">
-{#                                        <div class="card-img-overlay">#}
-{#                                            <p class="card-text">#}
-{#                                                <select class="form-control"#}
-{#                                                        name="categ_task[{{ task }}]_frame[{{ frame[1] }}]">#}
-{#                                                    <option value="-1" selected></option>#}
-{#                                                    {% for categ in categs[task] %}#}
-{#                                                        <option value="{{ categ.id }}">{{ categ.name }}</option>#}
-{#                                                    {% endfor %}#}
-{#                                                </select>#}
-{#                                            </p>#}
-{#                                        </div>#}
                                         </div>
                                     </li>
-{#                                    </div>#}
                                 {% endfor %}
                             </div>
                         </div>
