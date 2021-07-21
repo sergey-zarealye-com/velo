@@ -160,6 +160,7 @@ def new_batch():
     else:
         abort(400)
     label_ids = get_labels_of_version(version.id)
+
     if request.method == 'POST':
         if form.validate_on_submit():
             user_id = current_user.id
@@ -167,6 +168,7 @@ def new_batch():
             # TODO -- add queue to download and preprocess videos and create todo items
             with open(form.src.data) as f:
                 data = pd.read_csv(f)
+            
             paths, cats, titles, descriptions = [data.video_adress.values,
                                                  data.gt_category.values,
                                                  data.title.values,

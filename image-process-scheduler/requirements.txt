@@ -1,0 +1,6 @@
+opencv-python
+numpy
+pathlib
+aio_pika
+imagehash
+pillow

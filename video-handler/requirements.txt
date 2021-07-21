@@ -1,0 +1,3 @@
+aio_pika
+pyyaml
+nest_asyncio

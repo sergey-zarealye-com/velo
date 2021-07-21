@@ -1,0 +1,18 @@
+{% extends "_base.html" %}
+{% block title %}Deduplication{% endblock %}
+{% from "_formshelper.html" import render_field, checkbox, select %}
+{% block content %}
+
+
+<div class="card bg-light mb-3">
+    <div class="card-body">
+        <p>Task {{ task_id }} is pending...</a>
+        <p>Status:</p>
+        {% for key, value in statuses.items%}
+          <p>{{ key }}: {{ value }}</p>
+        {% endfor %}
+    </div>
+</div>
+
+
+{% endblock %}
