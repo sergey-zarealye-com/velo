@@ -1,9 +1,11 @@
+import asyncio
 import enum
 import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Generator, Dict, Union
-from multiprocessing import Process, Queue
+from multiprocessing import Process
+import multiprocessing
 from project.todo.rabbitmq_connector import send_message, get_message
 import os
 import uuid
@@ -14,14 +16,15 @@ from project.video_utils import ffmpeg_job
 log = logging.getLogger(__name__)
 
 
-sending_queue: Queue = Queue()
+sending_queue = multiprocessing.Queue()
 sending_process = Process(
     target=send_message,
     args=('frames_extraction', sending_queue)
 )
 sending_process.start()
 
-pulling_queue: Queue = Queue()
+pulling_queue = multiprocessing.Queue()
+print("Объявление ", id(pulling_queue))
 pulling_process = Process(
     target=get_message,
     args=('frames_extraction_result', pulling_queue)
@@ -66,41 +69,12 @@ def get_media_type(file: Path) -> MediaType:
 
 def get_data_samples(data_path_str: str, labels: Dict[str, int]) -> Generator[DataSample, None, None]:
     data_path: Path = Path(data_path_str)
-    # если это один файл
+    # # если это один файл
     if data_path.is_file():
-        # todo: check for data type
-        media_type = get_media_type(data_path)
-        if media_type == MediaType.VIDEO:
-            storage_dir = os.getenv("STORAGE_DIR")
-            assert storage_dir, "Variable STORAGE_DIR is not defined in .flaskenv!"
-            video_path = os.path.join(storage_dir, 'videos')
-
-            if not os.path.isdir(video_path):
-                os.mkdir(video_path)
-
-            task_id = str(uuid.uuid4())
-            task_dir = os.path.join(video_path, task_id)
-            os.mkdir(task_dir)
-
-            thumbs_dir = os.path.join(task_dir, 'thumbs')
-            os.mkdir(thumbs_dir)
-
-            dst_video_path = os.path.join(task_dir, data_path.name)
-            shutil.copy(data_path, dst_video_path)
-
-            # поскольку воркер может быть запущен в контейнере, вмсето абсолютного пути хоста
-            # отправляем только путь из task_id и имени файла/папки
-            # воркер должен сам подставить абсолютный путь, основываясь на storage_dir из своего конфига
-            sending_queue.put({
-                "id": task_id,
-                "thumbs_dir": os.path.join(task_id, 'thumbs'),
-                "input_fname": os.path.join(task_id, data_path.name),
-                "input_fname_stem": data_path.stem,
-                "img_ext": ".jpg"
-            })
-            log.info(f"Created task {task_id}")
-    # если папка
-    elif data_path.is_dir():
+        pass
+    # ToDO добавить обработку, если указанная директория без подпапок
+    #  (просто хранит файлы заданной категории)
+    if data_path.is_dir():
         for item in data_path.iterdir():
             if item.is_dir():
                 label = item.name

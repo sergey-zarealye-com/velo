@@ -244,7 +244,7 @@ class Category(db.Model):
         return [(1, 'Vision'),
                 (2, 'NLP')]
 
-    def __init__(self, name, version_id, task, position=None):
+    def __init__(self, name, version_id, task, description, position=None):
         self.name = name
         self.version_id = version_id
 

@@ -4,4 +4,4 @@ rabbit_port: 5672
 rabbit_host: rabbit
 queue_name: frames_extraction
 result_queue_name: frames_extraction_result
-storage_path: /storage
+storage_path: /storage/project/static/images/tmp
