@@ -1,3 +1,4 @@
+import logging
 import shutil
 from pathlib import Path
 
@@ -12,11 +13,14 @@ import subprocess
 import validators
 
 
+log = logging.getLogger(__name__)
+
+
 def get_processing_func(storage_dir: str, connector: Connector, result_queue_name: str):
     async def processing_function(
             req: dict,
     ):
-        print("Got request:", req)
+        log.info("Got request:", req)
         thumbs_dir = os.path.join(storage_dir, req['thumbs_dir'])
         is_link = validators.url(req['input_fname'])
         if not is_link:
@@ -92,4 +96,8 @@ def main():
 
 
 if __name__ == '__main__':
+    print('gavno')
+    log.info('Try to start')
+    time.sleep(10)
+    log.info('Started')
     main()

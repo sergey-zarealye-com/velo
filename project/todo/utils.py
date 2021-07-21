@@ -20,7 +20,7 @@ def create_video_task(data_path_str: str, labels: Dict[str, int], cat, descripti
     # если это один файл
     media_type = get_media_type(data_path)
     if media_type == MediaType.VIDEO:
-        storage_dir = os.getenv("STORAGE_DIR")
+        storage_dir = os.getenv("MODERATION_STORAGE_DIR")
         assert storage_dir, "Variable STORAGE_DIR is not defined in .flaskenv!"
 
         task_id = str(uuid.uuid4())
