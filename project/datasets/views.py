@@ -316,24 +316,9 @@ def import2ds(selected):
     form = ImportForm(request.form)
     if request.method == 'POST':
         if form.validate_on_submit():
-            src = form.flocation.data
             label_ids = get_labels_of_version(version.id)
             if form.reason.data == 'moderation':
-                objects, version_objects = [], []
-                category = form.category.choices[form.category.data - 1][1]
-                general_category = form.general_category.data
-                for sample in get_data_samples(src, label_ids):
-                    item2moderate = Moderation(src=src,
-                                               file=sample.path,
-                                               src_media_type=sample.media_type,
-                                               category=category)
-                    objects.append(item2moderate)
-                try:
-                    db.session.bulk_save_objects(objects, return_defaults=True)
-                    db.session.commit()
-                except Exception as ex:
-                    log.error(ex)
-                    db.session.rollback()
+                pass
             else:
                 if form.category_select.data == 'folder':
                     # send message to preprocessor
