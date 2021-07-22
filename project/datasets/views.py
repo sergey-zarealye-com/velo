@@ -364,7 +364,7 @@ def import2ds(selected):
                     if not bool(form.is_dedup.data):
                         # TODO: handle exceptions, add s3 source
                         # вынести куда нибудь commit_batch
-                        fillup_tmp_table(label_ids, selected, src, version)
+                        fillup_tmp_table(label_ids, selected, os.path.join(storage_dir, task_id), version)
 
             # version.status = 2
             # db.session.commit()
