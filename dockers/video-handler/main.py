@@ -11,16 +11,22 @@ import time
 import os
 import subprocess
 import validators
+from multiprocessing import Process, Queue
 
 
 log = logging.getLogger(__name__)
 
 
-def get_processing_func(storage_dir: str, connector: Connector, result_queue_name: str):
-    async def processing_function(
-            req: dict,
+def run_processing_func(storage_dir: str, connector: Connector, result_queue_name: str):
+    def processing_function(
+            queue: Queue,
+            storage_dir: str,
+            connector: Connector,
+            result_queue_name: str
     ):
+        req = Queue.get()
         log.info("Got request:", req)
+
         thumbs_dir = os.path.join(storage_dir, req['thumbs_dir'])
         is_link = validators.url(req['input_fname'])
         if not is_link:
@@ -71,7 +77,14 @@ def get_processing_func(storage_dir: str, connector: Connector, result_queue_nam
             result_queue_name
         )
 
-    return processing_function
+    processing_queue = Queue()
+    processing_proc = Process(
+        target=processing_function,
+        args=(processing_queue, storage_dir, connector, result_queue_name)
+    )
+    processing_proc.start()
+
+    return processing_queue
 
 
 def main():
@@ -90,9 +103,9 @@ def main():
         config["rabbit_host"]
     )
 
-    processing_function = get_processing_func(config["storage_path"], connector, config["result_queue_name"])
+    processing_queue = run_processing_func(config["storage_path"], connector, config["result_queue_name"])
 
-    connector.run_async_rabbitmq_connection(config["queue_name"], processing_function)
+    connector.run_async_rabbitmq_connection(config["queue_name"], processing_queue)
 
 
 if __name__ == '__main__':
