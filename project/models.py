@@ -211,6 +211,9 @@ class Version(db.Model):
             out.append(str(len(cl)))
             out.append('</a> ')
         return ''.join(out)
+    
+    def data_no(self):
+        return str(VersionItems.query.filter_by(version_id=self.id).count())
 
 
 class VersionChildren(db.Model):
@@ -275,7 +278,6 @@ class Category(db.Model):
             .filter_by(version_id=version.id, task=task) \
             .order_by(Category.position) \
             .all()
-
 
 class DataItems(db.Model):
     __tablename__ = 'data_items'
