@@ -1,7 +1,6 @@
 from typing import List, Dict
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from project.models import Category, Moderation
 from project.models import VersionChildren, DataItems, VersionItems, Category
 
 
@@ -47,3 +46,4 @@ if __name__ == '__main__':
 
     res = get_nodes_above(session, 2)
     items = get_items_of_nodes(res)
+

@@ -7,6 +7,7 @@ import shutil
 from pathlib import Path
 import logging
 import pandas as pd
+import transliterate
 from flask import render_template, Blueprint, request, redirect, url_for
 from flask import flash, Markup, abort, session
 from flask_login import current_user, login_required
@@ -158,7 +159,7 @@ def moderate(item_id):
         category = v
         if not os.path.exists(os.path.join(SAVE_PATH, category)):
             os.mkdir(os.path.join(SAVE_PATH, category))
-        shutil.move(images_path, os.path.join(SAVE_PATH, category, Path(images_path).name))
+        shutil.move(images_path, os.path.join(SAVE_PATH, category, transliterate.translit(Path(images_path).name, 'ru', reversed=True)))
     Moderation.query.filter_by(id=film_id).delete()
     fillup_tmp_table(get_labels_of_version(version.id), version.name, str(SAVE_PATH), version)
     folder = Path(images_paths[0]).parent.parent
