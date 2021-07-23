@@ -15,6 +15,7 @@ from project import app, db
 from project.datasets.queries import get_nodes_above
 from project.images.queries import get_items_of_version, get_uncommited_items
 from project.models import Version
+import os
 
 # CONFIG
 images_blueprint = Blueprint('images', __name__,

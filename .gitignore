@@ -2,6 +2,8 @@ velo/*
 project/static/images/tmp/*
 .flaskenv
 project/static/tmp/
+dockers/image-process-scheduler/config.yml
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
