@@ -420,7 +420,7 @@
     <aside class="sidebar">
         <div class="component">
             <div class="footer">
-                <a href={{ url_for('deduplication.temporary_remove', task_id=task_id, selected_ds=selected_ds) }}>
+                <a href={{ url_for('deduplication.save_result', task_id=task_id, selected_ds=selected_ds) }}>
                     <button class="button">Delete checked</button>
                 </a>
                 <button class="button" onclick="uncheck_all({{ count_items }});">Uncheck all</button>
