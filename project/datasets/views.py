@@ -268,6 +268,7 @@ def branch(selected):
                         child_categ = Category(parent_categ.name,
                                                version.id,
                                                task[0],
+                                               parent_categ.description,
                                                position=parent_categ.position)
                         db.session.add(child_categ)
                 db.session.commit()
@@ -550,6 +551,7 @@ def merge_categs(parent, child):
                         categ = Category(t_categ[1].name,
                                          child.id,
                                          task[0],
+                                         t_categ[1].description,
                                          t_categ[0])
                         db.session.add(categ)
                 db.session.commit()

@@ -214,6 +214,13 @@ class Version(db.Model):
     
     def data_no(self):
         return str(VersionItems.query.filter_by(version_id=self.id).count())
+    
+    def parent(self):
+        vc = VersionChildren.query.filter_by(child_id=self.id).first()
+        if vc is None:
+            return None
+        else:
+            return Version.query.get(vc.parent_id)
 
 
 class VersionChildren(db.Model):
@@ -247,7 +254,7 @@ class Category(db.Model):
         return [(1, 'Vision'),
                 (2, 'NLP')]
 
-    def __init__(self, name, version_id, task, description=None, position=None):
+    def __init__(self, name, version_id, task, description, position=None):
         self.name = name
         self.version_id = version_id
 
