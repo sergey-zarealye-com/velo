@@ -20,7 +20,7 @@ def get_processing_func(storage_dir: str, connector: Connector, result_queue_nam
     async def processing_function(
             req: dict,
     ):
-        log.info("Got request:", req)
+        print("Got request:", req)
         thumbs_dir = os.path.join(storage_dir, req['thumbs_dir'])
         is_link = validators.url(req['input_fname'])
         if not is_link:
@@ -96,7 +96,6 @@ def main():
 
 
 if __name__ == '__main__':
-    print('gavno')
     log.info('Try to start')
     time.sleep(10)
     log.info('Started')

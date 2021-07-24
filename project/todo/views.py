@@ -3,6 +3,7 @@
 # IMPORTS
 import os.path
 import shutil
+import uuid
 
 from pathlib import Path
 import logging
@@ -35,6 +36,8 @@ SAVE_PATH = Path.absolute(Path(os.getcwd())).joinpath('save_dir')
 if not SAVE_PATH.exists():
     SAVE_PATH.mkdir()
 
+TASKS = {}
+
 # ROUTES
 @todo_blueprint.route('/index')
 @login_required
@@ -47,28 +50,37 @@ def index():
         message = Markup("There was no version found!")
         flash(message, 'warning')
         return redirect(url_for('datasets.index'))
-    # ToDo подумать как сделать лаконичнее (потом)
-    while not pulling_queue.empty():
-        data = pulling_queue.get()
-        path = ABS_PATH.joinpath(data['task_id'], 'thumbs')
-        file_list = os.listdir(path)
-        objects = []
-        for file in file_list:
-            sample_path = os.path.join(path, file)
-            item2moderate = Moderation(src=str(path),
-                                       file=sample_path,
-                                       src_media_type="VIDEO", #ToDO расхардкодить
-                                       category=data["cat"],
-                                       description=data["description"],
-                                       title=data["title"],
-                                       id=data["video_id"])
-            objects.append(item2moderate)
-        try:
-            db.session.bulk_save_objects(objects, return_defaults=True)
-            db.session.commit()
-        except Exception as ex:
-            log.error(ex)
-            db.session.rollback()
+
+    # ToDo написать обработку получения результатов для отображения
+    keys = list(TASKS.keys())
+    objects = []
+    for k in keys:
+        if TASKS[k].ready():
+            print(TASKS[k].get())
+            data = TASKS[k].get()
+            path = ABS_PATH.joinpath(data['id'], 'thumbs')
+            file_list = os.listdir(path)
+            objects = []
+            for file in file_list:
+                sample_path = os.path.join(path, file)
+                item2moderate = Moderation(src=str(path),
+                                           file=sample_path,
+                                           src_media_type="VIDEO",  # ToDO расхардкодить
+                                           category=data["cat"],
+                                           description=data["description"],
+                                           title=data["title"],
+                                           id=data["video_id"])
+                objects.append(item2moderate)
+                del TASKS[k]
+                a = keys.index(k)
+                keys.pop(a)
+    try:
+        db.session.bulk_save_objects(objects, return_defaults=True)
+        db.session.commit()
+    except Exception as ex:
+        log.error(ex)
+        db.session.rollback()
+
 
     print("В def index() ", id(pulling_queue))
     q = Moderation.query.distinct("id").all()
@@ -197,8 +209,8 @@ def new_batch():
             else:
                 max_id = 0
             for i, (path, cat, title, description) in enumerate(zip(paths, cats, titles, descriptions), start=max_id+1):
-                # ToDo написать по человечески
-                create_video_task(path, version.id, cat, description, title, i)
+                task_id = str(uuid.uuid4())
+                TASKS[task_id] = create_video_task(task_id, path, version.id, cat, description, title, i)
             return redirect(url_for('todo.index'))
     return render_template('todo/new_batch.html',
                            form=form)
