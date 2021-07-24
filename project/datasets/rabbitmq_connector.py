@@ -126,7 +126,7 @@ def get_message(queue_name: str, queue):
                         task_entry = Deduplication.query.filter_by(task_uid=task_id).first()
 
                         if task_entry:
-                            if response['type'] == 'result':
+                            if response['type'] == 'deduplication_result':
                                 print('\tGot result:')
                                 print(response)
                                 task_entry.result = response
