@@ -4,7 +4,6 @@
 import json
 import math
 import ntpath
-import os
 from collections import Counter
 
 from flask import render_template, Blueprint, redirect, url_for, flash
@@ -13,10 +12,11 @@ from flask_login import login_required
 from markupsafe import Markup
 import os
 
-from project import db
+from project import app, db
 from project.datasets.queries import get_nodes_above
-from project.images.queries import get_items_of_version
+from project.images.queries import get_items_of_version, get_uncommited_items
 from project.models import Version
+import os
 
 # CONFIG
 images_blueprint = Blueprint('images', __name__,
@@ -54,7 +54,7 @@ def download_file(filename):
 @images_blueprint.route('/browse/<selected>&page=<page>&items=<items>&filters=<filters>')
 @login_required
 def browse(selected, page=1, items=50, filters=None):
-    print('filters', filters)
+    app.logger.info(f"Filters: {filters}")
     try:
         items = int(items)
         page = int(page)
@@ -62,9 +62,10 @@ def browse(selected, page=1, items=50, filters=None):
             filters = json.loads(filters)
             session['browse_filters'] = filters
     except Exception as e:
-        print(e)
+        app.logger.error(e)
         abort(404)
-    print(selected, page, items, f"[{(page - 1) * items}:{(page) * items}]", filters)
+    msg = f"Selected node: {selected}. Page: {page}\nItems: {items}\t{(page - 1) * items}:{(page) * items}]\nFilters: {filters}"
+    app.logger.info(msg)
     if 'selected_version' in session:
         version = Version.query.filter_by(name=session['selected_version']).first()
     else:
@@ -75,16 +76,19 @@ def browse(selected, page=1, items=50, filters=None):
         return redirect(url_for('datasets.index'))
     nodes_of_version = get_nodes_above(db.session, version.id)
     version_items = get_items_of_version(db.session, nodes_of_version)
+    # TODO: отобразить на фронте
+    uncommited_items = get_uncommited_items(db.session, selected)
     classes_info = dict(Counter(getattr(item, 'label') for item in version_items))
     if "browse_filters" in session:
         version_items_filtr = [item for item in version_items if item.label in session['browse_filters']]
         cur_filters = session['browse_filters']
     else:
         cur_filters = None
+        version_items_filtr = version_items
 
     return render_template('browse/item.html',
                            version=version,
-                           version_items=version_items_filtr[(page-1)*items:(page)*items],
+                           version_items=version_items_filtr[(page - 1) * items:(page) * items],
                            ds_length=len(version_items),
                            classes_info=classes_info,
                            pages=int(math.ceil(len(version_items_filtr) / int(items))),
@@ -102,18 +106,4 @@ if __name__ == '__main__':
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    # image_ids = VersionItems.query.filter_by(version_id=1).with_entities(VersionItems.item_id, VersionItems.category_id).all()
-    # image_paths = DataItems.query.filter(DataItems.id.in_(image_ids)).join(Category, Category.c.id == image_ids.category_id)
-
-    # node_items = VersionItems.query.filter_by(version_id=1)
-    """
-    category_id
-    item_id
-    """
-    q = session.query(VersionItems, DataItems, Category) \
-        .filter(VersionItems.version_id == 1) \
-        .join(DataItems) \
-        .filter(Category.id == VersionItems.category_id)
-
-    for item in q.all():
-        print(item)
+    pass

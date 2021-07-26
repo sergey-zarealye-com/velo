@@ -8,79 +8,7 @@
     <script src="{{ url_for('static', filename='js/jquery.bootpag.min.js') }}" type="text/javascript"></script>
     <script src="{{ url_for('static', filename='js/easySelectableBrowse.js') }}"></script>
     <script type="text/javascript">
-        $(document).ready(function () {
-            var page =
-            {{ page }}
-            var version_name = "{{ version.name }}"
-            var items = "{{ items }}"
-
-            {% if filters == None %}
-                var init_filters = "{{filters}}"
-            {% else %}
-                var init_filters = []
-                {% for filter in filters %}
-                    init_filters.push("{{filter}}")
-                {% endfor %}
-            {% endif %}
-            {#var init_filters = {{ filters }}#}
-
-            function init_class_filters(init_filters) {
-                var filters = new Set();
-                if (Array.isArray(init_filters)) {
-                    console.log('case 1', init_filters)
-                    for (var i in init_filters) {
-                        filters.add(init_filters[i])
-                    }
-                } else {
-                    console.log('case 2', init_filters)
-                    {% for key, value in classes_info.items() %}
-                        filters.add("{{ key }}")
-                    {% endfor %}
-                }
-                return filters;
-            }
-
-            window.filters = init_class_filters(init_filters);
-            console.log('filters:', filters)
-
-            $('#pageAmountSelector').change(function () {
-                var optionSelected = $(this).find("option:selected");
-                var valueSelected = optionSelected.val();
-                window.location = version_name + '&page=' + (Math.floor(page / valueSelected) + 1) + '&items=' + optionSelected.text();
-            });
-
-            $('#select_all_classes').change(function () {
-                if ($(this).prop('checked')) {
-                    $('[id^="filter_class_"]').prop('checked', true);
-                    filters = init_class_filters();
-
-                } else {
-                    $('[id^="filter_class_"]').prop('checked', false);
-                    filters = new Set();
-                }
-                console.log('filters:', filters)
-            });
-
-            $('[id^="filter_class_"]').change(function () {
-                if ($(this).prop('checked')) {
-                    filters.add($(this)[0].value)
-                } else {
-                    filters.delete($(this)[0].value)
-                }
-                console.log('filters:', filters)
-            });
-
-            $('#apply_filters_btn').click(function () {
-                console.log('clicked');
-                console.log(window.location.href);
-                console.log(document.URL);
-                console.log(window.location);
-                var filters_arr = encodeURIComponent(JSON.stringify(Array.from(filters)));
-                window.location = version_name + '&page=1&items=' + items + '&filters=' + filters_arr;
-            });
-
-
-        });
+        
 
     function check_top(end_index) {
         for (let i = 0; i <= end_index; i++) {
@@ -526,7 +454,7 @@
     <aside class="sidebar">
         <div class="component">
             <div class="footer">
-                <a href={{ url_for('deduplication.temporary_remove', task_id=task_id, selected_ds=selected_ds) }}>
+                <a href={{ url_for('deduplication.save_result', task_id=task_id, selected_ds=selected_ds) }}>
                     <button class="button">Delete checked</button>
                 </a>
                 <button class="button" onclick="uncheck_all({{ count_items }});">Uncheck all</button>

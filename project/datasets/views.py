@@ -58,7 +58,9 @@ def copy_directory(
         min_size: Tuple[int, int],
         is_resize: bool,
         dst_size: Tuple[int, int],
-        is_dedup: bool
+        is_dedup: bool,
+        label_ds: Dict[str, int],
+        selected_ds: str
 ):
     logging.info("Start copying data...")
     sys.stdout.flush()
@@ -79,6 +81,8 @@ def copy_directory(
             'is_resize': bool(is_resize),
             'dst_size': tuple(dst_size),
             'deduplication': bool(is_dedup),
+            'label_ds': label_ds,
+            'selected_ds': selected_ds
         }))
     )
     logging.info("Sended")
@@ -316,24 +320,9 @@ def import2ds(selected):
     form = ImportForm(request.form)
     if request.method == 'POST':
         if form.validate_on_submit():
-            src = form.flocation.data
             label_ids = get_labels_of_version(version.id)
             if form.reason.data == 'moderation':
-                objects, version_objects = [], []
-                category = form.category.choices[form.category.data - 1][1]
-                general_category = form.general_category.data
-                for sample in get_data_samples(src, label_ids):
-                    item2moderate = Moderation(src=src,
-                                               file=sample.path,
-                                               src_media_type=sample.media_type,
-                                               category=category)
-                    objects.append(item2moderate)
-                try:
-                    db.session.bulk_save_objects(objects, return_defaults=True)
-                    db.session.commit()
-                except Exception as ex:
-                    log.error(ex)
-                    db.session.rollback()
+                pass
             else:
                 if form.category_select.data == 'folder':
                     # send message to preprocessor
@@ -353,7 +342,9 @@ def import2ds(selected):
                             (int(form.min_size.data), int(form.min_size.data)),
                             bool(form.is_resize.data),
                             (int(form.resize_h.data), int(form.resize_w.data)),
-                            bool(form.is_dedup.data)
+                            bool(form.is_dedup.data),
+                            label_ids,
+                            selected
                         )
                     )
                     proc_to_copy_files.start()
@@ -361,10 +352,8 @@ def import2ds(selected):
 
                     # если включена дедупликация, то сохранение нужно после
                     # процесса ручного отбора картинок (project/deduplication/views/def save_result)
-                    if not bool(form.is_dedup.data):
-                        # TODO: handle exceptions, add s3 source
-                        # вынести куда нибудь commit_batch
-                        fillup_tmp_table(label_ids, selected, src, version)
+                    # в противном случае - смотри rabbitmq_connector.py - воркер возвращает имена фалов
+                    # отфильтрованных и ресайзнутых изображений
 
             # version.status = 2
             # db.session.commit()
@@ -441,6 +430,13 @@ def commit(selected):
                 objects = [VersionItems(item_id=item.item_id,
                                         version_id=node_id,
                                         category_id=item.category_id) for item in items_to_commit]
+                filepaths = [
+                    DataItems.query.filter_by(id=item.item_id).first().path for item in items_to_commit
+                ]
+                sending_queue.put((str(uuid.uuid4()), json.dumps({
+                    'type': 'merge_indexes',
+                    'files_to_keep': filepaths
+                })))
                 db.session.bulk_save_objects(objects)
                 TmpTable.query.filter_by(node_name=selected).delete()
                 version.status = 3
@@ -463,16 +459,6 @@ def commit(selected):
 @datasets_blueprint.route('/merge/<selected>', methods=['GET', 'POST'])
 @login_required
 def merge(selected):
-    # TODO пример использования
-    path = '<PLACE YOUR DIR>'
-    send_merge_control_request(
-        list(
-            map(
-                lambda x: os.path.join(path, x),
-                os.listdir(path)
-            )
-        )
-    )
     child = Version.query.filter_by(name=selected).first()
     if child is None:
         abort(404)

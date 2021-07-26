@@ -98,7 +98,7 @@ def show_dedup(task_id, selected_ds):
     ]
 
     return render_template(
-        'datasets/deduplication2.html',
+        'datasets/deduplication4.html',
         images=images,
         task_id=task_id,
         selected_ds=selected_ds

@@ -8,5 +8,5 @@ STORAGE_DIR = '/storage1/mrowl/image_storage'
 MODERATION_STORAGE_DIR = '/storage1/mrowl/image_storage/videos/'
 RABBIT_LOGIN = 'guest'
 RABBIT_PASSW = 'guest'
-RABBIT_PORT = 5672
+RABBIT_PORT = 5673
 RABBIT_HOST = '127.0.0.1'

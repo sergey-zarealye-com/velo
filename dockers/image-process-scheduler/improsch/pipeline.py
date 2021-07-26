@@ -27,6 +27,10 @@ class Preprocessor:
         self.saving_pool_size = saving_pool_size
 
     def preprocessing(self, request):
+        if request.get('type') == 'merge_indexes':
+            filenames = request["files_to_keep"]
+            self.deduplicator.add_indexes_from_tmp(filenames)
+            return {'status': 'done'}
         if request.get('type') == 'merge_control':
             get_reader_func = get_image_reader_pil
         else:
@@ -80,6 +84,14 @@ class Preprocessor:
                 batch_size=self.dedup_batch_size
             )
 
-            return {'deduplication': dedup_result}
+            return {
+                "status": "done",
+                "type": "deduplication_result",
+                "deduplication": dedup_result
+            }
 
-        return {"status": "done"}
+        return {
+            "status": "done",
+            "type": "filtered",
+            "filenames": parted_filenames
+        }
