@@ -82,20 +82,42 @@
 
         });
 
-        function check_top(end_index) {
-            for (let i = 0; i <= end_index; i++) {
-                document.getElementById("cb_" + String(i) + "_1").checked = true;
-            }
-
-            return false;
+    function check_top(end_index) {
+        for (let i = 0; i <= end_index; i++) {
+            document.getElementById("cb_" + String(i) + "_1").checked = true;
         }
 
-        function uncheck_all(count_items)  {
-            for (let i = 0; i < count_items; i++) {
-                element = document.getElementById("cb_" + String(i) + "_1")
-                element.checked = false;
+        return false;
+    }
+
+    function uncheck_all(count_items)  {
+        for (let i = 0; i < count_items; i++) {
+            element = document.getElementById("cb_" + String(i) + "_1");
+            element.checked = false;
+        }
+    }
+
+    function send_remove_request(count_items) {
+        let checkedIndexes = [];
+        for (let i = 0; i < count_items; i++) {
+            element = document.getElementById("cb_" + String(i) + "_1");
+            if (element.checked) {
+                checkedIndexes.push(i);
             }
         }
+
+        var xhr = new XMLHttpRequest();
+
+        var body = 'name=' + encodeURIComponent(name) +
+        '&surname=' + encodeURIComponent(surname);
+
+        xhr.open("POST", '/submit', true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+        xhr.onreadystatechange = ...;
+
+        xhr.send(body);
+    }
 
     </script>
 {% endblock %}
