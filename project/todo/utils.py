@@ -9,7 +9,7 @@ from typing import Dict
 import urllib3
 import validators
 from project.celery.tasks import processing_function
-from project.datasets.utils import sending_queue, get_media_type, MediaType
+from project.datasets.utils import get_media_type, MediaType
 
 
 def natural_sort(l):

@@ -305,8 +305,8 @@ class TmpTable(db.Model):
 
 class Moderation(db.Model):
     __tablename__ = 'moderation'
-    src = db.Column(db.String, nullable=False)
-    file = db.Column(db.String, nullable=False)
+    src = db.Column(db.String, nullable=False, unique=False)
+    file = db.Column(db.String, nullable=False, unique=False)
     src_media_type = db.Column(db.String, nullable=False)
     category = db.Column(db.String, nullable=False)
     description = db.Column(db.String, nullable=True)
@@ -367,3 +367,11 @@ class Deduplication(db.Model):
     # user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     stages_status = db.Column(JSON)
     result = db.Column(JSON)
+
+
+class CeleryTask(db.Model):
+    __tablename__ = 'eelerytasks'
+    task_id = db.Column(db.String, primary_key=True, nullable=False)
+
+    def __init__(self, task_id):
+        self.task_id = task_id

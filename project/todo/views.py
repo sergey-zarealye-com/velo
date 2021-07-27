@@ -9,21 +9,22 @@ from pathlib import Path
 import logging
 import pandas as pd
 import transliterate
+from celery.result import AsyncResult
 from flask import render_template, Blueprint, request, redirect, url_for
 from flask import flash, Markup, abort, session
 from flask_login import current_user, login_required
 from datetime import datetime
 
 from project import db
-from project.models import Version, Category, ToDoItem, Moderation
+from project.models import Version, Category, ToDoItem, Moderation, CeleryTask
 from .utils import natural_sort
 from .forms import NewBatchForm
 
 # CONFIG
 from ..datasets.queries import get_labels_of_version
-from ..datasets.utils import pulling_queue
 from ..datasets.views import fillup_tmp_table
 from project.todo.utils import create_video_task
+from project.celery.tasks import app
 
 todo_blueprint = Blueprint('todo', __name__,
                            template_folder='templates',
@@ -52,12 +53,13 @@ def index():
         return redirect(url_for('datasets.index'))
 
     # ToDo написать обработку получения результатов для отображения
-    keys = list(TASKS.keys())
     objects = []
-    for k in keys:
-        if TASKS[k].ready():
-            print(TASKS[k].get())
-            data = TASKS[k].get()
+    tasks = CeleryTask.query.distinct("task_id").all()
+    for task in tasks:
+        task_id = task.task_id
+        task_res = AsyncResult(task_id, app=app)
+        if task_res.status == 'SUCCESS':
+            data = task_res.info
             path = ABS_PATH.joinpath(data['id'], 'thumbs')
             file_list = os.listdir(path)
             objects = []
@@ -71,9 +73,8 @@ def index():
                                            title=data["title"],
                                            id=data["video_id"])
                 objects.append(item2moderate)
-                del TASKS[k]
-                a = keys.index(k)
-                keys.pop(a)
+            CeleryTask.query.filter_by(task_id=task_id).delete()
+            db.session.commit()
     try:
         db.session.bulk_save_objects(objects, return_defaults=True)
         db.session.commit()
@@ -81,8 +82,6 @@ def index():
         log.error(ex)
         db.session.rollback()
 
-
-    print("В def index() ", id(pulling_queue))
     q = Moderation.query.distinct("id").all()
     for i, t in enumerate(q):
         todo = ToDoItem.query.filter_by(id=t.id).first()
@@ -210,7 +209,14 @@ def new_batch():
                 max_id = 0
             for i, (path, cat, title, description) in enumerate(zip(paths, cats, titles, descriptions), start=max_id+1):
                 task_id = str(uuid.uuid4())
-                TASKS[task_id] = create_video_task(task_id, path, version.id, cat, description, title, i)
+                task_meta = create_video_task(task_id, path, version.id, cat, description, title, i)
+                if task_meta is not None:
+                    task = CeleryTask(
+                        task_meta.task_id
+                    )
+                    db.session.add(task)
+            db.session.commit()
+
             return redirect(url_for('todo.index'))
     return render_template('todo/new_batch.html',
                            form=form)

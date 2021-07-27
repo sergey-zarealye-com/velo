@@ -7,6 +7,9 @@ import urllib3
 import validators
 from celery import Celery
 
+from project import db
+from project.models import CeleryTask
+
 app = Celery('ffmpeg', backend='redis://127.0.0.1:6379', broker='amqp://')
 app.autodiscover_tasks(force=True)
 
