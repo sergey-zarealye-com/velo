@@ -1,5 +1,0 @@
-digraph "dsvers" {
-        init[URL="/datasets/select/init", style="filled,bold", fillcolor="lightgrey"];
-
-        
-        }
