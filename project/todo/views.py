@@ -50,7 +50,13 @@ def index():
     # ToDo подумать как сделать лаконичнее (потом)
     while not pulling_queue.empty():
         data = pulling_queue.get()
-        path = ABS_PATH.joinpath(data['task_id'], 'thumbs')
+
+        # path = ABS_PATH.joinpath(data['task_id'], 'thumbs')
+        storage_dir = os.getenv("MODERATION_STORAGE_DIR")
+        assert storage_dir, "Variable STORAGE_DIR is not defined in .flaskenv!"
+
+        path = os.path.join(storage_dir, data['task_id'], 'thumbs')
+
         file_list = os.listdir(path)
         objects = []
         for file in file_list:

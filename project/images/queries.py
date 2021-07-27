@@ -2,16 +2,22 @@ from collections import namedtuple
 from contextlib import closing
 from typing import List
 
-from project.models import DataItems, VersionItems, Category, TmpTable, Version
+from project.models import DataItems, VersionItems, Category, TmpTable, Version, Diff
 
 version_item = namedtuple("VersionItem", "id,version,path,label")
 
 
 def get_items_of_version(sess, version_id: List[int]) -> List[version_item]:
+    deleted_items = Diff \
+        .query \
+        .filter(Diff.version_id.in_(version_id)) \
+        .with_entities(Diff.item_id) \
+        .all()
     query = sess.query(VersionItems, DataItems, Category) \
         .filter(VersionItems.version_id.in_(version_id)) \
         .join(DataItems) \
-        .filter(Category.id == VersionItems.category_id)
+        .filter(Category.id == VersionItems.category_id) \
+        .filter(DataItems.id.notin_(deleted_items))
     return [version_item(item.DataItems.id,
                          item.VersionItems.version_id,
                          item.DataItems.path,
@@ -47,7 +53,7 @@ if __name__ == '__main__':
     Session = sessionmaker(bind=engine)
     session = Session()
     with closing(session) as sess:
-        res = get_uncommited_items(sess, "добавить_классы_nlp")
+        res = get_items_of_version(sess, [1, 4, 5])
         # res = get_items_of_version(session, [1, 2])
         for item in res:
             print(f"Item id: {item.id}")
