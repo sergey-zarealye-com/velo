@@ -85,7 +85,7 @@ def copy_directory(
             'selected_ds': selected_ds
         }))
     )
-    logging.info("Sended")
+    logging.info(f"Sended task with id {task_id}")
     sys.stdout.flush()
 
 

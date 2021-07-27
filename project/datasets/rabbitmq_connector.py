@@ -7,7 +7,7 @@ import os
 import logging
 
 from project import db
-from project.models import Deduplication
+from project.models import Deduplication, DeduplicationStatus
 from project.models import Version, DataItems, TmpTable
 from project.datasets.utils import get_data_samples
 
@@ -130,6 +130,7 @@ def get_message(queue_name: str, queue):
                                 print('\tGot result:')
                                 print(response)
                                 task_entry.result = response
+                                task_entry.task_status = DeduplicationStatus.finished.value
                                 queue.put(response)
                                 db.session.commit()
                             elif response['type'] == 'status_update':

@@ -409,7 +409,10 @@
             }
         }
 
-        let request = {"checkboxes": checkedIndexes};
+        let request = {
+            "checkboxes": checkedIndexes,
+            "task_id": "{{ task_id }}"
+        };
         let url = "{{ url_for('deduplication.temporary_remove') }}";
 
         try {
@@ -421,6 +424,7 @@
                 }
             });
             console.log('Успех');
+            window.location.reload(true); 
         } catch (error) {
             console.error('Ошибка:', error);
         }
