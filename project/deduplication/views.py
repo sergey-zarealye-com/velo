@@ -88,8 +88,6 @@ def save_result(task_id, selected_ds):
         version
     )
 
-    import pdb
-    pdb.set_trace()
     return redirect(f'/dataset/select/{selected_ds}')
 
 
