@@ -1,0 +1,21 @@
+{% extends "_base.html" %}
+{% block title %}Labeling instructions{% endblock %}
+{% from "_formshelper.html" import render_field %}
+{% block content %}
+
+<div class="card bg-light mb-3">
+    <div class="card-header">
+        {{ version.name }}
+        <a href="{{url_for('maintenance.help_diff', task_id=task_id, backsteps=1)}}" role="button" class="float-right">
+            <i class="fas fa-history"></i>
+        </a>
+    </div>
+    <div class="card-body">
+        {% for h in helptext %}
+            <h5>{{h[0]}}</h5>
+            {{h[1]}}
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

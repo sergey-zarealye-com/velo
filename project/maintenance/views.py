@@ -14,6 +14,7 @@ from project import app, db, mail
 from project.models import User, Version, Category
 from .forms import AddCategoryForm, EditCategoryForm
 import traceback
+import difflib
 
 
 # CONFIG
@@ -76,7 +77,8 @@ def categ_add(task_id):
             try:
                 categ = Category(form.name.data,
                                  version.id,
-                                 task_id)
+                                 task_id,
+                                 form.description.data)
                 db.session.add(categ)
                 db.session.commit()
                 message = Markup("Saved successfully!")
@@ -127,6 +129,7 @@ def categ_edit(category_id):
         if form.validate_on_submit():
             try:
                 categ.name = form.name.data
+                categ.description = form.description.data
                 db.session.commit()
                 message = Markup("Saved successfully!")
                 flash(message, 'success')
@@ -138,6 +141,7 @@ def categ_edit(category_id):
                 message = Markup(
                     "<strong>Error!</strong> Unable to save this category. " + str(e))
                 flash(message, 'danger')
+    form.description.data = categ.description
     return render_template('maintenance/categ_edit.html', 
                            form=form,
                            categ=categ,
@@ -247,3 +251,87 @@ def categ_del(category_id):
         flash(message, 'danger')
     return redirect(url_for('maintenance.categs_list', 
                                 selected=version.name))
+
+@maintenance_blueprint.route('/category/help/<task_id>')
+@login_required
+def categ_help(task_id):
+    if 'selected_version' in session:
+        version = Version.query.filter_by(name=session['selected_version']).first()
+    else:
+        version = Version.query.filter_by(name=selected).first()
+    if version is None:
+        message = Markup("There was no version found!")
+        flash(message, 'warning')
+        return redirect(url_for('datasets.index'))
+    categs = Category.list(task_id, version.name)
+    helptext = [(c.name, c.description) for c in categs]
+    return render_template('maintenance/help.html', 
+                           helptext=helptext,
+                           task_id=task_id,
+                           version=version)
+
+def render_diff(lstr):
+    out = []
+    for row in lstr:
+        if row[0] == ' ':
+            out.append((False, row[2:],
+                        False, row[2:]))
+        elif row[0] == '-':
+            out.append((True, row[2:],
+                        False, ''))
+        elif row[0] == '+':
+            out.append((False, '',
+                        True, row[2:]))
+        elif row[0] == '?':
+            pass
+            # out.append((True, row[2:],
+            #             True, row[2:]))
+    return out
+                
+
+@maintenance_blueprint.route('/category/helpdiff/<task_id>/<int:backsteps>')
+@login_required
+def help_diff(task_id, backsteps):
+    if 'selected_version' in session:
+        version = Version.query.filter_by(name=session['selected_version']).first()
+    else:
+        version = Version.query.filter_by(name=selected).first()
+    if version is None:
+        message = Markup("There was no version found!")
+        flash(message, 'warning')
+        return redirect(url_for('datasets.index'))
+    current = version
+    parent = version
+    for cnt in range(backsteps):
+        parent = current.parent()
+        if parent is None:
+            parent = current
+            break
+        else:
+            current = parent
+    categs_this = Category.list(task_id, version.name)
+    helptext_this = dict([(c.name, 
+                           (c.description or '').splitlines()) for c in categs_this])
+    categs_parent = Category.list(task_id, parent.name)
+    helptext_parent = dict([(c.name, 
+                             (c.description or '').splitlines()) for c in categs_parent])
+    diff = {}
+    deltas = {}
+    for categ_name in helptext_this.keys():
+        if categ_name in helptext_parent:
+            deltas[categ_name] = list(difflib.Differ().compare(
+                                    helptext_this[categ_name],
+                                    helptext_parent[categ_name]))
+            diff[categ_name] = render_diff(deltas[categ_name])
+        else:
+            deltas[categ_name] = list(difflib.Differ().compare(
+                                    helptext_this[categ_name],
+                                    ''))
+            diff[categ_name] = render_diff(deltas[categ_name])
+    
+    return render_template('maintenance/help_diff.html', 
+                           diff=diff,
+                           backsteps=backsteps,
+                           this=version,
+                           parent=parent,
+                           task_id=task_id)

@@ -4,7 +4,7 @@ import asyncio
 import aio_pika
 import json
 import logging
-from multiprocessing import Process
+from multiprocessing import Process, Queue
 import nest_asyncio
 
 
@@ -27,7 +27,7 @@ class Connector:
     async def recieve_message(
         self,
         queue_name: str,
-        processing_func: Callable
+        processing_queue: Queue
     ):
 
         connection: Any = await aio_pika.connect_robust(
@@ -47,7 +47,7 @@ class Connector:
                 async for message in queue_iter:
                     async with message.process():
                         options = json.loads(message.body.decode('utf-8'))
-                        await processing_func(options)
+                        processing_queue.put(options)
 
     def send_message(self, message: Union[str, dict, list], routing_key: str):
         sending_proc = Process(
@@ -87,10 +87,10 @@ class Connector:
     def run_async_rabbitmq_connection(
         self,
         queue_name,
-        processing_function,
+        processing_queue,
     ):
         self.loop.run_until_complete(
-            self.recieve_message(queue_name, processing_function)
+            self.recieve_message(queue_name, processing_queue)
         )
 
         self.loop.close()

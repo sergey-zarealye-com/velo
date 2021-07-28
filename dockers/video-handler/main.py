@@ -11,67 +11,80 @@ import time
 import os
 import subprocess
 import validators
+from multiprocessing import Process, Queue
 
 
 log = logging.getLogger(__name__)
 
 
-def get_processing_func(storage_dir: str, connector: Connector, result_queue_name: str):
-    async def processing_function(
-            req: dict,
+def run_processing_func(storage_dir: str, connector: Connector, result_queue_name: str):
+    def processing_function(
+            queue: Queue,
+            storage_dir: str,
+            connector: Connector,
+            result_queue_name: str
     ):
-        log.info("Got request:", req)
-        thumbs_dir = os.path.join(storage_dir, req['thumbs_dir'])
-        is_link = validators.url(req['input_fname'])
-        if not is_link:
-            input_fname = os.path.join(storage_dir, req['input_fname'])
-        else:
-            input_fname = req['input_fname']
-        input_fname_stem = req['input_fname_stem']
-        img_ext = req['img_ext']
-        print({
-            "thumbs_dir": thumbs_dir,
-            "input_fname": input_fname,
-            "input_fname+stem": input_fname_stem
-        })
+        while req := queue.get():
+            log.info("Got request:", req)
 
-        # ToDo загрузка видео по ссылке
-        path_input_fname = Path(input_fname)
-        file_path = os.path.join(storage_dir, req['id'], path_input_fname.name)
-        if not is_link:
-            pass
-        else:
-            http = urllib3.PoolManager()
-            with open(str(file_path), 'wb') as out:
-                r = http.request('GET', input_fname, preload_content=False)
-                shutil.copyfileobj(r, out)
+            thumbs_dir = os.path.join(storage_dir, req['thumbs_dir'])
+            is_link = validators.url(req['input_fname'])
+            if not is_link:
+                input_fname = os.path.join(storage_dir, req['input_fname'])
+            else:
+                input_fname = req['input_fname']
+            input_fname_stem = req['input_fname_stem']
+            img_ext = req['img_ext']
+            print({
+                "thumbs_dir": thumbs_dir,
+                "input_fname": input_fname,
+                "input_fname+stem": input_fname_stem
+            })
 
-        out = f"{os.path.join(thumbs_dir, f'{input_fname_stem}_frame_' + '%0d' + img_ext)}"
-        command = f"""ffmpeg -y -i {str(input_fname)} -vsync vfr -filter_complex "[0:v]select=eq(pict_type\,PICT_TYPE_I)[pre_thumbs];[pre_thumbs]select=gt(scene\,0.2),scale=256:256[thumbs]" -map [thumbs] {out} 2>&1"""
+            # ToDo загрузка видео по ссылке
+            path_input_fname = Path(input_fname)
+            file_path = os.path.join(storage_dir, req['id'], path_input_fname.name)
+            if not is_link:
+                pass
+            else:
+                http = urllib3.PoolManager()
+                with open(str(file_path), 'wb') as out:
+                    r = http.request('GET', input_fname, preload_content=False)
+                    shutil.copyfileobj(r, out)
 
-        print("applying", command)
+            out = f"{os.path.join(thumbs_dir, f'{input_fname_stem}_frame_' + '%0d' + img_ext)}"
+            command = f"""ffmpeg -y -i {str(input_fname)} -vsync vfr -filter_complex "[0:v]select=eq(pict_type\,PICT_TYPE_I)[pre_thumbs];[pre_thumbs]select=gt(scene\,0.2),scale=256:256[thumbs]" -map [thumbs] {out} 2>&1"""
 
-        process = subprocess.Popen(
-            command,
-            shell=True,
-            stdout=subprocess.PIPE,
-            encoding='utf8'
-        )
-        (output, err) = process.communicate()
-        print("Subprocess finished")
+            print("applying", command)
 
-        connector.run_send_function(
-            {
-                "id": req["id"],
-                "cat": req["cat"],
-                "description": req["description"],
-                "title": req["title"],
-                "video_id": req["video_id"]
-            },
-            result_queue_name
-        )
+            process = subprocess.Popen(
+                command,
+                shell=True,
+                stdout=subprocess.PIPE,
+                encoding='utf8'
+            )
+            (output, err) = process.communicate()
+            print("Subprocess finished")
 
-    return processing_function
+            connector.run_send_function(
+                {
+                    "id": req["id"],
+                    "cat": req["cat"],
+                    "description": req["description"],
+                    "title": req["title"],
+                    "video_id": req["video_id"]
+                },
+                result_queue_name
+            )
+
+    processing_queue = Queue()
+    processing_proc = Process(
+        target=processing_function,
+        args=(processing_queue, storage_dir, connector, result_queue_name)
+    )
+    processing_proc.start()
+
+    return processing_queue
 
 
 def main():
@@ -90,14 +103,14 @@ def main():
         config["rabbit_host"]
     )
 
-    processing_function = get_processing_func(config["storage_path"], connector, config["result_queue_name"])
+    processing_queue = run_processing_func(config["storage_path"], connector, config["result_queue_name"])
 
-    connector.run_async_rabbitmq_connection(config["queue_name"], processing_function)
+    connector.run_async_rabbitmq_connection(config["queue_name"], processing_queue)
 
 
 if __name__ == '__main__':
     print('gavno')
     log.info('Try to start')
-    time.sleep(10)
+    time.sleep(1)
     log.info('Started')
     main()

@@ -1,8 +1,12 @@
 {% extends "_base.html" %}
 {% block title %}Import into the dataset{% endblock %}
 {% from "_formshelper.html" import render_field, checkbox, select %}
+{% from "helpers.html" import version_details %}
 {% block content %}
 
+<div class="container">
+    {{ version_details(version) }}
+</div>
 
 <div class="card bg-light mb-3">
     <div class="card-body">

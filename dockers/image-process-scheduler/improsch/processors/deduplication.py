@@ -15,9 +15,11 @@ import torch
 from torchvision import transforms
 import imagehash
 from PIL import Image
+from copy import deepcopy
 
 CONFIG_NAME = 'config.json'
 FILENAMES_JSON_NAME = 'ids_to_filenames.json'
+TMP_FILENAMES_JSON_NAME = 'tmp_ids_to_filenames.json'
 
 
 class FeatureExtractor:
@@ -85,33 +87,60 @@ class ImageIndex:
 
         if index_dir:
             self.index = faiss.read_index(os.path.join(index_dir, 'index.faiss'))
+            self.tmp_index = faiss.read_index(os.path.join(index_dir, 'tmp_index.faiss'))
             with open(os.path.join(index_dir, CONFIG_NAME)) as file:
                 self.index_config = json.load(file)
 
             with open(os.path.join(index_dir, FILENAMES_JSON_NAME)) as file:
                 self.id_to_filename: Dict[int, str] = json.load(file)
                 self.id_to_filename = {int(k): v for k, v in self.id_to_filename.items()}
+
+            with open(os.path.join(index_dir, TMP_FILENAMES_JSON_NAME)) as file:
+                self.tmp_id_to_filename: Dict[str, int] = json.load(file)
+                self.tmp_id_to_filename = {k: int(v) for k, v in self.tmp_id_to_filename.items()}
         else:
             self.index = faiss.index_factory(feat_dim, "Flat", faiss.METRIC_INNER_PRODUCT)
+            self.tmp_index = faiss.index_factory(feat_dim, "Flat", faiss.METRIC_INNER_PRODUCT)
             self.index_config = {
                 'index_length': 0,
+                'tmp_index_length': 0,
                 'feat_dim': feat_dim,
                 'index_type': 'Flat',
                 'metric': 'inner_product'
             }
             self.id_to_filename: Dict[int, str] = {}  # type: ignore
+            self.tmp_id_to_filename = {}
+
+    def add_indexes_from_tmp(self, filenames: List[str]):
+        """Move vectors from temporary index when dataset is commited
+
+        Args:
+            filenames (List[str]): filenames what stays
+        """
+        for name in filenames:
+            image_index = self.tmp_id_to_filename[name]
+            # del self.tmp_id_to_filename[name]
+            image_vector = self.tmp_index.reconstruct(image_index)
+            self.index.add(image_vector)
+            self.id_to_filename[name] = self.index_confix["index_length"]
+            self.index_confix["index_length"] += 1
+
+        # clear tmp_index
+        self.tmp_id_to_filename = {v: k for k, v in self.id_to_filename.items()}
+        del self.tmp_index
+        self.index_config['tmp_index_length'] = self.index_config['index_length']
+        self.tmp_index = deepcopy(self.index)
 
     def add_vectors(self, vectors, filenames: List[str]):
         # we found cosine similarity using inner product
         # so vectors shoul be normalized
-        # vectors = np.array(vectors)
-        # faiss.normalize_L2(vectors)
-        self.index.add(vectors)
+        self.tmp_index.add(vectors)
 
         for i, name in enumerate(filenames):
-            self.id_to_filename[i + self.index_config["index_length"]] = name
+            # self.id_to_filename[i + self.index_config["index_length"]] = name
+            self.tmp_id_to_filename[name] = i + self.index_config["tmp_index_length"]
 
-        self.index_config['index_length'] += len(vectors)
+        self.index_config['tmp_index_length'] += len(vectors)
 
     def _neighbours_indexes_to_filenames(
             self,
@@ -119,15 +148,17 @@ class ImageIndex:
     ) -> List[Tuple[str, str, float]]:
         updated_neighbours = []
 
+        tmp_id_to_filename = {v: k for k, v in self.tmp_id_to_filename.items()}
         for item in neighbours:
             similarity = round(item[2], 5)
             similarity = min(1., similarity)
             similarity = max(0., similarity)
 
+
             updated_neighbours.append(
                 (
-                    self.id_to_filename[item[0]],
-                    self.id_to_filename[item[1]],
+                    tmp_id_to_filename[item[0]],
+                    tmp_id_to_filename[item[1]],
                     round(float(item[2]), 4)
                 )
             )
@@ -139,7 +170,7 @@ class ImageIndex:
         # so vectors shoul be normalized
         # vectors = np.array(vectors)
         # faiss.normalize_L2(vectors)
-        distances, indexes = self.index.search(vectors, 2)
+        distances, indexes = self.tmp_index.search(vectors, 2)
 
         neighbours = []
         for i in range(distances.shape[0]):
@@ -160,12 +191,17 @@ class ImageIndex:
             os.mkdir(directory_path)
 
         faiss.write_index(self.index, os.path.join(directory_path, 'index.faiss'))
+        faiss.write_index(self.index, os.path.join(directory_path, 'tmp_index.faiss'))
+
 
         with open(os.path.join(directory_path, CONFIG_NAME), 'w') as file:
             json.dump(self.index_config, file)
 
         with open(os.path.join(directory_path, FILENAMES_JSON_NAME), 'w') as file:
             json.dump(self.id_to_filename, file)
+
+        with open(os.path.join(directory_path, TMP_FILENAMES_JSON_NAME), 'w') as file:
+            json.dump(self.tmp_id_to_filename, file)
 
         logging.info(f"Index saved to {directory_path}")
 
@@ -298,6 +334,9 @@ class Deduplicator:
         saving_index_proc.start()
 
         return neighbours
+
+    def add_indexes_from_tmp(self, filenames):
+        self.index.add_indexes_from_tmp(filenames)
 
 
 def perceptual_hash_detector(images, filenames: List[str]):

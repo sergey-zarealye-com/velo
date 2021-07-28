@@ -1,0 +1,44 @@
+{% extends "_base.html" %}
+{% block title %}Import
+{% endblock %}
+
+{% from "helpers.html" import version_details %}
+{% block content %}
+
+<div class="container">
+    {{ version_details(version) }}
+</div>
+
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th scope="col">Status</th>
+      <th scope="col">Created</th>
+      <th scope="col">Started</th>
+      <th scope="col">&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+      <meta http-equiv="refresh" content="5">
+      {% for task in tasks %}
+          <tr>
+              <td>{{task.status}}</td>
+              <td>{{task.created_at}}</td>
+              <td>{{task.started_at}}</td>
+              <td>
+                  {% if task.started_at == None %}
+                  {% if task.can_take %}
+                      <form method="GET" action="{{url_for('deduplication.take_task', task_id=task.task_id, selected_ds=selected_ds)}}">
+                        <button type="submit" class="btn btn-primary btn-sm active">Take</button>
+                      </form>
+                  {% endif %}
+                  {% else %}
+                      {#<a href="{{url_for('todo.item', item_id=todo.task_id)}}" class="btn btn-success btn-sm active" role="button" aria-pressed="true">Open</a>#}
+                  {% endif %}
+              </td>
+          </tr>
+      {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

@@ -1,6 +1,6 @@
-opencv-python
-numpy
-pathlib
-aio_pika
-imagehash
-pillow
+opencv-python==4.5.3.56
+numpy==1.21.1
+pathlib==1.0.1
+aio_pika==6.8.0
+imagehash==4.2.1
+pillow==8.3.1

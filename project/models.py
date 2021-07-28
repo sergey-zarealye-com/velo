@@ -6,6 +6,7 @@ from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy import and_, or_
 from datetime import datetime
 import re
+from enum import Enum
 
 
 class User(db.Model):
@@ -211,6 +212,16 @@ class Version(db.Model):
             out.append(str(len(cl)))
             out.append('</a> ')
         return ''.join(out)
+    
+    def data_no(self):
+        return str(VersionItems.query.filter_by(version_id=self.id).count())
+    
+    def parent(self):
+        vc = VersionChildren.query.filter_by(child_id=self.id).first()
+        if vc is None:
+            return None
+        else:
+            return Version.query.get(vc.parent_id)
 
 
 class VersionChildren(db.Model):
@@ -244,7 +255,7 @@ class Category(db.Model):
         return [(1, 'Vision'),
                 (2, 'NLP')]
 
-    def __init__(self, name, version_id, task, description=None, position=None):
+    def __init__(self, name, version_id, task, description, position=None):
         self.name = name
         self.version_id = version_id
 
@@ -275,7 +286,6 @@ class Category(db.Model):
             .filter_by(version_id=version.id, task=task) \
             .order_by(Category.position) \
             .all()
-
 
 class DataItems(db.Model):
     __tablename__ = 'data_items'
@@ -359,6 +369,13 @@ class ToDoItem(db.Model):
             .limit(limit).offset(skip)
 
 
+class DeduplicationStatus(Enum):
+    staged = "Staged"
+    processing = "Processing"
+    finished = "Processing is finished"
+    taken = "Taken"
+    submited = "Submited"
+
 class Deduplication(db.Model):
     __tablename__ = 'deduplication'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -367,3 +384,6 @@ class Deduplication(db.Model):
     # user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     stages_status = db.Column(JSON)
     result = db.Column(JSON)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    started_at = db.Column(db.DateTime, nullable=True, default=None)
+    task_status = db.Column(db.String, default=DeduplicationStatus.staged.value)

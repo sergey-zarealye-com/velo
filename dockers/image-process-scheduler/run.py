@@ -52,12 +52,14 @@ def run(pipeline, login: str, passw: str, port: int, host: str, image_storage: s
     async def print_pipeline_result(request):
         print('\tGot request:')
         print(request)
-        request["directory"] = os.path.join(image_storage, request["directory"])
-        print("\tDirectory:\t", request["directory"])
+        if request.get('directory'):
+            request["directory"] = os.path.join(image_storage, request["directory"])
+            print("\tDirectory:\t", request["directory"])
         result = pipeline(request)
 
         result['id'] = request['id']
-        result['type'] =  request.get('type') or 'result'
+        result['label_ds'] = request['label_ds']
+        result['selected_ds'] = request['selected_ds']
 
         result_string = json.dumps(result)
 
