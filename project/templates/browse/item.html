@@ -16,34 +16,37 @@
             var version_name = "{{ version.name }}"
             var items = "{{ items }}"
 
-            {% if filters == None %}
-                var init_filters = "{{filters}}"
-            {% else %}
-                var init_filters = []
-                {% for filter in filters %}
-                    init_filters.push("{{filter}}")
-                {% endfor %}
-            {% endif %}
+            {#            {% if filters == None %}#}
+            {#                var init_filters = "{{filters}}"#}
+            {#            {% else %}#}
+            {#                var init_filters = []#}
+            {#                {% for filter in filters %}#}
+            {#                    init_filters.push("{{filter}}")#}
+            {#                {% endfor %}#}
+            {#            {% endif %}#}
             {#var init_filters = {{ filters }}#}
 
-            function init_class_filters(init_filters) {
-                var filters = new Set();
-                if (Array.isArray(init_filters)) {
-                    console.log('case 1', init_filters)
-                    for (var i in init_filters) {
-                        filters.add(init_filters[i])
-                    }
-                } else {
-                    console.log('case 2', init_filters)
-                    {% for key, value in classes_info.items() %}
-                        filters.add("{{ key }}")
-                    {% endfor %}
-                }
-                return filters;
-            }
+            {#function init_class_filters(init_filters) {#}
+            {#    var filters = new Set();#}
+            {#    if (Array.isArray(init_filters)) {#}
+            {#        console.log('case 1', init_filters)#}
+            {#        for (var i in init_filters) {#}
+            {#            filters.add(init_filters[i])#}
+            {#        }#}
+            {#    } else {#}
+            {#        console.log('case 2', init_filters)#}
+            {#        {% for key, value in classes_info.items() %}#}
+            {#            filters.add("{{ key }}")#}
+            {#        {% endfor %}#}
+            {#    }#}
+            {#    return filters;#}
+            {# } #}
 
-            window.filters = init_class_filters(init_filters);
-            console.log('filters:', filters)
+            {#window.filters = init_class_filters(init_filters);#}
+            {#console.log('filters:', filters)#}
+            console.log('filters:', "{{filters}}")
+            console.log('filters committed:', "{{filters['committed']}}")
+            console.log('filters uncommitted:', "{{filters['uncommitted']}}")
 
             $('#pageAmountSelector').change(function () {
                 var optionSelected = $(this).find("option:selected");
@@ -54,23 +57,15 @@
             $('#select_all_classes').change(function () {
                 if ($(this).prop('checked')) {
                     $('[id^="filter_class_"]').prop('checked', true);
-                    filters = init_class_filters();
+                    {#filters = init_class_filters();#}
 
                 } else {
                     $('[id^="filter_class_"]').prop('checked', false);
-                    filters = new Set();
+                    {#filters = new Set();#}
                 }
-                console.log('filters:', filters)
+                {#console.log('filters:', filters)#}
             });
 
-            $('[id^="filter_class_"]').change(function () {
-                if ($(this).prop('checked')) {
-                    filters.add($(this)[0].value)
-                } else {
-                    filters.delete($(this)[0].value)
-                }
-                console.log('filters:', filters)
-            });
 
             $('#select_all_sets').change(function () {
                 if ($(this).prop('checked')) {
@@ -85,11 +80,26 @@
             });
 
             $('#apply_filters_btn').click(function () {
-                console.log('clicked');
-                console.log(window.location.href);
-                console.log(document.URL);
-                console.log(window.location);
-                var filters_arr = encodeURIComponent(JSON.stringify(Array.from(filters)));
+                var cl_filters = new Set()
+
+                $('[id^="filter_class_"]').each(function (i, item) {
+                    if (this.checked) {
+                        cl_filters.add(this.value)
+                    }
+                });
+
+                var filter_dict = {
+                    {#"class_filter": Array.from(cl_filters),#}
+                    "committed": $('#special-control-filter1a').prop('checked'),
+                    "uncommitted": $('#special-control-filter1b').prop('checked')
+                }
+                if ($('[id^="filter_class_"]').length) {
+                    filter_dict["class_filter"] = Array.from(cl_filters)
+                }
+                if (Object.keys(moderated_items_set).length){
+                    filter_dict["moderated_items"] = moderated_items_set
+                }
+                var filters_arr = encodeURIComponent(JSON.stringify(filter_dict));
                 window.location = version_name + '&page=1&items=' + items + '&filters=' + filters_arr;
             });
 
@@ -113,7 +123,8 @@
 {% extends "_base.html" %}
 
 
-{% block title %}{% endblock %}
+{% block title %}DS node: {{ version.name }}{% endblock %}
+{% from "helpers.html" import version_details %}
 {% from "_formshelper.html" import render_field %}
 {% block content %}
 
@@ -125,15 +136,14 @@
                     <h5 class="card-title btn-link">Filters</h5>
                 </header>
                 <div class="row no-gutters">
-                    {#                <div class="row no-gutters filter-content" id="collapseFilters">#}
                     <div class="col-sm-6">
                         <div class="card h-100" style="margin: 10px">
                             <div class="card-body">
                                 <h5 class="card-title">Select DS classes</h5>
                                 <div class="custom-control-class custom-checkbox">
-                                    <span class="float-right badge badge-light round">{{ ds_length }}</span>
+                                    <span class="float-right badge badge-light round">{{ ds_length["all"] }}</span>
                                     <input type="checkbox" class="custom-control-class-input" id="select_all_classes"
-                                           checked>
+                                            {% if cb_all_cl_filters %} checked {% endif %}>
                                     <label for="select_all_classes">Select all:</label>
                                 </div>
                                 {% for key, value in classes_info.items() %}
@@ -141,7 +151,8 @@
                                         <span class="float-right badge badge-light round">{{ value }}</span>
                                         <input type="checkbox" class="custom-control-class-input"
                                                id="filter_class_{{ key }}"
-                                               value="{{ key }}" {% if filters == None or key in filters %}
+                                               value="{{ key }}"
+                                                {% if filters == None or filters['class_filter'] == None or key in filters['class_filter'] %}
                                                checked {% endif %}>
                                         <label for="filter_class_{{ key }}">{{ key }}</label>
                                     </div>
@@ -154,7 +165,7 @@
                             <div class="card-body">
                                 <h5 class="card-title">Select set:</h5>
                                 <div class="custom-control-set custom-checkbox">
-                                    <span class="float-right badge badge-light round">{{ ds_length }}</span>
+                                    <span class="float-right badge badge-light round">{{ ds_length["all"] }}</span>
                                     <input type="checkbox" class="custom-control-set-input" id="select_all_sets"
                                            checked>
                                     <label for="select_all_sets">Select all:</label>
@@ -179,15 +190,25 @@
                             <div class="card-body">
                                 <h5 class="card-title">Special filters</h5>
                                 <div class="special-control-filters custom-checkbox">
-                                    <span class="float-right badge badge-light round">{{ ds_length }}</span>
-                                    <input type="checkbox" class="special-control-filters-input"
-                                           id="special-control-filter1"
-                                           checked>
-                                    <label for="special-control-filter1">Show only new images in the current
-                                        node:</label>
+                                    <div>
+                                        <span class="float-right badge badge-light round">{{ ds_length["committed"] }}</span>
+                                        <input type="checkbox" class="special-control-filters-input"
+                                               id="special-control-filter1a"
+                                                {% if filters != None and filters['committed'] %} checked {% endif %}>
+                                        <label for="special-control-filter1a">Show committed images in the current
+                                            node:</label>
+                                    </div>
+                                    <div>
+                                        <span class="float-right badge badge-light round">{{ ds_length["uncommitted"] }}</span>
+                                        <input type="checkbox" class="special-control-filters-input"
+                                               id="special-control-filter1b"
+                                                {% if filters != None and filters['uncommitted'] %} checked {% endif %}>
+                                        <label for="special-control-filter1b">Show new images in the current
+                                            node:</label>
+                                    </div>
                                 </div>
                                 <div class="special-control-filters custom-checkbox">
-                                    <span class="float-right badge badge-light round">{{ ds_length }}</span>
+                                    <span class="float-right badge badge-light round">?</span>
                                     <input type="checkbox" class="special-control-filters-input"
                                            id="special-control-filter2"
                                            checked>
@@ -227,7 +248,7 @@
                 <div class="card-columns easySelectable" id="easySelectable">
                     {% for item in version_items %}
                         <li class="card border-secondary mb-3 selectable-item" style="max-width: 13rem;"
-                            has-class="false" has-select="false" id="{{ item["id"] }}">
+                            has-class="false" has-select="false" deleted="false" id="{{ item["id"] }}">
                             <div class="card-header text-center"
                                  id="text_class_{{ item["id"] }}">{{ item["label"] }}</div>
                             <div class="card-body text-primary" style="padding: 5px">
@@ -246,14 +267,16 @@
                         <div class="form-check" style="padding: 0px; margin-bottom:5px;">
                             <button type="button" class="btn btn-outline-info" id="class_id_{{ loop.index }}"
                                     style="width: 100%">{{ key }}</button>
-                            {#                                  <input class="form-check-input" type="radio" name="radio_class_selector"#}
-                            {#                                         id="class_id_{{ loop.index }}" value="{{ categ.name }}">#}
-                            {#                                  <label class="form-check-label" for="class_id_{{ categ.id }}">#}
-                            {#                                    {{ categ.name }}#}
-                            </label>
                         </div>
                     {% endfor %}
+                    <br>
+                    <div class="form-check" style="padding: 0px; margin-bottom:5px;">
+                        <button type="button" class="btn btn-outline-danger" id="class_id_0"
+                                style="width: 100%">Delete
+                        </button>
+                    </div>
                     <h5 id="selected_items_amount">Selected (0)</h5>
+                    <h5 id="changed_items_amount">Changed (0)</h5>
                 </div>
             </div>
         </div>
