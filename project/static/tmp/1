@@ -1,11 +1,5 @@
 digraph "dsvers" {
-        init[URL="/datasets/select/init", style="bold", fillcolor="white"];
-second[URL="/datasets/select/second", style="bold", fillcolor="white"];
-third[URL="/datasets/select/third", style="bold", fillcolor="white"];
-fourth[URL="/datasets/select/fourth", style="bold", fillcolor="white"];
-_5[URL="/datasets/select/_5", style="bold", fillcolor="white"];
-_6[URL="/datasets/select/_6", style="bold", fillcolor="white"];
-_7[URL="/datasets/select/_7", style="filled", fillcolor="lightgrey"];
+        init[URL="/datasets/select/init", style="filled", fillcolor="lightgrey"];
 
         
         }

@@ -9,6 +9,7 @@ from flask import (
     abort,
     send_from_directory,
     redirect,
+    flash
 )
 from flask_login import current_user, login_required
 from project import app
@@ -47,9 +48,15 @@ def download_file(filename):
     return send_from_directory(os.environ.get('STORAGE_DIR'), filename, as_attachment=True)
 
 
-@dedup_blueprint.route('/task_confirmation/<task_id>/<selected>')
-def task_confirmation(task_id, selected):
-    return render_template('datasets/taskConfirmed.html', task_id=task_id, selected=selected)
+@dedup_blueprint.route('/task_confirmation/<task_id>/<selected>/<is_dedup>')
+def task_confirmation(task_id, selected, is_dedup):
+    is_dedup = bool(int(is_dedup))
+    return render_template(
+        'datasets/taskConfirmed.html',
+        task_id=task_id,
+        selected=selected,
+        is_dedup=is_dedup
+    )
 
 
 @dedup_blueprint.route('/checkbox/<task_id>/<selected_ds>', methods=['POST'])
@@ -81,6 +88,8 @@ def save_result(task_id, selected_ds):
         version
     )
 
+    import pdb
+    pdb.set_trace()
     return redirect(f'/dataset/select/{selected_ds}')
 
 
@@ -156,6 +165,7 @@ def show_task_list(selected_ds):
                 'created_at': task.created_at,
                 'started_at': task.started_at,
                 'task_id': task.task_uid,
+                'can_take': bool(task.result)
             }
             for task in tasks
         ]

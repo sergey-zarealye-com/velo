@@ -3,10 +3,11 @@ import enum
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Generator, Dict, Union
+from typing import Any, Generator, Dict, List, Union
 from multiprocessing import Process
 import multiprocessing
 from project.todo.rabbitmq_connector import send_message, get_message
+from flask import flash
 import os
 import uuid
 import shutil
@@ -67,7 +68,7 @@ def get_media_type(file: Path) -> MediaType:
     return MediaType.VIDEO
 
 
-def get_data_samples(data_path_str: str, labels: Dict[str, int]) -> Generator[DataSample, None, None]:
+def get_data_samples(data_path_str: str, labels: Dict[str, int], warnings: List[Any]) -> Generator[DataSample, None, None]:
     data_path: Path = Path(data_path_str)
     # # если это один файл
     if data_path.is_file():
@@ -80,6 +81,7 @@ def get_data_samples(data_path_str: str, labels: Dict[str, int]) -> Generator[Da
                 label = item.name
                 if label not in labels:
                     log.warning(f"Folder name {label} not in labels of current version")
+                    warnings.append(f"Folder name {label} not in labels of current version")
                     continue
                 for file in item.iterdir():
                     if file.is_file():

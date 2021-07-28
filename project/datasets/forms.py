@@ -30,8 +30,7 @@ class ImportForm(FlaskForm):
                                            ('set', 'Set category')],
                                   coerce=str)
     category = SelectField('Category',  # TODO -- shall be dynamic!!!
-                           choices=[(1, 'Cats'),
-                                    (2, 'Dogs')],
+                           choices=[],
                            coerce=int)
     general_category = StringField('Category for video',
                                    default='',

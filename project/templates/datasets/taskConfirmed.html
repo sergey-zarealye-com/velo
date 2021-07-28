@@ -6,7 +6,15 @@
 
 <div class="card bg-light mb-3">
     <div class="card-body">
-        <h3>Task <a href={{ url_for('deduplication.show_task_list', selected_ds=selected) }}>{{ task_id }}</a>confirmed!</h3>
+        {% if is_dedup %}
+            <h3>Task <a href={{ url_for('deduplication.show_dedup', task_id=task_id, selected_ds=selected) }}>{{ task_id }}</a> confirmed!</h3>
+        {% else %}
+            <h3>Task confirmed!</h3>
+        {% endif %}
+            <br/>
+            <a href={{ url_for('deduplication.show_task_list', selected_ds=selected) }}>
+                <button type="button" class="btn btn-primary btn-sm active">Show tasks list</button>
+            </a>
     </div>
 </div>
 

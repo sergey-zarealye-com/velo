@@ -319,6 +319,8 @@ def import2ds(selected):
     if version.status == 3:
         abort(400)
     form = ImportForm(request.form)
+    categories = Category.query.order_by(Category.position).all()
+    form.category.choices = [(cat.position, cat.name) for cat in categories]
     if request.method == 'POST':
         if form.validate_on_submit():
             label_ids = get_labels_of_version(version.id)
@@ -332,6 +334,29 @@ def import2ds(selected):
                     while os.path.isdir(os.path.join(storage_dir, task_id)):
                         task_id = str(uuid.uuid4())
                     # TODO check if task_id already exist in database
+
+                    label_ids = get_labels_of_version(version.id)
+                    files = os.listdir(form.flocation.data)
+
+                    # only directories
+                    files = filter(
+                        lambda x: os.path.isdir(x),
+                        list(
+                            map(
+                                lambda x: os.path.join(form.flocation.data, x),
+                                files
+                            )
+                        )
+                    )
+                    files = map(
+                        lambda x: os.path.split(x)[-1],
+                        list(files)
+                    )
+
+                    if form.category_select.data == "folder":
+                        for folder_name in files:
+                            if folder_name not in label_ids:
+                                flash(f"{folder_name} not in labels!", "error")
 
                     proc_to_copy_files = Process(
                         target=copy_directory,
@@ -377,7 +402,12 @@ def import2ds(selected):
 
             # TODO update categories for current version, based on import results
             # return redirect(url_for('datasets.select', selected=version.name))
-            return redirect(url_for('deduplication.task_confirmation', task_id=task_id, selected=version.name))
+            return redirect(url_for(
+                'deduplication.task_confirmation',
+                task_id=task_id,
+                selected=version.name,
+                is_dedup=1 if bool(form.is_dedup.data) else 0
+            ))
     return render_template('datasets/import.html', form=form, selected=selected, version=version)
 
 
@@ -385,14 +415,15 @@ def fillup_tmp_table(label_ids: Dict[str, int],
                      selected: str,
                      src: str,
                      version: Version,
-                     commit_batch: int = 1000) -> None:
+                     commit_batch: int = 1000) -> List[str]:
     """
     Заполнить временную таблицу
     функция проходит по указанной директории src, добавляет найденные файлы в таблицу DataItems,
     заполняет таблицу TmpTable
     """
     objects, categories = [], []
-    for sample in get_data_samples(src, label_ids):
+    warnings = []
+    for sample in get_data_samples(src, label_ids, warnings):
         res = DataItems.query.filter_by(path=sample.path).first()
         if res:
             continue
@@ -407,7 +438,8 @@ def fillup_tmp_table(label_ids: Dict[str, int],
         import_data(categories, objects, selected, version)
         objects.clear()
         categories.clear()
-    return
+
+    return warnings
 
 
 @datasets_blueprint.route('/commit/<selected>', methods=['GET', 'POST'])
