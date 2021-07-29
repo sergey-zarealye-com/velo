@@ -51,8 +51,6 @@ def save_multiprocess(
     Returns:
         List[str]: new path to save images
     """
-    import pdb
-    pdb.set_trace()
     assert len(images) == len(filepaths), RuntimeError("Lengths of images and filepaths are different")
     log.info(f"Saving {len(images)} into storage {storage_path}")
 
@@ -65,7 +63,6 @@ def save_multiprocess(
     # for i, filename in enumerate(filepaths):
     #     new_filepaths.append(os.path.join(storage_path, task_id, Path(filename).name))
 
-    pdb.set_trace()
     chunk_size = ceil(len(images) / pool_size)
     chunks = []
 
@@ -75,7 +72,6 @@ def save_multiprocess(
             filepaths[i:i + chunk_size]
         ))
 
-    pdb.set_trace()
     pool = Pool(pool_size)
     pool.map(unpack_func_for_saving, chunks)
     pool.close()
@@ -84,6 +80,5 @@ def save_multiprocess(
     for filename in filepaths:
         filename = filename.replace(storage_path, '') 
         parted_filenames.append(filename)
-    pdb.set_trace()
 
     return parted_filenames
