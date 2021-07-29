@@ -57,16 +57,16 @@ def run(pipeline, login: str, passw: str, port: int, host: str, image_storage: s
             print("\tDirectory:\t", request["directory"])
         result = pipeline(request)
 
+        if request.get('label_ds') is not None:
+            result['label_ds'] = request['label_ds']
+
+        if request.get('selected_ds') is not None:
+            result['selected_ds'] = request['selected_ds']
+
         if request.get('id'):
             result['id'] = request['id']
         else:
             return
-
-        if request.get('label_ds'):
-            result['label_ds'] = request['label_ds']
-
-        if request.get('selected_ds'):
-            result['selected_ds'] = request['selected_ds']
 
         result_string = json.dumps(result)
 
