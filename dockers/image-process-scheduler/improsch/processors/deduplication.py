@@ -132,6 +132,10 @@ class ImageIndex:
 
             # del self.tmp_id_to_filename[name]
             image_vector = self.tmp_index.reconstruct(image_index)
+
+            if len(image_vector.shape) == 1:
+                image_vector = image_vector.reshape((1, -1))
+
             self.index.add(image_vector)
             self.id_to_filename[name] = self.index_confix["index_length"]
             self.index_confix["index_length"] += 1
