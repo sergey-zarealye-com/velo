@@ -180,7 +180,7 @@ class ImageIndex:
 
         return updated_neighbours
 
-    def find_neighbours(self, vectors):
+    def find_neighbours(self, vectors, imagenames):
         # we found cosine similarity using inner product
         # so vectors shoul be normalized
         # vectors = np.array(vectors)
@@ -188,8 +188,9 @@ class ImageIndex:
         distances, indexes = self.tmp_index.search(vectors, 2)
 
         neighbours = []
-        for i in range(distances.shape[0]):
-            neighbours.append((i, indexes[i, 1], distances[i, 1]))
+        for i, filename in enumerate(imagenames):
+            image_index = self.tmp_id_to_filename[filename]
+            neighbours.append((image_index, indexes[i, 1], distances[i, 1]))
 
         # maximum values on top
         neighbours.sort(key=lambda x: 1 - x[-1])
@@ -322,7 +323,7 @@ class Deduplicator:
     def process_embeddings(self, embeddings, imagenames: List[str], data_dir: str):
         faiss.normalize_L2(embeddings)
         self.index.add_vectors(embeddings, imagenames)
-        neighbours = self.index.find_neighbours(embeddings)
+        neighbours = self.index.find_neighbours(embeddings, imagenames)
         return neighbours
 
     def run_deduplication(
