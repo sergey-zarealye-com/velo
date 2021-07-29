@@ -212,10 +212,10 @@ class Version(db.Model):
             out.append(str(len(cl)))
             out.append('</a> ')
         return ''.join(out)
-    
+
     def data_no(self):
         return str(VersionItems.query.filter_by(version_id=self.id).count())
-    
+
     def parent(self):
         vc = VersionChildren.query.filter_by(child_id=self.id).first()
         if vc is None:
@@ -286,6 +286,7 @@ class Category(db.Model):
             .filter_by(version_id=version.id, task=task) \
             .order_by(Category.position) \
             .all()
+
 
 class DataItems(db.Model):
     __tablename__ = 'data_items'
@@ -387,3 +388,12 @@ class Deduplication(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     started_at = db.Column(db.DateTime, nullable=True, default=None)
     task_status = db.Column(db.String, default=DeduplicationStatus.staged.value)
+
+
+class Diff(db.Model):
+    __tablename__ = 'diff'
+    version_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False)
+    item_id = db.Column(db.Integer, db.ForeignKey('data_items.id'), nullable=False)
+    __table_args__ = (
+        PrimaryKeyConstraint('version_id', 'item_id'),
+    )
