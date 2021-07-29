@@ -61,9 +61,7 @@ def task_confirmation(task_id, selected, is_dedup):
 
 @dedup_blueprint.route('/checkbox/<task_id>/<selected_ds>', methods=['POST'])
 def save_result(task_id, selected_ds):
-    import pdb
-    pdb.set_trace()
-    selected = request.form.getlist('test_checkbox')
+    selected = request.form.getlist('rm_checkbox')
 
     task = Deduplication.query.filter_by(task_uid=task_id).first()
     if task is None:
@@ -77,9 +75,14 @@ def save_result(task_id, selected_ds):
         os.path.join(os.getenv("STORAGE_DIR"), dedup_result[int(i)][0]) for i in selected
     ]
     print('\tFilenames to remove:', filenames_to_remove)
+    storage_dir = os.getenv('STORAGE_DIR')
+    assert storage_dir
     for filename in filenames_to_remove:
         try:
-            os.remove(filename)
+            if filename[0] == '/':
+                filename = filename[1:]
+            filepath = os.path.join(storage_dir, filename)
+            os.remove(filepath)
         except Exception as err:
             print(err)
 
