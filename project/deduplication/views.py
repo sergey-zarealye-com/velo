@@ -61,6 +61,8 @@ def task_confirmation(task_id, selected, is_dedup):
 
 @dedup_blueprint.route('/checkbox/<task_id>/<selected_ds>', methods=['POST'])
 def save_result(task_id, selected_ds):
+    import pdb
+    pdb.set_trace()
     selected = request.form.getlist('test_checkbox')
 
     task = Deduplication.query.filter_by(task_uid=task_id).first()
@@ -88,7 +90,7 @@ def save_result(task_id, selected_ds):
         version
     )
 
-    return redirect(f'/dataset/select/{selected_ds}')
+    return redirect(f'/datasets/select/{selected_ds}')
 
 
 @dedup_blueprint.route('/<task_id>/<selected_ds>', methods=['GET'])
