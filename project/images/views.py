@@ -15,7 +15,7 @@ from markupsafe import Markup
 from project import app, db
 from project.datasets.queries import get_nodes_above
 from project.images.queries import get_items_of_version, get_uncommited_items
-from project.models import Version
+from project.models import Version, Category
 
 # CONFIG
 images_blueprint = Blueprint('images', __name__,
@@ -77,12 +77,21 @@ def browse(selected, page=1, items=50, filters=None):
     version_items = get_items_of_version(db.session, nodes_of_version)
     # TODO: отобразить на фронте
     uncommitted_items = get_uncommited_items(db.session, selected)
-    classes_info = dict(Counter(getattr(item, 'label') for item in version_items+uncommitted_items))
-    cur_filters = None
+
+    # get vision classes
+    classes_info = {cl.name: 0 for cl in Category.list(Category.TASKS()[0][0], version.name)}
+    # count items per class in current ds
+    cur_ds_info = dict(Counter(getattr(item, 'label') for item in version_items+uncommitted_items))
+    # map vision classes with cur_ds_info
+    for key, value in cur_ds_info.items():
+        if key in classes_info:
+            classes_info[key] = value
+
     cb_all_cl_filters = True
+    # if "browse_filters" exists in session
     if "browse_filters" in session:
         version_items_filter = []
-        cur_filters = {"uncommitted": False, "committed": False, }
+        cur_filters = {"uncommitted": False, "committed": False }
         # show only uncommitted items
         if "uncommitted" in session['browse_filters'] and session['browse_filters']["uncommitted"]:
             version_items_filter += uncommitted_items
@@ -96,8 +105,10 @@ def browse(selected, page=1, items=50, filters=None):
             cur_filters["class_filter"] = session['browse_filters']["class_filter"]
             if len(classes_info) != len(cur_filters["class_filter"]):
                 cb_all_cl_filters = False
+    # prepare virgin filters settings
     else:
         version_items_filter = uncommitted_items + version_items
+        cur_filters = {"uncommitted": True, "committed": True}
 
 
 

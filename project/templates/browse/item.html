@@ -51,7 +51,8 @@
             $('#pageAmountSelector').change(function () {
                 var optionSelected = $(this).find("option:selected");
                 var valueSelected = optionSelected.val();
-                window.location = version_name + '&page=' + (Math.floor(page / valueSelected) + 1) + '&items=' + optionSelected.text();
+                {#window.location = version_name + '&page=' + (Math.floor(page / valueSelected) + 1) + '&items=' + optionSelected.text();#}
+                window.location = version_name + '&page=1&items=' + optionSelected.text();
             });
 
             $('#select_all_classes').change(function () {
@@ -152,7 +153,7 @@
                                         <input type="checkbox" class="custom-control-class-input"
                                                id="filter_class_{{ key }}"
                                                value="{{ key }}"
-                                                {% if filters == None or filters['class_filter'] == None or key in filters['class_filter'] %}
+                                                {% if filters == None or 'class_filter' not in filters or key in filters['class_filter'] %}
                                                checked {% endif %}>
                                         <label for="filter_class_{{ key }}">{{ key }}</label>
                                     </div>
