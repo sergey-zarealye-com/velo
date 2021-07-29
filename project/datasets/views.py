@@ -131,6 +131,8 @@ def select(selected):
     version = Version.query.filter_by(name=selected).first()
     if version is None:
         abort(404)
+    if session['selected_version'] != selected:
+        session.pop('browse_filters', None)
     session['selected_version'] = selected
     srcStr = Version.dot_str(selected)
     fname = str(current_user.id)
