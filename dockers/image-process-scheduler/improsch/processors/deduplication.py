@@ -16,6 +16,12 @@ from torchvision import transforms
 import imagehash
 from PIL import Image
 from copy import deepcopy
+import logging
+
+
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+
 
 CONFIG_NAME = 'config.json'
 FILENAMES_JSON_NAME = 'ids_to_filenames.json'
@@ -118,9 +124,18 @@ class ImageIndex:
             filenames (List[str]): filenames what stays
         """
         for name in filenames:
-            image_index = self.tmp_id_to_filename[name]
+            image_index = self.tmp_id_to_filename.get(name)
+
+            if not image_index:
+                log.info(f"{name} not in current index")
+                continue
+
             # del self.tmp_id_to_filename[name]
             image_vector = self.tmp_index.reconstruct(image_index)
+
+            if len(image_vector.shape) == 1:
+                image_vector = image_vector.reshape((1, -1))
+
             self.index.add(image_vector)
             self.id_to_filename[name] = self.index_confix["index_length"]
             self.index_confix["index_length"] += 1

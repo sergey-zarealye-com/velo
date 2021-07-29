@@ -4,19 +4,18 @@
 import json
 import math
 import ntpath
+import os
 from collections import Counter
 
 from flask import render_template, Blueprint, redirect, url_for, flash
 from flask import abort, session, send_from_directory
 from flask_login import login_required
 from markupsafe import Markup
-import os
 
 from project import app, db
 from project.datasets.queries import get_nodes_above
 from project.images.queries import get_items_of_version, get_uncommited_items
-from project.models import Version
-import os
+from project.models import Version, Category
 
 # CONFIG
 images_blueprint = Blueprint('images', __name__,
@@ -77,21 +76,53 @@ def browse(selected, page=1, items=50, filters=None):
     nodes_of_version = get_nodes_above(db.session, version.id)
     version_items = get_items_of_version(db.session, nodes_of_version)
     # TODO: отобразить на фронте
-    uncommited_items = get_uncommited_items(db.session, selected)
-    classes_info = dict(Counter(getattr(item, 'label') for item in version_items))
+    uncommitted_items = get_uncommited_items(db.session, selected)
+
+    # get vision classes
+    classes_info = {cl.name: 0 for cl in Category.list(Category.TASKS()[0][0], version.name)}
+    # count items per class in current ds
+    cur_ds_info = dict(Counter(getattr(item, 'label') for item in version_items+uncommitted_items))
+    # map vision classes with cur_ds_info
+    for key, value in cur_ds_info.items():
+        if key in classes_info:
+            classes_info[key] = value
+
+    cb_all_cl_filters = True
+    # if "browse_filters" exists in session
     if "browse_filters" in session:
-        version_items_filtr = [item for item in version_items if item.label in session['browse_filters']]
-        cur_filters = session['browse_filters']
+        version_items_filter = []
+        cur_filters = {"uncommitted": False, "committed": False }
+        # show only uncommitted items
+        if "uncommitted" in session['browse_filters'] and session['browse_filters']["uncommitted"]:
+            version_items_filter += uncommitted_items
+            cur_filters["uncommitted"] = True
+        if "committed" in session['browse_filters'] and session['browse_filters']["committed"]:
+            version_items_filter += version_items
+            cur_filters["committed"] = True
+        # filter by class
+        if "class_filter" in session['browse_filters']: # and len(session['browse_filters']["class_filter"]):
+            version_items_filter = [item for item in version_items_filter if item.label in session['browse_filters']["class_filter"]]
+            cur_filters["class_filter"] = session['browse_filters']["class_filter"]
+            if len(classes_info) != len(cur_filters["class_filter"]):
+                cb_all_cl_filters = False
+    # prepare virgin filters settings
     else:
-        cur_filters = None
-        version_items_filtr = version_items
+        version_items_filter = uncommitted_items + version_items
+        cur_filters = {"uncommitted": True, "committed": True}
+
+
 
     return render_template('browse/item.html',
                            version=version,
-                           version_items=version_items_filtr[(page - 1) * items:(page) * items],
-                           ds_length=len(version_items),
+                           version_items=version_items_filter[(page - 1) * items:(page) * items],
+                           ds_length={
+                               "all": len(version_items)+len(uncommitted_items),
+                               "committed": len(version_items),
+                               "uncommitted": len(uncommitted_items)
+                           },
+                           cb_all_cl_filters = cb_all_cl_filters,
                            classes_info=classes_info,
-                           pages=int(math.ceil(len(version_items_filtr) / int(items))),
+                           pages=int(math.ceil(len(version_items_filter) / int(items))),
                            page=page,
                            items=items,
                            filters=cur_filters)

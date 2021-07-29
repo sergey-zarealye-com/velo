@@ -7,7 +7,7 @@ import os
 import logging
 
 from project import db
-from project.models import Deduplication
+from project.models import Deduplication, DeduplicationStatus
 from project.models import Version, DataItems, TmpTable
 from project.datasets.utils import get_data_samples
 
@@ -50,7 +50,8 @@ def fillup_tmp_table(label_ids: Dict[str, int],
     заполняет таблицу TmpTable
     """
     objects, categories = [], []
-    for sample in get_data_samples(src, label_ids):
+    warnings = []
+    for sample in get_data_samples(src, label_ids, warnings):
         res = DataItems.query.filter_by(path=sample.path).first()
         if res:
             continue
@@ -130,6 +131,7 @@ def get_message(queue_name: str, queue):
                                 print('\tGot result:')
                                 print(response)
                                 task_entry.result = response
+                                task_entry.task_status = DeduplicationStatus.finished.value
                                 queue.put(response)
                                 db.session.commit()
                             elif response['type'] == 'status_update':
@@ -149,5 +151,7 @@ def get_message(queue_name: str, queue):
                                 selected_ds = response['selected_ds']
                                 version = Version.query.filter_by(name=selected_ds).first()
                                 fillup_tmp_table(label_ids, selected_ds, os.path.join(storage_dir, task_id), version)
+                                task_entry.task_status = DeduplicationStatus.finished.value
+                                db.session.commit()
 
     loop.run_until_complete(func(loop, queue_name, queue))

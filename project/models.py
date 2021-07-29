@@ -6,6 +6,7 @@ from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy import and_, or_
 from datetime import datetime
 import re
+from enum import Enum
 
 
 class User(db.Model):
@@ -369,6 +370,13 @@ class ToDoItem(db.Model):
             .limit(limit).offset(skip)
 
 
+class DeduplicationStatus(Enum):
+    staged = "Staged"
+    processing = "Processing"
+    finished = "Processing is finished"
+    taken = "Taken"
+    submited = "Submited"
+
 class Deduplication(db.Model):
     __tablename__ = 'deduplication'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -377,6 +385,9 @@ class Deduplication(db.Model):
     # user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     stages_status = db.Column(JSON)
     result = db.Column(JSON)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    started_at = db.Column(db.DateTime, nullable=True, default=None)
+    task_status = db.Column(db.String, default=DeduplicationStatus.staged.value)
 
 
 class Diff(db.Model):

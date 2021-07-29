@@ -59,9 +59,9 @@ def save_multiprocess(
     # except Exception as err:
     #     logging.error("Can't create dir for task", err)
 
-    new_filepaths = []
-    for i, filename in enumerate(filepaths):
-        new_filepaths.append(os.path.join(storage_path, task_id, Path(filename).name))
+    # new_filepaths = []
+    # for i, filename in enumerate(filepaths):
+    #     new_filepaths.append(os.path.join(storage_path, task_id, Path(filename).name))
 
     chunk_size = ceil(len(images) / pool_size)
     chunks = []
@@ -69,7 +69,7 @@ def save_multiprocess(
     for i in range(0, len(images), chunk_size):
         chunks.append((
             images[i:i + chunk_size],
-            new_filepaths[i:i + chunk_size]
+            filepaths[i:i + chunk_size]
         ))
 
     pool = Pool(pool_size)
@@ -77,7 +77,8 @@ def save_multiprocess(
     pool.close()
 
     parted_filenames = []
-    for filename in new_filepaths:
-        parted_filenames.append(os.path.join(*filename.split('/')[-2:]))
+    for filename in filepaths:
+        filename = filename.replace(storage_path, '') 
+        parted_filenames.append(filename)
 
     return parted_filenames

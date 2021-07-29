@@ -29,6 +29,12 @@ class Preprocessor:
     def preprocessing(self, request):
         if request.get('type') == 'merge_indexes':
             filenames = request["files_to_keep"]
+            filenames = list(
+                map(
+                    lambda x: x.replace(self.storage_path, ''),
+                    filenames
+                )
+            )
             self.deduplicator.add_indexes_from_tmp(filenames)
             return {'status': 'done'}
         if request.get('type') == 'merge_control':
