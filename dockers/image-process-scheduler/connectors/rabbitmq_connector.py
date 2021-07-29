@@ -9,7 +9,7 @@ import json
 async def main(
     loop,
     queue_name: str,
-    processing_func: Callable,
+    processing_queue: Callable,
     login: str,
     passw: str,
     port: int,
@@ -33,7 +33,7 @@ async def main(
             async for message in queue_iter:
                 async with message.process():
                     options = json.loads(message.body.decode('utf-8'))
-                    await processing_func(options)
+                    processing_queue.put(options)
 
 
 async def send_message(message, loop, routing_key: str, login, passw, port, host):
@@ -53,7 +53,7 @@ async def send_message(message, loop, routing_key: str, login, passw, port, host
 
 def run_async_rabbitmq_connection(
     queue_name,
-    processing_function,
+    processing_queue,
     login: str,
     passw: str,
     port: int,
@@ -65,7 +65,7 @@ def run_async_rabbitmq_connection(
 
     loop.run_until_complete(
         main(
-            loop, queue_name, processing_function,
+            loop, queue_name, processing_queue,
             login, passw, port, host
         )
     )
