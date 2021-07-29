@@ -377,6 +377,7 @@ class DeduplicationStatus(Enum):
     taken = "Taken"
     submited = "Submited"
 
+
 class Deduplication(db.Model):
     __tablename__ = 'deduplication'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
