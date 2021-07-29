@@ -137,8 +137,8 @@ class ImageIndex:
                 image_vector = image_vector.reshape((1, -1))
 
             self.index.add(image_vector)
-            self.id_to_filename[name] = self.index_confix["index_length"]
-            self.index_confix["index_length"] += 1
+            #self.id_to_filename[name] = self.index_confix["index_length"]
+            #self.index_confix["index_length"] += 1
 
         # clear tmp_index
         self.tmp_id_to_filename = {v: k for k, v in self.id_to_filename.items()}
