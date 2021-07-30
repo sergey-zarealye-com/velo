@@ -7,7 +7,7 @@ import ntpath
 import os
 from collections import Counter
 
-from flask import render_template, Blueprint, redirect, url_for, flash
+from flask import render_template, Blueprint, redirect, url_for, flash, request
 from flask import abort, session, send_from_directory
 from flask_login import login_required
 from markupsafe import Markup
@@ -48,6 +48,14 @@ def download_file(filename):
     return send_from_directory(head, tail, as_attachment=True)
 
 
+@images_blueprint.route('/save_changes', methods=['POST'])
+def save_changes():
+    if request.method == "POST":
+        # TODO: this data to update DB
+        print(request.json)
+    return "Ok"
+
+
 @images_blueprint.route('/browse/<selected>')
 @images_blueprint.route('/browse/<selected>&page=<page>&items=<items>')
 @images_blueprint.route('/browse/<selected>&page=<page>&items=<items>&filters=<filters>')
@@ -79,13 +87,13 @@ def browse(selected, page=1, items=50, filters=None):
     uncommitted_items = get_uncommited_items(db.session, selected)
 
     # get vision classes
-    classes_info = {cl.name: 0 for cl in Category.list(Category.TASKS()[0][0], version.name)}
+    classes_info = {cl.name: {'id': cl.id, 'amount': 0} for cl in Category.list(Category.TASKS()[0][0], version.name)}
     # count items per class in current ds
     cur_ds_info = dict(Counter(getattr(item, 'label') for item in version_items+uncommitted_items))
     # map vision classes with cur_ds_info
     for key, value in cur_ds_info.items():
         if key in classes_info:
-            classes_info[key] = value
+            classes_info[key]['amount'] = value
 
     cb_all_cl_filters = True
     # if "browse_filters" exists in session
@@ -109,8 +117,6 @@ def browse(selected, page=1, items=50, filters=None):
     else:
         version_items_filter = uncommitted_items + version_items
         cur_filters = {"uncommitted": True, "committed": True}
-
-
 
     return render_template('browse/item.html',
                            version=version,

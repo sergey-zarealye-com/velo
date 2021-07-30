@@ -4,7 +4,7 @@ from typing import List
 
 from project.models import DataItems, VersionItems, Category, TmpTable, Version, Diff
 
-version_item = namedtuple("VersionItem", "id,version,path,label")
+version_item = namedtuple("VersionItem", "id,version,path,label,class_id")
 
 
 def get_items_of_version(sess, version_id: List[int]) -> List[version_item]:
@@ -21,7 +21,9 @@ def get_items_of_version(sess, version_id: List[int]) -> List[version_item]:
     return [version_item(item.DataItems.id,
                          item.VersionItems.version_id,
                          item.DataItems.path,
-                         item.Category.name) for item in query.all()]
+                         item.Category.name,
+                         item.Category.id
+                         ) for item in query.all()]
 
 
 def get_id_by_name(node_name: str) -> int:
@@ -42,7 +44,9 @@ def get_uncommited_items(sess, node_name: str) -> List[version_item]:
     return [version_item(item.DataItems.id,
                          node_id,
                          item.DataItems.path,
-                         item.Category.name) for item in query.all()]
+                         item.Category.name,
+                         item.Category.id,
+                         ) for item in query.all()]
 
 
 if __name__ == '__main__':

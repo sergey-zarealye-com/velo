@@ -166,11 +166,12 @@ options = null;
                 if ($(this).text() == document.getElementById('class_id_0').innerHTML) {
                     item["li"].data("deleted", true);
                     item["li"].addClass(es_unselected_has_class_del).trigger('selected');
-                    moderated_items_set[item["li"][0].id] = '__del__'
+                    moderated_items_set[item["li"][0].id] = {"cl": "-1", "ver": item["li"][0].getAttribute("ver")}
                 } else {
                     item["li"].data("deleted", false);
                     item["li"].addClass(es_unselected_has_class).trigger('selected');
-                    moderated_items_set[item["li"][0].id] = $(this).text()
+                    moderated_items_set[item["li"][0].id] = {"cl": $(this)[0].getAttribute("cl_id"), "ver": item["li"][0].getAttribute("ver")}
+
                 }
 
                 item["div"].trigger('unselected');
