@@ -139,18 +139,18 @@ class ImageIndex:
                 image_vector = image_vector.reshape((1, -1))
 
             self.index.add(image_vector)
-            #self.id_to_filename[name] = self.index_confix["index_length"]
-            #self.index_confix["index_length"] += 1
+            self.id_to_filename[self.index_config["index_length"]] = name
+            self.index_config["index_length"] += 1
 
         # clear tmp_index
         self.tmp_id_to_filename = {v: k for k, v in self.id_to_filename.items()}
         del self.tmp_index
-        self.index_config['tmp_index_length'] = self.index_config['index_length']
+        self.index_config['tmp_index_length'] = int(self.index_config['index_length'])
         self.tmp_index = deepcopy(self.index)
 
     def add_vectors(self, vectors, filenames: List[str]):
         # we found cosine similarity using inner product
-        # so vectors shoul be normalized
+        # so vectors should be normalized
         self.tmp_index.add(vectors)
 
         for i, name in enumerate(filenames):
@@ -341,20 +341,24 @@ class Deduplicator:
         neighbours = self.process_embeddings(embeddings, imagenames, data_dir)
         return neighbours
 
-    def __call__(self, images: List[np.ndarray], imagenames: List[str], data_dir: str, batch_size: int) -> None:
-        embeddings = self._get_embeddings(images, batch_size)
-        neighbours = self.process_embeddings(embeddings, imagenames, data_dir)
-        # save index in parallel thread
+    def save_index(self):
         saving_index_proc = Thread(
             target=self.index.save_on_disk,
             args=(self.index_path,)
         )
         saving_index_proc.start()
 
+    def __call__(self, images: List[np.ndarray], imagenames: List[str], data_dir: str, batch_size: int) -> None:
+        embeddings = self._get_embeddings(images, batch_size)
+        neighbours = self.process_embeddings(embeddings, imagenames, data_dir)
+        # save index in parallel thread
+        self.save_index()
+
         return neighbours
 
     def add_indexes_from_tmp(self, filenames):
         self.index.add_indexes_from_tmp(filenames)
+        self.save_index()
 
 
 def perceptual_hash_detector(images, filenames: List[str]):
