@@ -12,11 +12,13 @@ import faiss
 import json
 import numpy as np
 import torch
+import torchvision
 from torchvision import transforms
 import imagehash
-from PIL import Image
 from copy import deepcopy
 import logging
+import argparse
+import json
 
 
 log = logging.getLogger(__name__)
@@ -33,7 +35,7 @@ class FeatureExtractor:
 
 
 class NNfeatureExtractor(FeatureExtractor, torch.nn.Module):
-    def __init__(self, torch_model_name: str, repo: str = 'pytorch/vision:v0.9.0'):
+    def __init__(self, torch_model_name: str, repo: str = 'pytorch/vision:v0.10.0'):
         if torch_model_name != 'googlenet':
             raise AttributeError("Not supported model:", torch_model_name)
 
@@ -44,7 +46,7 @@ class NNfeatureExtractor(FeatureExtractor, torch.nn.Module):
         #     torch_model_name,
         #     pretrained=True
         # )
-        self.model = torch.load('hub/googlenet.pth')
+        self.model = torchvision.models.googlenet(pretrained=True)
         self.model.eval()
         self.model.fc = torch.nn.Identity()
 
@@ -370,3 +372,63 @@ def perceptual_hash_detector(images, filenames: List[str]):
         hashes.append(image_hash)
 
     return adj_relat
+
+
+def read(data_dir: str) -> Tuple[List[np.ndarray], List[str]]:
+        images: List[np.ndarray] = []
+        imagenames = []
+
+        for root, subdirs, files in os.walk(data_dir):
+            filenames = map(lambda x: os.path.join(root, x), files)
+
+            for filename in filenames:
+
+                try:
+                    img = cv2.imread(filename)
+                    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+                    images.append(img)
+                    imagenames.append(filename)
+                except Exception:
+                    # TODO alerting
+                    continue
+
+        return images, imagenames
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('id', type=str, help='ID of task')
+    parser.add_argument('label_ds', type=str, help='Dict mapper of class names')
+    parser.add_argument('selected_ds', type=str, help='Dataset to import in')
+    parser.add_argument('index_path', type=str, help='Directory contains index metainfo')
+    parser.add_argument('storage_dir', type=str, help='Directory contains task folders')
+    parser.add_argument('--batch_size', type=int, default=64, help='GPU batch size')
+
+    args = parser.parse_args()
+    directory = os.path.join(args.storage_dir, args.id)
+
+    if not os.path.isdir(directory) or not os.listdir(directory):
+        assert argparse.ArgumentError("Directory must exist and contain images!")  # TODO process case, return error code
+
+    # check if index is already exists
+    create_new = True
+    if os.path.isdir(args.index_path):
+        if os.path.isfile(os.path.join(args.index_path, 'index.faiss')):
+            create_new = False
+
+    deduplicator = Deduplicator(args.index_path, 8, create_new=create_new)
+
+    images, imagenames = read(directory)
+    neighbours = deduplicator(images, imagenames, directory, args.batch_size)
+
+    result = {
+        'deduplication': neighbours,
+        'type': 'deduplication_result',
+        'status': 'done',
+        'id': args.id,
+        'label_ds': args.label_ds,
+        'selected_ds': args.selected_ds
+    }
+    result = json.dumps(result)
+    print(result)
