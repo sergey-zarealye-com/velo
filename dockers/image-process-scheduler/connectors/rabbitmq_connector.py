@@ -17,10 +17,10 @@ async def main(
 ):
     # TODO: убрать хардкод 5672
     connection: Any = await aio_pika.connect_robust(
-        f"amqp://{login}:{passw}@{host}:{port}/", loop=loop,
+        f"amqp://{login}:{passw}@{host}:{port}/?heartbeat=3600", loop=loop,
         port=5672
     )
-    print("Successful connected to", f"amqp://{login}:{passw}@{host}:{port}/")
+    print("Successful connected to", f"amqp://{login}:{passw}@{host}:{port}/?heartbeat=3600")
 
     async with connection:
         # Creating channel
@@ -38,7 +38,7 @@ async def main(
 
 async def send_message(message, loop, routing_key: str, login, passw, port, host):
     connection: Any = await aio_pika.connect_robust(
-        f"amqp://{login}:{passw}@{host}:{port}/",
+        f"amqp://{login}:{passw}@{host}:{port}/?heartbeat=3600",
         loop=loop
     )
 

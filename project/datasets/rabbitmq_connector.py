@@ -75,7 +75,7 @@ def send_message(queue_name: str, queue):
 
     async def func(loop, queue_name, queue):
         connection: Any = await aio_pika.connect_robust(
-            f"amqp://{rabbit_login}:{rabbit_passw}@{rabbit_host}:{rabbit_port}/",
+            f"amqp://{rabbit_login}:{rabbit_passw}@{rabbit_host}:{rabbit_port}/?heartbeat=3600",
             loop=loop
         )
 
@@ -108,7 +108,7 @@ def get_message(queue_name: str, queue):
     async def func(loop, queue_name, queue):
         # TODO: убрать хардкод порта
         connection: Any = await aio_pika.connect_robust(
-            f"amqp://{rabbit_login}:{rabbit_passw}@{rabbit_host}:{rabbit_port}/", loop=loop,
+            f"amqp://{rabbit_login}:{rabbit_passw}@{rabbit_host}:{rabbit_port}/?heartbeat=3600", loop=loop,
             port=5672
         )
 
