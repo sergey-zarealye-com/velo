@@ -9,7 +9,8 @@ from flask import (
     abort,
     send_from_directory,
     redirect,
-    flash
+    flash,
+    session
 )
 from flask_login import current_user, login_required
 from project import app
@@ -152,15 +153,22 @@ def take_task(task_id, selected_ds):
     return show_dedup(task_id, selected_ds)
 
 
-@dedup_blueprint.route('/tasks/<selected_ds>', methods=['GET'])
+@dedup_blueprint.route('/tasks', methods=['GET'])
 @login_required
-def show_task_list(selected_ds):
-    version = Version.query.filter_by(name=selected_ds).first()
+def show_task_list():
+    if 'selected_version' in session:
+        version = Version.query.filter_by(name=session['selected_version']).first()
+    else:
+        version = Version.get_first()
+    if version is None:
+        message = Markup("There was no version found!")
+        flash(message, 'warning')
+        return redirect(url_for('datasets.index'))
     tasks = Deduplication.query.all()
 
     return render_template(
         '/deduplication/tasks.html',
-        selected_ds=selected_ds,
+        selected_ds=version.name,
         version=version,
         tasks=[
             {
