@@ -183,6 +183,7 @@ class Version(db.Model):
             out['edit'] = True
             out['import'] = True
             out['merge'] = True
+            out['commit'] = True
         elif self.status == 2:
             out['init'] = True
             out['edit'] = True
