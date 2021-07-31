@@ -71,6 +71,7 @@
                 {# }#}
                 if (Object.keys(moderated_items_set).length) {
                     filter_dict["moderated_items"] = moderated_items_set
+                    filter_dict["node_name"] = version_name
                 }
                 let filters_arr = encodeURIComponent(JSON.stringify(filter_dict));
 
