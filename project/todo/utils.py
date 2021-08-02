@@ -97,6 +97,17 @@ def create_video_task(task_id, data_path_str: str, labels: Dict[str, int], cat, 
             description, title,
             i
         )
+        # task = processing_function(
+        #     os.path.join(task_id, 'thumbs'),
+        #     input_fname,
+        #     data_path.stem,
+        #     ".jpg",
+        #     task_id,
+        #     storage_dir,
+        #     cat,
+        #     description, title,
+        #     i
+        # )
         return task
         # log.info(f"Created task {task_id}")
     else:

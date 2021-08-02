@@ -53,12 +53,11 @@ def index():
         return redirect(url_for('datasets.index'))
 
     # ToDo написать обработку получения результатов для отображения
-    objects = []
     tasks = CeleryTask.query.distinct("task_id").all()
     for task in tasks:
         task_id = task.task_id
         task_res = AsyncResult(task_id, app=app)
-        if task_res.status == 'SUCCESS':
+        if task_res.state == 'SUCCESS':
             data = task_res.info
             path = ABS_PATH.joinpath(data['id'], 'thumbs')
             file_list = os.listdir(path)
@@ -73,14 +72,13 @@ def index():
                                            title=data["title"],
                                            id=data["video_id"])
                 objects.append(item2moderate)
-            CeleryTask.query.filter_by(task_id=task_id).delete()
-            db.session.commit()
-    try:
-        db.session.bulk_save_objects(objects, return_defaults=True)
-        db.session.commit()
-    except Exception as ex:
-        log.error(ex)
-        db.session.rollback()
+            try:
+                db.session.bulk_save_objects(objects, return_defaults=True)
+                CeleryTask.query.filter_by(task_id=task_id).delete()
+                db.session.commit()
+            except Exception as ex:
+                log.error(ex)
+                db.session.rollback()
 
     q = Moderation.query.distinct("id").all()
     for i, t in enumerate(q):
