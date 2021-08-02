@@ -321,7 +321,7 @@ def import2ds(selected):
     if version.status == 3:
         abort(400)
     form = ImportForm(request.form)
-    categories = Category.query.order_by(Category.position).all()
+    categories = Category.list(1, version.name)
     form.category.choices = [(cat.position, cat.name) for cat in categories]
     if request.method == 'POST':
         if form.validate_on_submit():
@@ -469,6 +469,7 @@ def commit(selected):
                     DataItems.query.filter_by(id=item.item_id).first().path for item in items_to_commit
                 ]
                 sending_queue.put((str(uuid.uuid4()), json.dumps({
+                    'id': str(uuid.uuid4()),
                     'type': 'merge_indexes',
                     'files_to_keep': filepaths
                 })))
