@@ -136,7 +136,7 @@
                                 </div>
                                 {% for key, value in classes_info.items() %}
                                     <div class="custom-control-class custom-checkbox">
-                                        <span class="float-right badge badge-light round">{{ value["classes_info"] }}</span>
+                                        <span class="float-right badge badge-light round">{{ value["amount"] }}</span>
                                         <input type="checkbox" class="custom-control-class-input"
                                                id="filter_class_{{ value["id"] }}"
                                                value="{{ key }}"
