@@ -6,6 +6,7 @@ from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy import and_, or_
 from datetime import datetime
 import re
+from enum import Enum
 
 
 class User(db.Model):
@@ -182,6 +183,7 @@ class Version(db.Model):
             out['edit'] = True
             out['import'] = True
             out['merge'] = True
+            out['commit'] = True
         elif self.status == 2:
             out['init'] = True
             out['edit'] = True
@@ -211,6 +213,16 @@ class Version(db.Model):
             out.append(str(len(cl)))
             out.append('</a> ')
         return ''.join(out)
+
+    def data_no(self):
+        return str(VersionItems.query.filter_by(version_id=self.id).count())
+
+    def parent(self):
+        vc = VersionChildren.query.filter_by(child_id=self.id).first()
+        if vc is None:
+            return None
+        else:
+            return Version.query.get(vc.parent_id)
 
 
 class VersionChildren(db.Model):
@@ -359,6 +371,14 @@ class ToDoItem(db.Model):
             .limit(limit).offset(skip)
 
 
+class DeduplicationStatus(Enum):
+    staged = "Staged"
+    processing = "Processing"
+    finished = "Processing is finished"
+    taken = "Taken"
+    submited = "Submited"
+
+
 class Deduplication(db.Model):
     __tablename__ = 'deduplication'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -367,7 +387,18 @@ class Deduplication(db.Model):
     # user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     stages_status = db.Column(JSON)
     result = db.Column(JSON)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    started_at = db.Column(db.DateTime, nullable=True, default=None)
+    task_status = db.Column(db.String, default=DeduplicationStatus.staged.value)
 
+
+class Diff(db.Model):
+    __tablename__ = 'diff'
+    version_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False)
+    item_id = db.Column(db.Integer, db.ForeignKey('data_items.id'), nullable=False)
+    __table_args__ = (
+        PrimaryKeyConstraint('version_id', 'item_id'),
+    )
 
 class CeleryTask(db.Model):
     __tablename__ = 'eelerytasks'

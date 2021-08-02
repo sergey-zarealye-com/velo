@@ -1,0 +1,22 @@
+version: "2.3"
+
+services:
+  rabbit:
+    image: rabbitmq:3-management
+    ports:
+      - 15673:15672
+      - 5672:5672
+  ffmpeg:
+    image: moderation
+    depends_on:
+      - rabbit
+    volumes:
+      - /home/alexandr/PycharmProjects/velo:/storage
+  improsch:
+    image: improsch
+    depends_on:
+      - rabbit
+    volumes:
+      - /home/alexandr/PycharmProjects/velo/project/static/image_storage/:/image_storage
+      - /home/alexandr/PycharmProjects/velo/project/static/dedup_index/:/dedup_index
+    runtime: nvidia

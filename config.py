@@ -1,3 +1,4 @@
+import logging
 import os
 from dotenv import load_dotenv
 
@@ -31,12 +32,15 @@ class ProductionConfig(Config):
 class StagingConfig(Config):
     DEVELOPMENT = True
     DEBUG = True
+    LOG_LEVEL = logging.ERROR
 
 
 class DevelopmentConfig(Config):
     DEVELOPMENT = True
     DEBUG = True
+    LOG_LEVEL = logging.INFO
 
 
 class TestingConfig(Config):
     TESTING = True
+    LOG_LEVEL = logging.INFO

@@ -1,0 +1,43 @@
+{% extends "_base.html" %}
+{% block title %}Labeling instructions{% endblock %}
+{% from "_formshelper.html" import render_field %}
+{% block content %}
+
+<div class="card bg-light mb-3">
+    <div class="card-header">
+        {{ this.name }} <i class="fas fa-not-equal"></i> {{parent.name}}
+        <a href="{{url_for('maintenance.help_diff', task_id=task_id, backsteps=backsteps+1)}}" role="button" class="float-right">
+            <i class="fas fa-history"></i>
+        </a>
+    </div>
+    <div class="card-body">
+        {% for categ in diff.keys() %}
+            <h5>{{categ}}</h5>
+            
+            <table class="table table-borderless">
+              <tbody>
+              {% for row in diff[categ] %}
+                  <tr>
+                      {% if row[0] %}
+                          <td class="table-success">
+                      {% else %}
+                          <td class="table-light">
+                      {% endif %}
+                              {{row[1]}}
+                          </td>
+                      {% if row[2] %}
+                          <td class="table-danger">
+                      {% else %}
+                          <td class="table-light">
+                      {% endif %}
+                              {{row[3]}}
+                          </td>
+                  </tr>
+              {% endfor %}
+              </tbody>
+            </table> 
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

@@ -58,7 +58,9 @@ def copy_directory(
         min_size: Tuple[int, int],
         is_resize: bool,
         dst_size: Tuple[int, int],
-        is_dedup: bool
+        is_dedup: bool,
+        label_ds: Dict[str, int],
+        selected_ds: str
 ):
     logging.info("Start copying data...")
     sys.stdout.flush()
@@ -79,9 +81,11 @@ def copy_directory(
             'is_resize': bool(is_resize),
             'dst_size': tuple(dst_size),
             'deduplication': bool(is_dedup),
+            'label_ds': label_ds,
+            'selected_ds': selected_ds
         }))
     )
-    logging.info("Sended")
+    logging.info(f"Sended task with id {task_id}")
     sys.stdout.flush()
 
 
@@ -127,6 +131,8 @@ def select(selected):
     version = Version.query.filter_by(name=selected).first()
     if version is None:
         abort(404)
+    if ('selected_version' in session) and (session['selected_version'] != selected):
+        session.pop('browse_filters', None)
     session['selected_version'] = selected
     srcStr = Version.dot_str(selected)
     fname = str(current_user.id)
@@ -264,6 +270,7 @@ def branch(selected):
                         child_categ = Category(parent_categ.name,
                                                version.id,
                                                task[0],
+                                               parent_categ.description,
                                                position=parent_categ.position)
                         db.session.add(child_categ)
                 db.session.commit()
@@ -314,26 +321,13 @@ def import2ds(selected):
     if version.status == 3:
         abort(400)
     form = ImportForm(request.form)
+    categories = Category.list(1, version.name)
+    form.category.choices = [(cat.position, cat.name) for cat in categories]
     if request.method == 'POST':
         if form.validate_on_submit():
-            src = form.flocation.data
             label_ids = get_labels_of_version(version.id)
             if form.reason.data == 'moderation':
-                objects, version_objects = [], []
-                category = form.category.choices[form.category.data - 1][1]
-                general_category = form.general_category.data
-                for sample in get_data_samples(src, label_ids):
-                    item2moderate = Moderation(src=src,
-                                               file=sample.path,
-                                               src_media_type=sample.media_type,
-                                               category=category)
-                    objects.append(item2moderate)
-                try:
-                    db.session.bulk_save_objects(objects, return_defaults=True)
-                    db.session.commit()
-                except Exception as ex:
-                    log.error(ex)
-                    db.session.rollback()
+                pass
             else:
                 if form.category_select.data == 'folder':
                     # send message to preprocessor
@@ -342,6 +336,33 @@ def import2ds(selected):
                     while os.path.isdir(os.path.join(storage_dir, task_id)):
                         task_id = str(uuid.uuid4())
                     # TODO check if task_id already exist in database
+
+                    label_ids = get_labels_of_version(version.id)
+                    # TODO
+                    # if not os.path.exists(form.flocation.data):
+                    #     flash(f"No such file or directory: {form.flocation.data}", "error")
+                    #     return redirect(f"/import/{selected}")
+                    files = os.listdir(form.flocation.data)
+
+                    # only directories
+                    files = filter(
+                        lambda x: os.path.isdir(x),
+                        list(
+                            map(
+                                lambda x: os.path.join(form.flocation.data, x),
+                                files
+                            )
+                        )
+                    )
+                    files = map(
+                        lambda x: os.path.split(x)[-1],
+                        list(files)
+                    )
+
+                    if form.category_select.data == "folder":
+                        for folder_name in files:
+                            if folder_name not in label_ids:
+                                flash(f"{folder_name} not in labels!", "error")
 
                     proc_to_copy_files = Process(
                         target=copy_directory,
@@ -353,7 +374,9 @@ def import2ds(selected):
                             (int(form.min_size.data), int(form.min_size.data)),
                             bool(form.is_resize.data),
                             (int(form.resize_h.data), int(form.resize_w.data)),
-                            bool(form.is_dedup.data)
+                            bool(form.is_dedup.data),
+                            label_ids,
+                            selected
                         )
                     )
                     proc_to_copy_files.start()
@@ -361,10 +384,8 @@ def import2ds(selected):
 
                     # если включена дедупликация, то сохранение нужно после
                     # процесса ручного отбора картинок (project/deduplication/views/def save_result)
-                    if not bool(form.is_dedup.data):
-                        # TODO: handle exceptions, add s3 source
-                        # вынести куда нибудь commit_batch
-                        fillup_tmp_table(label_ids, selected, src, version)
+                    # в противном случае - смотри rabbitmq_connector.py - воркер возвращает имена фалов
+                    # отфильтрованных и ресайзнутых изображений
 
             # version.status = 2
             # db.session.commit()
@@ -387,7 +408,12 @@ def import2ds(selected):
 
             # TODO update categories for current version, based on import results
             # return redirect(url_for('datasets.select', selected=version.name))
-            return redirect(url_for('deduplication.task_confirmation', task_id=task_id, selected=version.name))
+            return redirect(url_for(
+                'deduplication.task_confirmation',
+                task_id=task_id,
+                selected=version.name,
+                is_dedup=1 if bool(form.is_dedup.data) else 0
+            ))
     return render_template('datasets/import.html', form=form, selected=selected, version=version)
 
 
@@ -395,14 +421,15 @@ def fillup_tmp_table(label_ids: Dict[str, int],
                      selected: str,
                      src: str,
                      version: Version,
-                     commit_batch: int = 1000) -> None:
+                     commit_batch: int = 1000) -> List[str]:
     """
     Заполнить временную таблицу
     функция проходит по указанной директории src, добавляет найденные файлы в таблицу DataItems,
     заполняет таблицу TmpTable
     """
     objects, categories = [], []
-    for sample in get_data_samples(src, label_ids):
+    warnings = []
+    for sample in get_data_samples(src, label_ids, warnings):
         res = DataItems.query.filter_by(path=sample.path).first()
         if res:
             continue
@@ -417,7 +444,8 @@ def fillup_tmp_table(label_ids: Dict[str, int],
         import_data(categories, objects, selected, version)
         objects.clear()
         categories.clear()
-    return
+
+    return warnings
 
 
 @datasets_blueprint.route('/commit/<selected>', methods=['GET', 'POST'])
@@ -426,7 +454,7 @@ def commit(selected):
     version = Version.query.filter_by(name=selected).first()
     if version is None:
         abort(404)
-    if version.status in [1, 3]:
+    if not version.actions_dict()['commit']:
         abort(400)
     form = CommitForm(request.form)
     if request.method == 'POST':
@@ -441,6 +469,14 @@ def commit(selected):
                 objects = [VersionItems(item_id=item.item_id,
                                         version_id=node_id,
                                         category_id=item.category_id) for item in items_to_commit]
+                filepaths = [
+                    DataItems.query.filter_by(id=item.item_id).first().path for item in items_to_commit
+                ]
+                sending_queue.put((str(uuid.uuid4()), json.dumps({
+                    'id': str(uuid.uuid4()),
+                    'type': 'merge_indexes',
+                    'files_to_keep': filepaths
+                })))
                 db.session.bulk_save_objects(objects)
                 TmpTable.query.filter_by(node_name=selected).delete()
                 version.status = 3
@@ -463,16 +499,6 @@ def commit(selected):
 @datasets_blueprint.route('/merge/<selected>', methods=['GET', 'POST'])
 @login_required
 def merge(selected):
-    # TODO пример использования
-    path = '<PLACE YOUR DIR>'
-    send_merge_control_request(
-        list(
-            map(
-                lambda x: os.path.join(path, x),
-                os.listdir(path)
-            )
-        )
-    )
     child = Version.query.filter_by(name=selected).first()
     if child is None:
         abort(404)
@@ -564,6 +590,7 @@ def merge_categs(parent, child):
                         categ = Category(t_categ[1].name,
                                          child.id,
                                          task[0],
+                                         t_categ[1].description,
                                          t_categ[0])
                         db.session.add(categ)
                 db.session.commit()

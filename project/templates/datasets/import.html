@@ -1,8 +1,12 @@
 {% extends "_base.html" %}
 {% block title %}Import into the dataset{% endblock %}
 {% from "_formshelper.html" import render_field, checkbox, select %}
+{% from "helpers.html" import version_details %}
 {% block content %}
 
+<div class="container">
+    {{ version_details(version) }}
+</div>
 
 <div class="card bg-light mb-3">
     <div class="card-body">
@@ -16,6 +20,9 @@
             {{ select(form.category_select, {'data-bind': 'value: category_select'}) }}
             <div data-bind="visible: category_select()=='set'">
             {{ select(form.category, {}) }}
+            </div>
+            <div data-bind="visible: category_select()=='folder'" class="form-group mb-4">
+            {{checkbox(form.is_create_categs_from_folders, {'data-bind': 'checked: is_score_model'})}}
             </div>
             <div class="form-group mb-4">
             {{checkbox(form.is_score_model, {'data-bind': 'checked: is_score_model'})}}

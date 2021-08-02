@@ -14,6 +14,7 @@ import config
 app = Flask(__name__, instance_relative_config=True)
 # celery_app.config.from_object(os.environ['APP_SETTINGS'])
 app.config.from_object(config.DevelopmentConfig)
+app.logger.setLevel(config.DevelopmentConfig.LOG_LEVEL)
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)

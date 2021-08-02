@@ -1,8 +1,10 @@
 FROM python:3.8-buster
 WORKDIR /improch
+
 ENV PATH="/root/miniconda3/bin:${PATH}"
 ARG PATH="/root/miniconda3/bin:${PATH}"
 ENV IS_DOCKER="True"
+
 RUN apt update
 RUN apt install -y --upgrade cmake
 RUN apt -y upgrade

@@ -8,6 +8,7 @@ from argparse import ArgumentParser
 import yaml
 import time
 import os
+from multiprocessing import Process, Queue
 
 
 async def send_message_back(message, loop, login, passw, port, host):
@@ -49,22 +50,46 @@ def params_mapper(config):
 
 
 def run(pipeline, login: str, passw: str, port: int, host: str, image_storage: str):
-    async def print_pipeline_result(request):
-        print('\tGot request:')
-        print(request)
-        request["directory"] = os.path.join(image_storage, request["directory"])
-        print("\tDirectory:\t", request["directory"])
-        result = pipeline(request)
+    def print_pipeline_result(queue, login, passw, port, host, image_storage):
+        while request := queue.get():
+            print('\tGot request:')
+            print(request)
+            if request.get('directory'):
+                request["directory"] = os.path.join(image_storage, request["directory"])
+                print("\tDirectory:\t", request["directory"])
+            result = pipeline(request)
 
-        result['id'] = request['id']
-        result['type'] =  request.get('type') or 'result'
+            if request.get('label_ds') is not None:
+                result['label_ds'] = request['label_ds']
 
-        result_string = json.dumps(result)
+            if request.get('selected_ds') is not None:
+                result['selected_ds'] = request['selected_ds']
 
-        await send_message_back(result_string, asyncio.get_event_loop(), login, passw, port, host)
+            if request.get('id'):
+                result['id'] = request['id']
+            else:
+                return
+
+            result_string = json.dumps(result)
+            try:
+                loop = asyncio.get_event_loop()
+            except Exception:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop()
+
+            loop.run_until_complete(
+                send_message_back(result_string, asyncio.get_event_loop(), login, passw, port, host)
+            )
+
+    queue = Queue()
+    worker = Process(
+        target=print_pipeline_result,
+        args=(queue, login, passw, port, host, image_storage)
+    )
+    worker.start()
 
     print("Run async connector")
-    run_async_rabbitmq_connection('deduplication_1', print_pipeline_result, login, passw, port, host)
+    run_async_rabbitmq_connection('deduplication_1', queue, login, passw, port, host)
 
 
 def parse_config(config_path: str):
