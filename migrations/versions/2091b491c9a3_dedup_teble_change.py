@@ -1,9 +1,7 @@
 """dedup teble change
-
 Revision ID: 2091b491c9a3
 Revises: 7e657ffbb933
 Create Date: 2021-07-28 15:47:18.743462
-
 """
 from alembic import op
 import sqlalchemy as sa

@@ -1,9 +1,7 @@
 """delete table
-
 Revision ID: 7e657ffbb933
 Revises: 9cb81b29e6b1
 Create Date: 2021-07-26 16:50:51.257534
-
 """
 from alembic import op
 import sqlalchemy as sa
