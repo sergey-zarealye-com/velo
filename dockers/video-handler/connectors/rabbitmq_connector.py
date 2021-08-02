@@ -52,7 +52,7 @@ class Connector:
     def send_message(self, message: Union[str, dict, list], routing_key: str):
         sending_proc = Process(
             target=self.run_send_function,
-            args=(message, routing_key)
+            args=(message, routing_key),
         )
         sending_proc.start()
         sending_proc.join()

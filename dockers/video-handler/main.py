@@ -80,7 +80,7 @@ def run_processing_func(storage_dir: str, connector: Connector, result_queue_nam
     processing_queue = Queue()
     processing_proc = Process(
         target=processing_function,
-        args=(processing_queue, storage_dir, connector, result_queue_name)
+        args=(processing_queue, storage_dir, connector, result_queue_name),
     )
     processing_proc.start()
 
