@@ -136,6 +136,7 @@ def item(item_id):
         categs[task[0]] = Category.list(task[0], version.name)
     rows_of_interesting = Moderation.query.filter_by(id=todo.id).all()
     images_paths = [Path(row.file) for row in rows_of_interesting]
+    print(images_paths)
     images_paths = [(images_path.anchor.join(images_path.parts[-3:]), i) for i, images_path in enumerate(natural_sort(images_paths))]
     return render_template('todo/item.html', todo=todo,
                            categs=categs,

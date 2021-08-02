@@ -131,7 +131,7 @@ def select(selected):
     version = Version.query.filter_by(name=selected).first()
     if version is None:
         abort(404)
-    if session['selected_version'] != selected:
+    if ('selected_version' in session) and (session['selected_version'] != selected):
         session.pop('browse_filters', None)
     session['selected_version'] = selected
     srcStr = Version.dot_str(selected)
@@ -338,6 +338,10 @@ def import2ds(selected):
                     # TODO check if task_id already exist in database
 
                     label_ids = get_labels_of_version(version.id)
+                    # TODO
+                    # if not os.path.exists(form.flocation.data):
+                    #     flash(f"No such file or directory: {form.flocation.data}", "error")
+                    #     return redirect(f"/import/{selected}")
                     files = os.listdir(form.flocation.data)
 
                     # only directories
@@ -450,7 +454,7 @@ def commit(selected):
     version = Version.query.filter_by(name=selected).first()
     if version is None:
         abort(404)
-    if version.status in [1, 3]:
+    if not version.actions_dict()['commit']:
         abort(400)
     form = CommitForm(request.form)
     if request.method == 'POST':
