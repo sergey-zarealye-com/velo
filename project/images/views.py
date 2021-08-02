@@ -3,6 +3,7 @@
 # IMPORTS
 import json
 import math
+import os
 import ntpath
 from collections import Counter
 from typing import Dict
@@ -164,7 +165,8 @@ def browse(selected, page=1, items=50, filters=None):
                            pages=int(math.ceil(len(version_items_filter) / int(items))),
                            page=page,
                            items=items,
-                           filters=cur_filters)
+                           filters=cur_filters
+                           )
 
 
 if __name__ == '__main__':

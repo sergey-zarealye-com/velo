@@ -255,7 +255,15 @@
         </div>
         <div class="col-2">
             <div class="sticky-top" style="top: 30px">
-                <h5>Select visual class:</h5>
+                <div>
+                    <h5>
+                        Select visual class:
+                        <a href="{{url_for('maintenance.categ_help', task_id=1)}}"
+                           target="_blank" role="button">
+                            <i class="fas fa-info-circle"></i>
+                        </a>
+                    </h5>
+                </div>
                 {% for key, value in classes_info.items() %}
                     <div class="form-check" style="padding: 0px; margin-bottom:5px;">
                         <button type="button" class="btn btn-outline-info" id="class_id_{{ loop.index }}" cl_id="{{ value["id"] }}"
