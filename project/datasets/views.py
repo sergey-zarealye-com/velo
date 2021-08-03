@@ -450,7 +450,7 @@ def commit(selected):
     version = Version.query.filter_by(name=selected).first()
     if version is None:
         abort(404)
-    if version.status in [1, 3]:
+    if not version.actions_dict()['commit']:
         abort(400)
     form = CommitForm(request.form)
     if request.method == 'POST':

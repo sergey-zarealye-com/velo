@@ -265,7 +265,7 @@ def categ_help(task_id):
         return redirect(url_for('datasets.index'))
     categs = Category.list(task_id, version.name)
     helptext = [(c.name, c.description) for c in categs]
-    return render_template('maintenance/help.html', 
+    return render_template('maintenance/help.html',
                            helptext=helptext,
                            task_id=task_id,
                            version=version)

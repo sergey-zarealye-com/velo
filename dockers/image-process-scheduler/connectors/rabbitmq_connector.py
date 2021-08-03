@@ -9,7 +9,7 @@ import json
 async def main(
     loop,
     queue_name: str,
-    processing_func: Callable,
+    processing_queue: Callable,
     login: str,
     passw: str,
     port: int,
@@ -17,10 +17,10 @@ async def main(
 ):
     # TODO: убрать хардкод 5672
     connection: Any = await aio_pika.connect_robust(
-        f"amqp://{login}:{passw}@{host}:{port}/", loop=loop,
+        f"amqp://{login}:{passw}@{host}:{port}/?heartbeat=3600", loop=loop,
         port=5672
     )
-    print("Successful connected to", f"amqp://{login}:{passw}@{host}:{port}/")
+    print("Successful connected to", f"amqp://{login}:{passw}@{host}:{port}/?heartbeat=3600")
 
     async with connection:
         # Creating channel
@@ -33,12 +33,12 @@ async def main(
             async for message in queue_iter:
                 async with message.process():
                     options = json.loads(message.body.decode('utf-8'))
-                    await processing_func(options)
+                    processing_queue.put(options)
 
 
 async def send_message(message, loop, routing_key: str, login, passw, port, host):
     connection: Any = await aio_pika.connect_robust(
-        f"amqp://{login}:{passw}@{host}:{port}/",
+        f"amqp://{login}:{passw}@{host}:{port}/?heartbeat=3600",
         loop=loop
     )
 
@@ -53,7 +53,7 @@ async def send_message(message, loop, routing_key: str, login, passw, port, host
 
 def run_async_rabbitmq_connection(
     queue_name,
-    processing_function,
+    processing_queue,
     login: str,
     passw: str,
     port: int,
@@ -65,7 +65,7 @@ def run_async_rabbitmq_connection(
 
     loop.run_until_complete(
         main(
-            loop, queue_name, processing_function,
+            loop, queue_name, processing_queue,
             login, passw, port, host
         )
     )
