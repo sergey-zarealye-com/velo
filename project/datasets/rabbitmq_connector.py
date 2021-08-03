@@ -1,6 +1,7 @@
-from typing import Dict, List
+from typing import Dict, List, Tuple
 import asyncio
 from typing import Any
+
 import aio_pika
 import json
 import os
@@ -130,6 +131,25 @@ def get_message(queue_name: str, queue):
                             if response['type'] == 'deduplication_result':
                                 print('\tGot result:')
                                 print(response)
+
+                                deduplication_result = response['deduplication']
+                                path_to_id: Dict[str, int] = {}
+
+                                for path1, path2, _ in deduplication_result:
+                                    path_to_id[path1] = DataItems.add_if_not_exists(path1)
+                                    path_to_id[path2] = DataItems.add_if_not_exists(path2)
+
+                                updated_deduplication: List[Tuple[str, str, int]] = []
+
+                                for path1, path2, similarity in deduplication_result:
+                                    updated_deduplication.append((
+                                        path_to_id[path1],
+                                        path_to_id[path2],
+                                        similarity
+                                    ))
+
+                                response['deduplication'] = updated_deduplication
+
                                 task_entry.result = response
                                 task_entry.task_status = DeduplicationStatus.finished.value
                                 queue.put(response)

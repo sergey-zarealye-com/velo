@@ -1,3 +1,4 @@
+from typing import Optional
 from sqlalchemy import PrimaryKeyConstraint
 
 from project import db, bcrypt
@@ -293,6 +294,18 @@ class DataItems(db.Model):
     __tablename__ = 'data_items'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     path = db.Column(db.String, unique=True, nullable=False)
+
+    def add_if_not_exists(path: str) -> int:
+        entry = DataItems.query.filter_by(path=path).first()
+
+        if entry:
+            return entry.id
+
+        entry = DataItems(path=path)
+        db.session.add(entry)
+        db.session.flush()
+
+        return entry.id
 
 
 class VersionItems(db.Model):
