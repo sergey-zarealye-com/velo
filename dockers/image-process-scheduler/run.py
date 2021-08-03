@@ -84,7 +84,7 @@ def run(pipeline, login: str, passw: str, port: int, host: str, image_storage: s
     queue = Queue()
     worker = Process(
         target=print_pipeline_result,
-        args=(queue, login, passw, port, host, image_storage)
+        args=(queue, login, passw, port, host, image_storage),
     )
     worker.start()
 

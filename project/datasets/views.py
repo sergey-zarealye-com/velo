@@ -37,7 +37,8 @@ datasets_blueprint = Blueprint('datasets', __name__,
 sending_queue: Queue = Queue()
 sending_process = Process(
     target=send_message,
-    args=('deduplication_1', sending_queue)
+    args=('deduplication_1', sending_queue),
+    daemon=True
 )
 sending_process.start()
 
@@ -45,7 +46,8 @@ pulling_queue: Queue = Queue()
 # print("Объявление в датасетс", id(pulling_queue))
 pulling_process = Process(
     target=get_message,
-    args=('deduplication_result_1', pulling_queue)
+    args=('deduplication_result_1', pulling_queue),
+    daemon=True
 )
 pulling_process.start()
 

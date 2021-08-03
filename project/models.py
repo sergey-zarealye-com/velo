@@ -400,6 +400,17 @@ class Diff(db.Model):
         PrimaryKeyConstraint('version_id', 'item_id'),
     )
 
+
+class Changes(db.Model):
+    __tablename__ = 'changes'
+    version_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False)
+    item_id = db.Column(db.Integer, db.ForeignKey('data_items.id'), nullable=False)
+    new_category = db.Column(db.Integer, nullable=False)
+    __table_args__ = (
+        PrimaryKeyConstraint('version_id', 'item_id'),
+    )
+
+
 class CeleryTask(db.Model):
     __tablename__ = 'eelerytasks'
     task_id = db.Column(db.String, primary_key=True, nullable=False)
