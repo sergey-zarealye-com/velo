@@ -60,43 +60,15 @@ def split_items(data) -> Dict:
     return splited
 
 
-# @images_blueprint.route('/save_changes', methods=['POST'])
-# def save_changes():
-#     """Записывает в БД изменения классов"""
-#     if request.method == "POST":
-#         data = request.json
-#         with open("example.json", "w") as f:
-#             json.dump(data, f)
-#         if "moderated_items" in data:
-#             splitted_items = split_items(data)
-#             try:
-#                 uncommited = splitted_items.get("uncommited")
-#                 if len(uncommited):
-#                     # Незакомиченные записи обновляются в таблице TmpTable
-#                     update_uncommited_items(db, uncommited)
-#                 commited = splitted_items.get("commited")
-#                 if len(commited):
-#                     # Закомиченные записи не изменяются - в таблицу version items добавляются
-#                     # новые записи
-#                     node_id = get_id_by_name(data['node_name'])
-#                     objects = [VersionItems(item_id=item_id,
-#                                             version_id=node_id,
-#                                             category_id=int(moderation['cl']))
-#                                for item_id, moderation in commited.items()]
-#                     db.session.bulk_save_objects(objects)
-#                 db.session.commit()
-#             except Exception as ex:
-#                 db.session.rollback()
-#                 message = Markup(
-#                     "<strong>Error!</strong> Unable to commit changes " + str(ex))
-#                 flash(message, 'danger')
-#     return "Ok"
-
 @images_blueprint.route('/save_changes', methods=['POST'])
 def save_changes():
     """Записывает в БД изменения классов"""
     if request.method == "POST":
-        data = request.json
+        # TODO переписать по человечьи
+        data = list(request.form)
+        if len(data) == 0:
+            return "Failed"
+        data = json.loads(data[0])
         if "moderated_items" in data:
             node_id = get_id_by_name(data['node_name'])
             # Уже имеющиеся изменения
@@ -129,7 +101,11 @@ def save_changes():
             except Exception as ex:
                 app.logger.error(ex)
                 db.session.rollback()
-        return "Ok"
+                message = Markup(
+                    "<strong>Error!</strong> Unable to commit changes " + str(ex))
+                flash(message, 'danger')
+                return "Failed"
+    return "Ok"
 
 
 @images_blueprint.route('/browse/<selected>')

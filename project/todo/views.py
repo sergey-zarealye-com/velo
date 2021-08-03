@@ -38,8 +38,6 @@ SAVE_PATH = Path.absolute(Path(os.getcwd())).joinpath('save_dir')
 if not SAVE_PATH.exists():
     SAVE_PATH.mkdir()
 
-TASKS = {}
-
 # ROUTES
 @todo_blueprint.route('/index')
 @login_required
@@ -158,13 +156,12 @@ def moderate(item_id):
         version = Version.query.filter_by(name=session['selected_version']).first()
     else:
         abort(400)
-    req_values = request.values
+    req_values = json.loads(list(request.form)[0])
     print(req_values)
     film_id = ToDoItem.query.filter_by(id=item_id).first().id
     rows_of_interesting = Moderation.query.filter_by(id=film_id).all()
     images_paths = [row.file for row in rows_of_interesting]
     images_paths = [images_path for i, images_path in enumerate(natural_sort(images_paths))]
-    req_values = json.loads(list(request.form)[0])
     for k, v in req_values.items():
         images_path = images_paths[int(k)]
         category = v
