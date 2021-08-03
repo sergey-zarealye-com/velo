@@ -163,8 +163,8 @@ def moderate(item_id):
     images_paths = [row.file for row in rows_of_interesting]
     images_paths = [images_path for i, images_path in enumerate(natural_sort(images_paths))]
     for k, v in req_values.items():
-        images_path = images_paths[int(k)]
-        category = v
+        images_path = images_paths[int(v['ver'])]
+        category = Category.query.filter_by(id=int(v['cl'])).first().name
         if not os.path.exists(os.path.join(SAVE_PATH, category)):
             os.mkdir(os.path.join(SAVE_PATH, category))
         shutil.move(images_path, os.path.join(SAVE_PATH, category, transliterate.translit(Path(images_path).name, 'ru', reversed=True)))
