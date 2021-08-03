@@ -66,7 +66,7 @@ def download_file(filename):
 def task_confirmation(task_id, selected, is_dedup):
     is_dedup = bool(int(is_dedup))
     return render_template(
-        'datasets/taskConfirmed.html',
+        'deduplication/taskConfirmed.html',
         task_id=task_id,
         selected=selected,
         is_dedup=is_dedup
@@ -119,7 +119,7 @@ def show_dedup(task_id, selected_ds):
 
     if task.result is None:
         statuses = task.stages_status
-        return render_template('datasets/taskPending.html', task_id=task.task_uid, statuses=statuses)
+        return render_template('deduplication/taskPending.html', task_id=task.task_uid, statuses=statuses)
 
     page_length = request.args.get("num_items")
     page_num = request.args.get("page_num")
@@ -127,7 +127,7 @@ def show_dedup(task_id, selected_ds):
     dedup_result = task.result.get('deduplication')
 
     if not dedup_result:
-        return render_template('datasets/taskFinished.html', task_id=task.task_uid)
+        return render_template('deduplication/taskFinished.html', task_id=task.task_uid)
 
     if not task_id in temporary_storage:
         images = [
@@ -145,7 +145,7 @@ def show_dedup(task_id, selected_ds):
         images = list(filter(lambda x: not x['removed'], temporary_storage[task_id]))
 
     return render_template(
-        'datasets/deduplication4.html',
+        'deduplication/deduplication4.html',
         images=images,
         task_id=task_id,
         selected_ds=selected_ds,
