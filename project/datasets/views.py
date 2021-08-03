@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from flask_login import current_user, login_required
 
 from project import db
-from project.models import Version, VersionChildren, DataItems, TmpTable, VersionItems, Category, Moderation
+from project.models import Version, VersionChildren, DataItems, TmpTable, Category, Changes
 from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm
 import graphviz
 from uuid import uuid4
@@ -22,7 +22,7 @@ from multiprocessing import Process, Queue
 from .rabbitmq_connector import send_message, get_message
 import json
 import uuid
-from .queries import get_labels_of_version, get_nodes_above, get_items_of_nodes
+from .queries import get_labels_of_version, get_nodes_above, get_items_of_nodes, prepare_to_commit
 from .utils import get_data_samples
 
 log = logging.getLogger(__name__)
@@ -456,27 +456,35 @@ def commit(selected):
     if request.method == 'POST':
         if form.validate_on_submit():
             try:
-                node_id = Version.query.filter_by(name=selected).with_entities(Version.id).first().id
-                items_to_commit = TmpTable.query \
-                    .filter_by(node_name=selected) \
-                    .with_entities(TmpTable.item_id, TmpTable.category_id) \
-                    .all()
-
-                objects = [VersionItems(item_id=item.item_id,
-                                        version_id=node_id,
-                                        category_id=item.category_id) for item in items_to_commit]
-                filepaths = [
-                    DataItems.query.filter_by(id=item.item_id).first().path for item in items_to_commit
-                ]
-                sending_queue.put((str(uuid.uuid4()), json.dumps({
-                    'type': 'merge_indexes',
-                    'files_to_keep': filepaths
-                })))
-                db.session.bulk_save_objects(objects)
+                commit_categories = prepare_to_commit(db.session, selected)
+                # Незакомиченные из TmpTable - надо добавить в VersionItems и удалить из TmpTable
+                items_to_commit = commit_categories.get("uncommited")
+                if len(items_to_commit):
+                    db.session.bulk_save_objects(items_to_commit)
+                items_to_delete = commit_categories.get("uncommited_deleted")
+                if len(items_to_delete):
+                    DataItems.query.filter(DataItems.id.in_(items_to_delete)).delete(synchronize_session=False)
+                # Изменения в уже закомиченных
+                commited_changed = commit_categories.get("commited_changed")
+                if len(commited_changed):
+                    db.session.bulk_save_objects(commited_changed)
+                # Изменения для таблицы Diff (закомиченные)
+                deleted = commit_categories.get("commited_deleted")
+                if len(deleted):
+                    db.session.bulk_save_objects(deleted)
+                # Внесли все изменения, чистим таблицы
                 TmpTable.query.filter_by(node_name=selected).delete()
+                Changes.query.filter_by(version_id=version.id).delete()
                 version.status = 3
                 db.session.commit()
-                # TODO freeze image_id's in joining table
+                # TODO: понять что это и зачем
+                # filepaths = [
+                #     DataItems.query.filter_by(id=item.item_id).first().path for item in items_to_commit
+                # ]
+                # sending_queue.put((str(uuid.uuid4()), json.dumps({
+                #     'type': 'merge_indexes',
+                #     'files_to_keep': filepaths
+                # })))
                 message = Markup("Saved successfully!")
                 flash(message, 'success')
                 return redirect(url_for('datasets.select',

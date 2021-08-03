@@ -1,15 +1,15 @@
-"""diff&dedup
-Revision ID: d8607026e2ae
-Revises: 2091b491c9a3
-Create Date: 2021-07-29 13:44:29.230878
+"""delete table
+Revision ID: 7e657ffbb933
+Revises: 9cb81b29e6b1
+Create Date: 2021-07-26 16:50:51.257534
 """
 from alembic import op
 import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'd8607026e2ae'
-down_revision = '2091b491c9a3'
+revision = '7e657ffbb933'
+down_revision = '9cb81b29e6b1'
 branch_labels = None
 depends_on = None
 

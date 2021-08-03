@@ -1,4 +1,5 @@
 from sqlalchemy import PrimaryKeyConstraint
+from sqlalchemy.orm import relationship
 
 from project import db, bcrypt
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
@@ -293,13 +294,34 @@ class DataItems(db.Model):
     __tablename__ = 'data_items'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     path = db.Column(db.String, unique=True, nullable=False)
+    vi = relationship(
+        "VersionItems", back_populates="data_item",
+        cascade="all, delete",
+        passive_deletes=True
+    )
+    tmp = relationship(
+        "TmpTable", back_populates="data_item",
+        cascade="all, delete",
+        passive_deletes=True
+    )
+    d = relationship(
+        "Diff", back_populates="data_item",
+        cascade="all, delete",
+        passive_deletes=True
+    )
+    c = relationship(
+        "Changes", back_populates="data_item",
+        cascade="all, delete",
+        passive_deletes=True
+    )
 
 
 class VersionItems(db.Model):
     __tablename__ = 'version_items'
-    item_id = db.Column(db.Integer, db.ForeignKey('data_items.id'), nullable=False)
+    item_id = db.Column(db.Integer, db.ForeignKey('data_items.id', ondelete='CASCADE'), nullable=False)
     version_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
+    data_item = relationship("DataItems", back_populates="vi")
     __table_args__ = (
         PrimaryKeyConstraint('item_id', 'version_id'),
     )
@@ -307,9 +329,10 @@ class VersionItems(db.Model):
 
 class TmpTable(db.Model):
     __tablename__ = 'tmp_table'
-    item_id = db.Column(db.Integer, db.ForeignKey('data_items.id'), nullable=False)
+    item_id = db.Column(db.Integer, db.ForeignKey('data_items.id', ondelete='CASCADE'), nullable=False)
     node_name = db.Column(db.String, db.ForeignKey('versions.name'), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
+    data_item = relationship("DataItems", back_populates="tmp")
     __table_args__ = (
         PrimaryKeyConstraint('item_id', 'node_name'),
     )
@@ -395,7 +418,8 @@ class Deduplication(db.Model):
 class Diff(db.Model):
     __tablename__ = 'diff'
     version_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False)
-    item_id = db.Column(db.Integer, db.ForeignKey('data_items.id'), nullable=False)
+    item_id = db.Column(db.Integer, db.ForeignKey('data_items.id', ondelete='CASCADE'), nullable=False)
+    data_item = relationship("DataItems", back_populates="d")
     __table_args__ = (
         PrimaryKeyConstraint('version_id', 'item_id'),
     )
@@ -404,8 +428,9 @@ class Diff(db.Model):
 class Changes(db.Model):
     __tablename__ = 'changes'
     version_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False)
-    item_id = db.Column(db.Integer, db.ForeignKey('data_items.id'), nullable=False)
+    item_id = db.Column(db.Integer, db.ForeignKey('data_items.id', ondelete='CASCADE'), nullable=False)
     new_category = db.Column(db.Integer, nullable=False)
+    data_item = relationship("DataItems", back_populates="c")
     __table_args__ = (
         PrimaryKeyConstraint('version_id', 'item_id'),
     )
