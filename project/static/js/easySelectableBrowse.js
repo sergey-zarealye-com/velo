@@ -240,7 +240,7 @@ options = null;
 
         $('#save_btn').click(function () {
             console.log('ajax')
-            $.post("/todo/moderate/" + $('#save_btn').attr("value"), moderated_items_set);
+            $.post("/todo/moderate/" + $('#save_btn').attr("value"), encodeURIComponent(JSON.stringify(moderated_items_set)));
             window.location.href = '/todo/index';
             // $.ajax({
             //    type: "POST",

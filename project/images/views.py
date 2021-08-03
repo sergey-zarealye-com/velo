@@ -64,7 +64,11 @@ def split_items(data) -> Dict:
 def save_changes():
     """Записывает в БД изменения классов"""
     if request.method == "POST":
-        data = request.json
+        # TODO переписать по человечьи
+        data = list(request.form)
+        if len(data) == 0:
+            return "Failed"
+        data = json.loads(data[0])
         if "moderated_items" in data:
             splitted_items = split_items(data)
             try:
@@ -88,6 +92,7 @@ def save_changes():
                 message = Markup(
                     "<strong>Error!</strong> Unable to commit changes " + str(ex))
                 flash(message, 'danger')
+                return "Failed"
     return "Ok"
 
 

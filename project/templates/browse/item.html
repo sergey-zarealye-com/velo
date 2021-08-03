@@ -50,7 +50,7 @@
                 console.log('filters:', filters)
             });
 
-            function send_moderated_items_set() {
+            async function send_moderated_items_set() {
               let cl_filters = new Set()
 
                 {#let is_any_filter_class = false;#}
@@ -74,26 +74,28 @@
                 let filters_arr = encodeURIComponent(JSON.stringify(filter_dict));
                 console.log(filters_arr)
 
-                $.ajax({
-                    type: "POST",
-                    contentType: "application/json; charset=utf-8",
-                    url: "/images/save_changes",
-                    data: JSON.stringify(filter_dict),
-                    success: [],
-                    dataType: "json"
-                }).done(function () {
-                    console.log('done')
-                    return filters_arr
-                }).fail(function (response) {
-                    console.log(response)
-                    console.log('fail?')
-                    return filters_arr
-                });
+                var jqxhr = $.post( "/images/save_changes", filters_arr);
+
+                return filters_arr
+                {#    .done(function () {#}
+                {#    console.log('done')#}
+                {#    return filters_arr#}
+                {# }).fail(function (response) {#}
+                {#    console.log(response)#}
+                {#    console.log('fail?')#}
+                {#    return filters_arr#}
+                {# });#}
             }
 
             $('#apply_filters_btn').click(function () {
                 let filters_arr = send_moderated_items_set();
                 window.location = version_name + '&page=1&items=' + items + '&filters=' + filters_arr;
+                {#send_moderated_items_set().then( response =>#}
+                {#  console.log(response)#}
+                {##}
+                {#);#}
+                {#let filters_arr = send_moderated_items_set();#}
+
             });
 
             $('#div-save-changes').click(function () {
