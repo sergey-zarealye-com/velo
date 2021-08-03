@@ -4,7 +4,6 @@
 import json
 import math
 import ntpath
-import os
 from collections import Counter
 from typing import Dict
 
@@ -209,8 +208,6 @@ def browse(selected, page=1, items=50, filters=None):
                            items=items,
                            changed=changed,
                            filters=cur_filters)
-
-
 
 
 if __name__ == '__main__':

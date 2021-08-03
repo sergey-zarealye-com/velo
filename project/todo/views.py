@@ -1,6 +1,7 @@
 # project/users/views.py
 
 # IMPORTS
+import json
 import os.path
 import shutil
 import uuid
@@ -163,6 +164,7 @@ def moderate(item_id):
     rows_of_interesting = Moderation.query.filter_by(id=film_id).all()
     images_paths = [row.file for row in rows_of_interesting]
     images_paths = [images_path for i, images_path in enumerate(natural_sort(images_paths))]
+    req_values = json.loads(list(request.form)[0])
     for k, v in req_values.items():
         images_path = images_paths[int(k)]
         category = v

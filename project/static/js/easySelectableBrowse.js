@@ -153,7 +153,44 @@ options = null;
     $(document).ready(function () {
         $('#easySelectable').easySelectable();
 
+        $('#no_class').click(function () {
+            let save_btn = $('#navbar_top')
+            selected_items_set.forEach((item) => {
+                document.getElementById('text_class_' + item["li"][0].id).innerHTML = '';
+
+                item["li"].removeClass(es_selected_has_class).trigger('unselected');
+                item["li"].removeClass(es_selected_no_class).trigger('unselected');
+                item["li"].removeClass(es_selected_has_class_del).trigger('unselected');
+
+                item["li"].data("has-class", false);
+                item["li"].data("has-select", false);
+                item["li"].data("deleted", false);
+                item["li"].addClass(es_unselected_has_class).trigger('selected');
+                if (item["li"][0].id in moderated_items_set) {
+                    delete moderated_items_set[item["li"][0].id]
+                }
+                item["div"].trigger('unselected');
+                options.onSelecting(item["li"]);
+                options.onUnSelected(item["li"]);
+            });
+            selected_items_set.clear();
+            update_selected_items_text();
+            $('#changed_items_amount').html("Changed (" + Object.keys(moderated_items_set).length + ")");
+            if (save_btn != null){
+                if (Object.keys(moderated_items_set).length){
+                    save_btn.show()
+                } else {
+                    save_btn.hide()
+                }
+
+            }
+        })
+
         $('[id^="class_id_"]').click(function () {
+            let save_btn = $('#navbar_top')
+            let del_btn = document.getElementById('class_id_0')
+            // let no_class_btn = document.getElementById('class_id_no_class')
+
             selected_items_set.forEach((item) => {
                 document.getElementById('text_class_' + item["li"][0].id).innerHTML = $(this).text();
 
@@ -163,16 +200,21 @@ options = null;
 
                 item["li"].data("has-class", true);
                 item["li"].data("has-select", false);
-                if ($(this).text() == document.getElementById('class_id_0').innerHTML) {
-                    item["li"].data("deleted", true);
-                    item["li"].addClass(es_unselected_has_class_del).trigger('selected');
-                    moderated_items_set[item["li"][0].id] = {"cl": "-1", "ver": item["li"][0].getAttribute("ver")}
-                } else {
-                    item["li"].data("deleted", false);
-                    item["li"].addClass(es_unselected_has_class).trigger('selected');
-                    moderated_items_set[item["li"][0].id] = {"cl": $(this)[0].getAttribute("cl_id"), "ver": item["li"][0].getAttribute("ver")}
-
+                let f = true
+                if (del_btn != null){
+                    if ($(this).text() == del_btn.innerHTML) {
+                        item["li"].data("deleted", true);
+                        item["li"].addClass(es_unselected_has_class_del).trigger('selected');
+                        moderated_items_set[item["li"][0].id] = {"cl": "-1", "ver": item["li"][0].getAttribute("ver")}
+                        f = false
+                    }
                 }
+                if (f) {
+                        item["li"].data("deleted", false);
+                        item["li"].addClass(es_unselected_has_class).trigger('selected');
+                        moderated_items_set[item["li"][0].id] = {"cl": $(this)[0].getAttribute("cl_id"), "ver": item["li"][0].getAttribute("ver")}
+                }
+
 
                 item["div"].trigger('unselected');
                 options.onSelecting(item["li"]);
@@ -181,7 +223,14 @@ options = null;
             selected_items_set.clear();
             update_selected_items_text();
             $('#changed_items_amount').html("Changed (" + Object.keys(moderated_items_set).length + ")");
-            // $(this).prop( "checked", false );
+            if (save_btn != null){
+                if (Object.keys(moderated_items_set).length){
+                    save_btn.show()
+                } else {
+                    save_btn.hide()
+                }
+
+            }
         });
 
         $('#browse_delete_imgs').click(function () {
@@ -191,7 +240,7 @@ options = null;
 
         $('#save_btn').click(function () {
             console.log('ajax')
-            $.post("/todo/moderate/" + $('#save_btn').attr("value"), moderated_items_set);
+            $.post("/todo/moderate/" + $('#save_btn').attr("value"), encodeURIComponent(JSON.stringify(moderated_items_set)));
             window.location.href = '/todo/index';
             // $.ajax({
             //    type: "POST",

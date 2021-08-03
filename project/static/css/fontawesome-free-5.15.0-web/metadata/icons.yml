@@ -6984,7 +6984,7 @@ figma:
   label: Figma
   search:
     terms:
-      - app
+      - celery_app
       - design
       - interface
   styles:
@@ -10841,7 +10841,7 @@ intercom:
   label: Intercom
   search:
     terms:
-      - app
+      - celery_app
       - customer
       - messenger
   styles:
@@ -10867,7 +10867,7 @@ invision:
   label: InVision
   search:
     terms:
-      - app
+      - celery_app
       - design
       - interface
   styles:
@@ -15653,7 +15653,7 @@ rocket:
   search:
     terms:
       - aircraft
-      - app
+      - celery_app
       - jet
       - launch
       - nasa
@@ -16695,7 +16695,7 @@ sketch:
   label: Sketch
   search:
     terms:
-      - app
+      - celery_app
       - design
       - interface
   styles:
