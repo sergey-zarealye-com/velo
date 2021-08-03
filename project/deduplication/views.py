@@ -14,7 +14,7 @@ from flask import (
 from flask_login import current_user, login_required
 from project import app
 
-from project.models import Deduplication, Version
+from project.models import DataItems, Deduplication, Version
 from project.datasets.views import fillup_tmp_table, get_labels_of_version
 
 
@@ -45,7 +45,20 @@ def temporary_remove():
 
 @dedup_blueprint.route('/uploads/<path:filename>')
 def download_file(filename):
-    return send_from_directory(os.environ.get('STORAGE_DIR'), filename, as_attachment=True)
+    entry = DataItems.query.filter_by(id=filename).first()
+
+    if not entry:
+        abort(404)
+
+    storage_path = entry.path
+    path, file = os.path.split(storage_path)
+
+    if path[0] == '/':
+        path = path[1:]
+
+    directory = os.path.join(os.getenv('STORAGE_DIR'), path)
+
+    return send_from_directory(directory, file, as_attachment=True)
 
 
 @dedup_blueprint.route('/task_confirmation/<task_id>/<selected>/<is_dedup>')
