@@ -50,7 +50,7 @@
                 console.log('filters:', filters)
             });
 
-            async function send_moderated_items_set() {
+            function send_moderated_items_set() {
               let cl_filters = new Set()
 
                 {#let is_any_filter_class = false;#}
@@ -74,8 +74,6 @@
                 let filters_arr = encodeURIComponent(JSON.stringify(filter_dict));
                 console.log(filters_arr)
 
-                var jqxhr = $.post( "/images/save_changes", filters_arr);
-
                 return filters_arr
                 {#    .done(function () {#}
                 {#    console.log('done')#}
@@ -89,18 +87,22 @@
 
             $('#apply_filters_btn').click(function () {
                 let filters_arr = send_moderated_items_set();
-                window.location = version_name + '&page=1&items=' + items + '&filters=' + filters_arr;
-                {#send_moderated_items_set().then( response =>#}
-                {#  console.log(response)#}
-                {##}
-                {#);#}
-                {#let filters_arr = send_moderated_items_set();#}
-
+                $.post( "/images/save_changes", filters_arr, function(response) {
+                    window.location = version_name + '&page=1&items=' + items + '&filters=' + filters_arr;
+                });
             });
 
             $('#div-save-changes').click(function () {
                 console.log('qwe')
                 let filters_arr = send_moderated_items_set();
+                $.post( "/images/save_changes", filters_arr, function(response) {
+                    if (response == "Ok"){
+                        $('#navbar_text').text('Save changes');
+                        $('#navbar_top').hide();
+                    } else {
+                        $('#navbar_text').text('Some problems occurred, saving failed. Try again');
+                    }
+                });
             })
 
             let setting = {
@@ -133,7 +135,7 @@
 {% endblock %}
 <nav id="navbar_top" class="navbar navbar-expand-lg navbar-dark bg-primary">
  <div class="container" id="div-save-changes">
- 	 <div class="navbar-brand">Save changes</div>
+ 	 <div class="navbar-brand" id="navbar_text"></div>
  </div> <!-- container-fluid.// -->
 </nav>
 {% extends "_base.html" %}

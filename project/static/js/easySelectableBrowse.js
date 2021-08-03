@@ -155,6 +155,7 @@ options = null;
 
         $('#no_class').click(function () {
             let save_btn = $('#navbar_top')
+            let save_text = $('#navbar_text')
             selected_items_set.forEach((item) => {
                 document.getElementById('text_class_' + item["li"][0].id).innerHTML = '';
 
@@ -178,6 +179,7 @@ options = null;
             $('#changed_items_amount').html("Changed (" + Object.keys(moderated_items_set).length + ")");
             if (save_btn != null){
                 if (Object.keys(moderated_items_set).length){
+                    save_text.text('Save changes');
                     save_btn.show()
                 } else {
                     save_btn.hide()
@@ -188,6 +190,7 @@ options = null;
 
         $('[id^="class_id_"]').click(function () {
             let save_btn = $('#navbar_top')
+            let save_text = $('#navbar_text')
             let del_btn = document.getElementById('class_id_0')
             // let no_class_btn = document.getElementById('class_id_no_class')
 
@@ -225,6 +228,7 @@ options = null;
             $('#changed_items_amount').html("Changed (" + Object.keys(moderated_items_set).length + ")");
             if (save_btn != null){
                 if (Object.keys(moderated_items_set).length){
+                    save_text.text('Save changes');
                     save_btn.show()
                 } else {
                     save_btn.hide()
