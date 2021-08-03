@@ -51,11 +51,9 @@
             });
 
             function send_moderated_items_set() {
-              let cl_filters = new Set()
+                let cl_filters = new Set()
 
-                {#let is_any_filter_class = false;#}
                 $('[id^="filter_class_"]').each(function () {
-                    {#is_any_filter_class = true#}
                     if (this.checked) {
                         cl_filters.add(this.value)
                     }
@@ -67,36 +65,38 @@
                     "uncommitted": $('#special-control-filter1b').prop('checked')
                 }
 
+                let items_to_save = {}
                 if (Object.keys(moderated_items_set).length) {
-                    filter_dict["moderated_items"] = moderated_items_set
-                    filter_dict["node_name"] = version_name
+                    items_to_save["moderated_items"] = moderated_items_set
+                    items_to_save["node_name"] = version_name
                 }
                 let filters_arr = encodeURIComponent(JSON.stringify(filter_dict));
+                items_to_save = encodeURIComponent(JSON.stringify(items_to_save));
                 console.log(filters_arr)
 
-                return filters_arr
-                {#    .done(function () {#}
-                {#    console.log('done')#}
-                {#    return filters_arr#}
-                {# }).fail(function (response) {#}
-                {#    console.log(response)#}
-                {#    console.log('fail?')#}
-                {#    return filters_arr#}
-                {# });#}
+                return {filters_arr: filters_arr, items_to_save: items_to_save}
             }
 
             $('#apply_filters_btn').click(function () {
-                let filters_arr = send_moderated_items_set();
-                $.post( "/images/save_changes", filters_arr, function(response) {
+                let {filters_arr, items_to_save} = send_moderated_items_set();
+                $.post("/images/save_changes", items_to_save, function (response) {
                     window.location = version_name + '&page=1&items=' + items + '&filters=' + filters_arr;
                 });
             });
 
+            $('.page-item').click(function () {
+                console.log(this)
+                let page = this.getAttribute('data-lp')
+                let {filters_arr, items_to_save} = send_moderated_items_set();
+                $.post("/images/save_changes", items_to_save, function (response) {
+                    window.location = version_name + '&page='+page+'&items=' + items;
+                });
+            });
+
             $('#div-save-changes').click(function () {
-                console.log('qwe')
-                let filters_arr = send_moderated_items_set();
-                $.post( "/images/save_changes", filters_arr, function(response) {
-                    if (response == "Ok"){
+                let {filters_arr, items_to_save} = send_moderated_items_set();
+                $.post("/images/save_changes", items_to_save, function (response) {
+                    if (response == "Ok") {
                         $('#navbar_text').text('Save changes');
                         $('#navbar_top').hide();
                     } else {
@@ -134,9 +134,9 @@
     </script>
 {% endblock %}
 <nav id="navbar_top" class="navbar navbar-expand-lg navbar-dark bg-primary">
- <div class="container" id="div-save-changes">
- 	 <div class="navbar-brand" id="navbar_text"></div>
- </div> <!-- container-fluid.// -->
+    <div class="container" id="div-save-changes">
+        <div class="navbar-brand" id="navbar_text"></div>
+    </div> <!-- container-fluid.// -->
 </nav>
 {% extends "_base.html" %}
 {% block title %}Browse{% endblock %}

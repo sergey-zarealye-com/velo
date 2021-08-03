@@ -70,6 +70,7 @@ def save_changes():
             return "Failed"
         data = json.loads(data[0])
         if "moderated_items" in data:
+            print('=======> save_changes')
             splitted_items = split_items(data)
             try:
                 uncommited = splitted_items.get("uncommited")
