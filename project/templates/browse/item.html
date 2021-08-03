@@ -74,31 +74,35 @@
                 let filters_arr = encodeURIComponent(JSON.stringify(filter_dict));
                 console.log(filters_arr)
 
-                $.ajax({
-                    type: "POST",
-                    contentType: "application/json; charset=utf-8",
-                    url: "/images/save_changes",
-                    data: JSON.stringify(filter_dict),
-                    success: [],
-                    dataType: "json"
-                }).done(function () {
-                    console.log('done')
-                    return filters_arr
-                }).fail(function (response) {
-                    console.log(response)
-                    console.log('fail?')
-                    return filters_arr
-                });
+                return filters_arr
+                {#    .done(function () {#}
+                {#    console.log('done')#}
+                {#    return filters_arr#}
+                {# }).fail(function (response) {#}
+                {#    console.log(response)#}
+                {#    console.log('fail?')#}
+                {#    return filters_arr#}
+                {# });#}
             }
 
             $('#apply_filters_btn').click(function () {
                 let filters_arr = send_moderated_items_set();
-                window.location = version_name + '&page=1&items=' + items + '&filters=' + filters_arr;
+                $.post( "/images/save_changes", filters_arr, function(response) {
+                    window.location = version_name + '&page=1&items=' + items + '&filters=' + filters_arr;
+                });
             });
 
             $('#div-save-changes').click(function () {
                 console.log('qwe')
                 let filters_arr = send_moderated_items_set();
+                $.post( "/images/save_changes", filters_arr, function(response) {
+                    if (response == "Ok"){
+                        $('#navbar_text').text('Save changes');
+                        $('#navbar_top').hide();
+                    } else {
+                        $('#navbar_text').text('Some problems occurred, saving failed. Try again');
+                    }
+                });
             })
 
             let setting = {
@@ -131,7 +135,7 @@
 {% endblock %}
 <nav id="navbar_top" class="navbar navbar-expand-lg navbar-dark bg-primary">
  <div class="container" id="div-save-changes">
- 	 <div class="navbar-brand">Save changes</div>
+ 	 <div class="navbar-brand" id="navbar_text"></div>
  </div> <!-- container-fluid.// -->
 </nav>
 {% extends "_base.html" %}

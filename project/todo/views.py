@@ -3,6 +3,7 @@
 # IMPORTS
 import os.path
 import shutil
+import json
 
 from pathlib import Path
 import logging
@@ -155,7 +156,7 @@ def moderate(item_id):
         version = Version.query.filter_by(name=session['selected_version']).first()
     else:
         abort(400)
-    req_values = request.values
+    req_values = json.loads(list(request.form)[0])
     print(req_values)
     film_id = ToDoItem.query.filter_by(id=item_id).first().id
     rows_of_interesting = Moderation.query.filter_by(id=film_id).all()

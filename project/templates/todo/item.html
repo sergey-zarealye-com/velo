@@ -22,7 +22,7 @@
                             <div class="card-columns easySelectable" id="easySelectable">
                                 {% for frame in frames %}
                                     <li class="card border-secondary mb-3 selectable-item" style="max-width: 13rem;" id="{{ frame[0] }}"
-                                        value="{{ frame[1] }}" has-class="false" has-select="false">
+                                        ver="{{ frame[1] }}" has-class="false" has-select="false">
                                         <div class="card-header text-center"
                                         id="text_class_{{ frame[0] }}"></div>
                                         <div class="card-body text-primary" style="padding: 5px">
@@ -45,11 +45,18 @@
                                 </a>
                             </h5>
                         </div>
-                            {% for categ in categs[task] %}
+{#                            {% for categ in categs[task] %}#}
+{#                                <div class="form-check" style="padding: 0px; margin-bottom:5px;">#}
+{#                                    <button type="button" class="btn btn-outline-info" id="class_id_{{ loop.index }}"#}
+{#                                            style="width: 100%">{{ categ.name }}</button>#}
+{#                                  </label>#}
+{#                                </div>#}
+{#                            {% endfor %}#}
+                            {% for value in categs[1] %}
                                 <div class="form-check" style="padding: 0px; margin-bottom:5px;">
                                     <button type="button" class="btn btn-outline-info" id="class_id_{{ loop.index }}"
-                                            style="width: 100%">{{ categ.name }}</button>
-                                  </label>
+                                            cl_id="{{ value["id"] }}"
+                                            style="width: 100%">{{ value["name"] }}</button>
                                 </div>
                             {% endfor %}
                             <div class="form-check" style="padding: 0px; margin-bottom:5px;">
