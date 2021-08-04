@@ -60,38 +60,6 @@ def split_items(data) -> Dict:
     return splited
 
 
-# @images_blueprint.route('/save_changes', methods=['POST'])
-# def save_changes():
-#     """Записывает в БД изменения классов"""
-#     if request.method == "POST":
-#         data = request.json
-#         with open("example.json", "w") as f:
-#             json.dump(data, f)
-#         if "moderated_items" in data:
-#             splitted_items = split_items(data)
-#             try:
-#                 uncommited = splitted_items.get("uncommited")
-#                 if len(uncommited):
-#                     # Незакомиченные записи обновляются в таблице TmpTable
-#                     update_uncommited_items(db, uncommited)
-#                 commited = splitted_items.get("commited")
-#                 if len(commited):
-#                     # Закомиченные записи не изменяются - в таблицу version items добавляются
-#                     # новые записи
-#                     node_id = get_id_by_name(data['node_name'])
-#                     objects = [VersionItems(item_id=item_id,
-#                                             version_id=node_id,
-#                                             category_id=int(moderation['cl']))
-#                                for item_id, moderation in commited.items()]
-#                     db.session.bulk_save_objects(objects)
-#                 db.session.commit()
-#             except Exception as ex:
-#                 db.session.rollback()
-#                 message = Markup(
-#                     "<strong>Error!</strong> Unable to commit changes " + str(ex))
-#                 flash(message, 'danger')
-#     return "Ok"
-
 @images_blueprint.route('/save_changes', methods=['POST'])
 def save_changes():
     """Записывает в БД изменения классов"""
@@ -102,33 +70,23 @@ def save_changes():
             return "Failed"
         data = json.loads(data[0])
         if "moderated_items" in data:
-            node_id = get_id_by_name(data['node_name'])
-            # Уже имеющиеся изменения
-            changed = get_changed_items(db.session, node_id)
-            # Эти записи будут добавлены
-            new_changes = []
-            # Эти записи - обновлены
-            updates = []
-            for item_id, moderation in data.get("moderated_items").items():
-                if int(item_id) not in changed:
-                    obj = Changes(
-                        version_id=node_id,
-                        item_id=int(item_id),
-                        new_category=int(moderation.get("cl"))
-                    )
-                    new_changes.append(obj)
-                else:
-                    upd_item = dict(
-                        v_id=node_id,
-                        itm_id=int(item_id),
-                        category=int(moderation.get("cl"))
-                    )
-                    updates.append(upd_item)
+            print('=======> save_changes')
+            splitted_items = split_items(data)
             try:
-                if len(new_changes):
-                    db.session.bulk_save_objects(new_changes)
-                if len(updates):
-                    update_changes(db, updates)
+                uncommited = splitted_items.get("uncommited")
+                if len(uncommited):
+                    # Незакомиченные записи обновляются в таблице TmpTable
+                    update_uncommited_items(db, uncommited)
+                commited = splitted_items.get("commited")
+                if len(commited):
+                    # Закомиченные записи не изменяются - в таблицу version items добавляются
+                    # новые записи
+                    node_id = get_id_by_name(data['node_name'])
+                    objects = [VersionItems(item_id=item_id,
+                                            version_id=node_id,
+                                            category_id=int(moderation['cl']))
+                               for item_id, moderation in commited.items()]
+                    db.session.bulk_save_objects(objects)
                 db.session.commit()
             except Exception as ex:
                 app.logger.error(ex)
