@@ -1,4 +1,0 @@
-aio_pika
-pyyaml
-nest_asyncio
-validators==0.18.2

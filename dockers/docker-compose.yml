@@ -4,19 +4,43 @@ services:
   rabbit:
     image: rabbitmq:3-management
     ports:
-      - 15673:15672
+      - 15672:15672
       - 5672:5672
+    networks:
+      - main
+
+  redis:
+    image: redis
+    ports:
+      - 6379:6379
+    networks:
+      - main
+
   ffmpeg:
     image: moderation
     depends_on:
-      - rabbit
+      - redis
     volumes:
-      - <path_to_project>:/storage
+      - /home/alexey/PycharmProjects/Napoleon/velo/:/storage
+    links:
+      - redis
+    environment:
+      - DOCKER_USE=1
+      - STORAGE_PATH=/storage
+    networks:
+      - main
+
   improsch:
     image: improsch
     depends_on:
       - rabbit
     volumes:
-      - <storage_dir>:/image_storage
-      - <dedup_index>:/dedup_index
+      - /storage1/mrowl/image_storage/:/image_storage
+      - /storage1/mrowl/dedup_index/:/dedup_index
+    networks:
+      - main
     runtime: nvidia
+
+
+networks:
+  main:

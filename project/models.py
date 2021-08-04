@@ -257,7 +257,7 @@ class Category(db.Model):
         return [(1, 'Vision'),
                 (2, 'NLP')]
 
-    def __init__(self, name, version_id, task, description, position=None):
+    def __init__(self, name, version_id, task, description=None, position=None):
         self.name = name
         self.version_id = version_id
 
@@ -340,8 +340,8 @@ class TmpTable(db.Model):
 
 class Moderation(db.Model):
     __tablename__ = 'moderation'
-    src = db.Column(db.String, nullable=False)
-    file = db.Column(db.String, nullable=False)
+    src = db.Column(db.String, nullable=False, unique=False)
+    file = db.Column(db.String, nullable=False, unique=False)
     src_media_type = db.Column(db.String, nullable=False)
     category = db.Column(db.String, nullable=False)
     description = db.Column(db.String, nullable=True)
@@ -434,3 +434,11 @@ class Changes(db.Model):
     __table_args__ = (
         PrimaryKeyConstraint('version_id', 'item_id'),
     )
+
+
+class CeleryTask(db.Model):
+    __tablename__ = 'eelerytasks'
+    task_id = db.Column(db.String, primary_key=True, nullable=False)
+
+    def __init__(self, task_id):
+        self.task_id = task_id

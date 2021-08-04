@@ -16,6 +16,5 @@ RUN wget \
     && mkdir /root/.conda \
     && bash Miniconda3-py38_4.10.3-Linux-x86_64.sh -b \
     && rm -f Miniconda3-py38_4.10.3-Linux-x86_64.sh
-
 RUN conda install pytorch torchvision cudatoolkit=10.2 -c pytorch
 RUN yes | conda install -c pytorch faiss-gpu
