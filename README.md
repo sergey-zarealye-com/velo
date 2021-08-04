@@ -51,7 +51,14 @@ flask db upgrade
    docker-compose up # show logs docker-compose up -d # detached
 5. Примерно после 3-5 секунд сервис готов к работе, можно запускать flask
 
-## 4. Deploy
+## 4. Celery worker
+
+1. В директории project/celery собрать образ:
+   ```
+   docker build -t moderation .
+   ```
+
+## 5. Deploy
 
 1. Run locally
     1. Open Postgres.app

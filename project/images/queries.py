@@ -2,10 +2,10 @@ from collections import namedtuple
 from contextlib import closing
 from typing import List, Dict
 
-from sqlalchemy import update
+from sqlalchemy import update, and_
 from sqlalchemy import bindparam
 
-from project.models import DataItems, VersionItems, Category, TmpTable, Version, Diff
+from project.models import DataItems, VersionItems, Category, TmpTable, Version, Diff, Changes
 
 version_item = namedtuple("VersionItem", "id,version,path,label,class_id")
 
@@ -32,6 +32,20 @@ def get_items_of_version(sess, version_id: List[int]) -> List[version_item]:
                          ) for item in query.all()]
 
 
+def get_changed_items(sess, node_id: int) -> Dict:
+    query = sess.query(Changes, Category) \
+        .filter(Changes.version_id == node_id)
+    query = query.join(Category, Category.id == Changes.new_category, isouter=True)
+    res = query.all()
+    changed_items = {}
+    for item in res:
+        if item.Category:
+            changed_items[item.Changes.item_id] = item.Category.id
+        else:
+            changed_items[item.Changes.item_id] = None
+    return changed_items
+
+
 def get_id_by_name(node_name: str) -> int:
     id = Version \
         .query \
@@ -55,30 +69,20 @@ def get_uncommited_items(sess, node_name: str) -> List[version_item]:
                          ) for item in query.all()]
 
 
-def uncommited_items_filter(sess, item_ids) -> List[int]:
-    """Возвращает id только незакомиченных объектов"""
-    query = sess.query(TmpTable) \
-        .filter(TmpTable.item_id.in_(item_ids))
-    return [item.item_id for item in query.all()]
-
-
-def update_uncommited_items(db, uncommited: Dict) -> None:
+def update_changes(db, changes: List[Dict]) -> None:
+    """Обновить записи в таблице изменений"""
     stmt = (
-        update(TmpTable).
-            where(TmpTable.item_id == bindparam('id')).
-            values(category_id=bindparam('new_category'))
+        update(Changes).
+            where(
+            and_(
+                Changes.version_id == bindparam('v_id'),
+                Changes.item_id == bindparam('itm_id'))).
+            values(new_category=bindparam('category'))
     )
-    update_values = []
-    for item_id, moderation in uncommited.items():
-        upd_item = dict(
-            id=item_id,
-            new_category=int(moderation['cl'])
-        )
-        update_values.append(upd_item)
     with db.engine.begin() as conn:
         conn.execute(
             stmt,
-            update_values
+            changes
         )
     return
 
@@ -91,8 +95,8 @@ if __name__ == '__main__':
     Session = sessionmaker(bind=engine)
     session = Session()
     with closing(session) as sess:
-        res = get_items_of_version(sess, [2])
-        # res = get_items_of_version(session, [1, 2])
+        # res = get_items_of_version_with_changes(sess, [2, 3])
+        res = get_items_of_version(session, [1, 2])
         for item in res:
             print(f"Item id: {item.id}")
             print(f"Item path: {item.path}")

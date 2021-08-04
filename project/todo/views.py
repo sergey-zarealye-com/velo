@@ -1,28 +1,31 @@
 # project/users/views.py
 
 # IMPORTS
+import json
 import os.path
 import shutil
+import uuid
 
 from pathlib import Path
 import logging
 import pandas as pd
 import transliterate
+from celery.result import AsyncResult
 from flask import render_template, Blueprint, request, redirect, url_for
 from flask import flash, Markup, abort, session
 from flask_login import current_user, login_required
 from datetime import datetime
 
 from project import db
-from project.models import Version, Category, ToDoItem, Moderation
+from project.models import Version, Category, ToDoItem, Moderation, CeleryTask
 from .utils import natural_sort
 from .forms import NewBatchForm
 
 # CONFIG
 from ..datasets.queries import get_labels_of_version
-from ..datasets.utils import pulling_queue
 from ..datasets.views import fillup_tmp_table
 from project.todo.utils import create_video_task
+from project.celery.tasks import app
 
 todo_blueprint = Blueprint('todo', __name__,
                            template_folder='templates',
@@ -47,36 +50,35 @@ def index():
         message = Markup("There was no version found!")
         flash(message, 'warning')
         return redirect(url_for('datasets.index'))
-    # ToDo подумать как сделать лаконичнее (потом)
-    while not pulling_queue.empty():
-        data = pulling_queue.get()
 
-        # path = ABS_PATH.joinpath(data['task_id'], 'thumbs')
-        storage_dir = os.getenv("MODERATION_STORAGE_DIR")
-        assert storage_dir, "Variable STORAGE_DIR is not defined in .flaskenv!"
+    # ToDo написать обработку получения результатов для отображения
+    tasks = CeleryTask.query.distinct("task_id").all()
+    for task in tasks:
+        task_id = task.task_id
+        task_res = AsyncResult(task_id, app=app)
+        if task_res.state == 'SUCCESS':
+            data = task_res.info
+            path = ABS_PATH.joinpath(data['id'], 'thumbs')
+            file_list = os.listdir(path)
+            objects = []
+            for file in file_list:
+                sample_path = os.path.join(path, file)
+                item2moderate = Moderation(src=str(path),
+                                           file=sample_path,
+                                           src_media_type="VIDEO",  # ToDO расхардкодить
+                                           category=data["cat"],
+                                           description=data["description"],
+                                           title=data["title"],
+                                           id=data["video_id"])
+                objects.append(item2moderate)
+            try:
+                db.session.bulk_save_objects(objects, return_defaults=True)
+                CeleryTask.query.filter_by(task_id=task_id).delete()
+                db.session.commit()
+            except Exception as ex:
+                log.error(ex)
+                db.session.rollback()
 
-        path = os.path.join(storage_dir, data['task_id'], 'thumbs')
-
-        file_list = os.listdir(path)
-        objects = []
-        for file in file_list:
-            sample_path = os.path.join(path, file)
-            item2moderate = Moderation(src=str(path),
-                                       file=sample_path,
-                                       src_media_type="VIDEO", #ToDO расхардкодить
-                                       category=data["cat"],
-                                       description=data["description"],
-                                       title=data["title"],
-                                       id=data["video_id"])
-            objects.append(item2moderate)
-        try:
-            db.session.bulk_save_objects(objects, return_defaults=True)
-            db.session.commit()
-        except Exception as ex:
-            log.error(ex)
-            db.session.rollback()
-
-    print("В def index() ", id(pulling_queue))
     q = Moderation.query.distinct("id").all()
     for i, t in enumerate(q):
         todo = ToDoItem.query.filter_by(id=t.id).first()
@@ -136,7 +138,6 @@ def item(item_id):
         categs[task[0]] = Category.list(task[0], version.name)
     rows_of_interesting = Moderation.query.filter_by(id=todo.id).all()
     images_paths = [Path(row.file) for row in rows_of_interesting]
-    print(images_paths)
     images_paths = [(images_path.anchor.join(images_path.parts[-3:]), i) for i, images_path in enumerate(natural_sort(images_paths))]
     return render_template('todo/item.html', todo=todo,
                            categs=categs,
@@ -155,15 +156,15 @@ def moderate(item_id):
         version = Version.query.filter_by(name=session['selected_version']).first()
     else:
         abort(400)
-    req_values = request.values
+    req_values = json.loads(list(request.form)[0])
     print(req_values)
     film_id = ToDoItem.query.filter_by(id=item_id).first().id
     rows_of_interesting = Moderation.query.filter_by(id=film_id).all()
     images_paths = [row.file for row in rows_of_interesting]
     images_paths = [images_path for i, images_path in enumerate(natural_sort(images_paths))]
     for k, v in req_values.items():
-        images_path = images_paths[int(k)]
-        category = v
+        images_path = images_paths[int(v['ver'])]
+        category = Category.query.filter_by(id=int(v['cl'])).first().name
         if not os.path.exists(os.path.join(SAVE_PATH, category)):
             os.mkdir(os.path.join(SAVE_PATH, category))
         shutil.move(images_path, os.path.join(SAVE_PATH, category, transliterate.translit(Path(images_path).name, 'ru', reversed=True)))
@@ -204,8 +205,15 @@ def new_batch():
             else:
                 max_id = 0
             for i, (path, cat, title, description) in enumerate(zip(paths, cats, titles, descriptions), start=max_id+1):
-                # ToDo написать по человечески
-                create_video_task(path, version.id, cat, description, title, i)
+                task_id = str(uuid.uuid4())
+                task_meta = create_video_task(task_id, path, version.id, cat, description, title, i)
+                if task_meta is not None:
+                    task = CeleryTask(
+                        task_meta.task_id
+                    )
+                    db.session.add(task)
+            db.session.commit()
+
             return redirect(url_for('todo.index'))
     return render_template('todo/new_batch.html',
                            form=form)
