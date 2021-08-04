@@ -16,8 +16,8 @@ from markupsafe import Markup
 from project import app, db
 from project.datasets.queries import get_nodes_above
 from project.images.queries import get_items_of_version, get_uncommited_items, uncommited_items_filter, \
-     get_id_by_name, update_changes, get_changed_items
-from project.models import Version, Category, VersionItems, Changes
+    get_id_by_name, update_changes, get_changed_items
+from project.models import Version, Category, Changes
 
 # CONFIG
 images_blueprint = Blueprint('images', __name__,
@@ -48,54 +48,44 @@ def download_file(filename):
     return send_from_directory(head, tail, as_attachment=True)
 
 
-def split_items(data) -> Dict:
-    """Разделяет data items на закомиченные и не закомиченные"""
-    item_ids = list(map(int, list(data.get('moderated_items').keys())))
-    uncommited = uncommited_items_filter(db.session, item_ids)
-    commited = [id for id in item_ids if id not in uncommited]
-    splited = {
-        "commited": {id: data.get('moderated_items').get(str(id)) for id in commited},
-        "uncommited": {id: data.get('moderated_items').get(str(id)) for id in uncommited}
-    }
-    return splited
-
-
 @images_blueprint.route('/save_changes', methods=['POST'])
 def save_changes():
     """Записывает в БД изменения классов"""
     if request.method == "POST":
-        # TODO переписать по человечьи
-        data = list(request.form)
-        if len(data) == 0:
-            return "Failed"
-        data = json.loads(data[0])
-        if "moderated_items" in data:
-            print('=======> save_changes')
-            splitted_items = split_items(data)
+        data = request.json
+        if (data is not None) and ("moderated_items" in data):
+            node_id = get_id_by_name(data['node_name'])
+            # Уже имеющиеся изменения
+            changed = get_changed_items(db.session, node_id)
+            # Эти записи будут добавлены
+            new_changes = []
+            # Эти записи - обновлены
+            updates = []
+            for item_id, moderation in data.get("moderated_items").items():
+                if int(item_id) not in changed:
+                    obj = Changes(
+                        version_id=node_id,
+                        item_id=int(item_id),
+                        new_category=int(moderation.get("cl"))
+                    )
+                    new_changes.append(obj)
+                else:
+                    upd_item = dict(
+                        v_id=node_id,
+                        itm_id=int(item_id),
+                        category=int(moderation.get("cl"))
+                    )
+                    updates.append(upd_item)
             try:
-                uncommited = splitted_items.get("uncommited")
-                if len(uncommited):
-                    # Незакомиченные записи обновляются в таблице TmpTable
-                    update_uncommited_items(db, uncommited)
-                commited = splitted_items.get("commited")
-                if len(commited):
-                    # Закомиченные записи не изменяются - в таблицу version items добавляются
-                    # новые записи
-                    node_id = get_id_by_name(data['node_name'])
-                    objects = [VersionItems(item_id=item_id,
-                                            version_id=node_id,
-                                            category_id=int(moderation['cl']))
-                               for item_id, moderation in commited.items()]
-                    db.session.bulk_save_objects(objects)
+                if len(new_changes):
+                    db.session.bulk_save_objects(new_changes)
+                if len(updates):
+                    update_changes(db, updates)
                 db.session.commit()
             except Exception as ex:
                 app.logger.error(ex)
                 db.session.rollback()
-                message = Markup(
-                    "<strong>Error!</strong> Unable to commit changes " + str(ex))
-                flash(message, 'danger')
-                return "Failed"
-    return "Ok"
+        return "Ok"
 
 
 @images_blueprint.route('/browse/<selected>')
@@ -174,8 +164,6 @@ def browse(selected, page=1, items=50, filters=None):
                            items=items,
                            changed=changed,
                            filters=cur_filters)
-
-
 
 
 if __name__ == '__main__':

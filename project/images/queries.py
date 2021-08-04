@@ -76,27 +76,6 @@ def uncommited_items_filter(sess, item_ids) -> List[int]:
     return [item.item_id for item in query.all()]
 
 
-def update_uncommited_items(db, uncommited: Dict) -> None:
-    stmt = (
-        update(TmpTable).
-            where(TmpTable.item_id == bindparam('id')).
-            values(category_id=bindparam('new_category'))
-    )
-    update_values = []
-    for item_id, moderation in uncommited.items():
-        upd_item = dict(
-            id=item_id,
-            new_category=int(moderation['cl'])
-        )
-        update_values.append(upd_item)
-    with db.engine.begin() as conn:
-        conn.execute(
-            stmt,
-            update_values
-        )
-    return
-
-
 def update_changes(db, changes: List[Dict]) -> None:
     """Обновить записи в таблице изменений"""
     stmt = (

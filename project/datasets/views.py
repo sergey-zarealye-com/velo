@@ -7,7 +7,7 @@ from flask import flash, Markup, abort, session
 from sqlalchemy.exc import IntegrityError
 from flask_login import current_user, login_required
 
-from project import db
+from project import db, app
 from project.models import Version, VersionChildren, DataItems, TmpTable, Category, Changes
 from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm
 import graphviz
@@ -459,32 +459,36 @@ def commit(selected):
                 commit_categories = prepare_to_commit(db.session, selected)
                 # Незакомиченные из TmpTable - надо добавить в VersionItems и удалить из TmpTable
                 items_to_commit = commit_categories.get("uncommited")
-                if len(items_to_commit):
-                    db.session.bulk_save_objects(items_to_commit)
-                items_to_delete = commit_categories.get("uncommited_deleted")
-                if len(items_to_delete):
-                    DataItems.query.filter(DataItems.id.in_(items_to_delete)).delete(synchronize_session=False)
-                # Изменения в уже закомиченных
-                commited_changed = commit_categories.get("commited_changed")
-                if len(commited_changed):
-                    db.session.bulk_save_objects(commited_changed)
-                # Изменения для таблицы Diff (закомиченные)
-                deleted = commit_categories.get("commited_deleted")
-                if len(deleted):
-                    db.session.bulk_save_objects(deleted)
-                # Внесли все изменения, чистим таблицы
-                TmpTable.query.filter_by(node_name=selected).delete()
-                Changes.query.filter_by(version_id=version.id).delete()
-                version.status = 3
-                db.session.commit()
-                # TODO: понять что это и зачем
-                # filepaths = [
-                #     DataItems.query.filter_by(id=item.item_id).first().path for item in items_to_commit
-                # ]
-                # sending_queue.put((str(uuid.uuid4()), json.dumps({
-                #     'type': 'merge_indexes',
-                #     'files_to_keep': filepaths
-                # })))
+                try:
+                    if len(items_to_commit):
+                        db.session.bulk_save_objects(items_to_commit)
+                    items_to_delete = commit_categories.get("uncommited_deleted")
+                    if len(items_to_delete):
+                        DataItems.query.filter(DataItems.id.in_(items_to_delete)).delete(synchronize_session=False)
+                    # Изменения в уже закомиченных
+                    commited_changed = commit_categories.get("commited_changed")
+                    if len(commited_changed):
+                        db.session.bulk_save_objects(commited_changed)
+                    # Изменения для таблицы Diff (закомиченные)
+                    deleted = commit_categories.get("commited_deleted")
+                    if len(deleted):
+                        db.session.bulk_save_objects(deleted)
+                    # Внесли все изменения, чистим таблицы
+                    TmpTable.query.filter_by(node_name=selected).delete()
+                    Changes.query.filter_by(version_id=version.id).delete()
+                    version.status = 3
+                    db.session.commit()
+                except Exception as ex:
+                    app.logger.error(ex)
+                    db.session.rollback()
+
+                filepaths = [
+                    DataItems.query.filter_by(id=item.item_id).first().path for item in items_to_commit
+                ]
+                sending_queue.put((str(uuid.uuid4()), json.dumps({
+                    'type': 'merge_indexes',
+                    'files_to_keep': filepaths
+                })))
                 message = Markup("Saved successfully!")
                 flash(message, 'success')
                 return redirect(url_for('datasets.select',

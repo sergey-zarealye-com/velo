@@ -105,5 +105,4 @@ if __name__ == '__main__':
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    # node_id = get_id_by_name("v2")
     prepare_to_commit(session, "v2")
