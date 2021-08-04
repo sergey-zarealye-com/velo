@@ -15,7 +15,7 @@ from flask import (
 from flask_login import current_user, login_required
 from project import app
 
-from project.models import Deduplication, Version
+from project.models import DataItems, Deduplication, Version
 from project.datasets.views import fillup_tmp_table, get_labels_of_version
 
 
@@ -46,14 +46,27 @@ def temporary_remove():
 
 @dedup_blueprint.route('/uploads/<path:filename>')
 def download_file(filename):
-    return send_from_directory(os.environ.get('STORAGE_DIR'), filename, as_attachment=True)
+    entry = DataItems.query.filter_by(id=filename).first()
+
+    if not entry:
+        abort(404)
+
+    storage_path = entry.path
+    path, file = os.path.split(storage_path)
+
+    if path[0] == '/':
+        path = path[1:]
+
+    directory = os.path.join(os.getenv('STORAGE_DIR'), path)
+
+    return send_from_directory(directory, file, as_attachment=True)
 
 
 @dedup_blueprint.route('/task_confirmation/<task_id>/<selected>/<is_dedup>')
 def task_confirmation(task_id, selected, is_dedup):
     is_dedup = bool(int(is_dedup))
     return render_template(
-        'datasets/taskConfirmed.html',
+        'deduplication/taskConfirmed.html',
         task_id=task_id,
         selected=selected,
         is_dedup=is_dedup
@@ -106,7 +119,7 @@ def show_dedup(task_id, selected_ds):
 
     if task.result is None:
         statuses = task.stages_status
-        return render_template('datasets/taskPending.html', task_id=task.task_uid, statuses=statuses)
+        return render_template('deduplication/taskPending.html', task_id=task.task_uid, statuses=statuses)
 
     page_length = request.args.get("num_items")
     page_num = request.args.get("page_num")
@@ -114,7 +127,7 @@ def show_dedup(task_id, selected_ds):
     dedup_result = task.result.get('deduplication')
 
     if not dedup_result:
-        return render_template('datasets/taskFinished.html', task_id=task.task_uid)
+        return render_template('deduplication/taskFinished.html', task_id=task.task_uid)
 
     if not task_id in temporary_storage:
         images = [
@@ -132,7 +145,7 @@ def show_dedup(task_id, selected_ds):
         images = list(filter(lambda x: not x['removed'], temporary_storage[task_id]))
 
     return render_template(
-        'datasets/deduplication4.html',
+        'deduplication/deduplication4.html',
         images=images,
         task_id=task_id,
         selected_ds=selected_ds,

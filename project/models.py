@@ -1,3 +1,4 @@
+from typing import Optional
 from sqlalchemy import PrimaryKeyConstraint
 from sqlalchemy.orm import relationship
 
@@ -314,6 +315,18 @@ class DataItems(db.Model):
         cascade="all, delete",
         passive_deletes=True
     )
+
+    def add_if_not_exists(path: str) -> int:
+        entry = DataItems.query.filter_by(path=path).first()
+
+        if entry:
+            return entry.id
+
+        entry = DataItems(path=path)
+        db.session.add(entry)
+        db.session.flush()
+
+        return entry.id
 
 
 class VersionItems(db.Model):
