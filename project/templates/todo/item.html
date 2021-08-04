@@ -22,7 +22,7 @@
                             <div class="card-columns easySelectable" id="easySelectable">
                                 {% for frame in frames %}
                                     <li class="card border-secondary mb-3 selectable-item" style="max-width: 13rem;" id="{{ frame[0] }}"
-                                        value="{{ frame[1] }}" has-class="false" has-select="false">
+                                        ver="{{ frame[1] }}" has-class="false" has-select="false">
                                         <div class="card-header text-center"
                                         id="text_class_{{ frame[0] }}"></div>
                                         <div class="card-body text-primary" style="padding: 5px">
@@ -36,19 +36,34 @@
                         </div>
                         <div class="col-2">
                         <div class="sticky-top" style="top: 30px">
-
-                        <h5>Select visual class:</h5>
-                            {% for categ in categs[task] %}
+                        <div>
+                            <h5>
+                                Select visual class:
+                                <a href="{{url_for('maintenance.categ_help', task_id=task)}}"
+                                   target="_blank" role="button">
+                                    <i class="fas fa-info-circle"></i>
+                                </a>
+                            </h5>
+                        </div>
+{#                            {% for categ in categs[task] %}#}
+{#                                <div class="form-check" style="padding: 0px; margin-bottom:5px;">#}
+{#                                    <button type="button" class="btn btn-outline-info" id="class_id_{{ loop.index }}"#}
+{#                                            style="width: 100%">{{ categ.name }}</button>#}
+{#                                  </label>#}
+{#                                </div>#}
+{#                            {% endfor %}#}
+                            {% for value in categs[1] %}
                                 <div class="form-check" style="padding: 0px; margin-bottom:5px;">
                                     <button type="button" class="btn btn-outline-info" id="class_id_{{ loop.index }}"
-                                            style="width: 100%">{{ categ.name }}</button>
-{#                                  <input class="form-check-input" type="radio" name="radio_class_selector"#}
-{#                                         id="class_id_{{ loop.index }}" value="{{ categ.name }}">#}
-{#                                  <label class="form-check-label" for="class_id_{{ categ.id }}">#}
-{#                                    {{ categ.name }}#}
-                                  </label>
+                                            cl_id="{{ value["id"] }}"
+                                            style="width: 100%">{{ value["name"] }}</button>
                                 </div>
                             {% endfor %}
+                            <div class="form-check" style="padding: 0px; margin-bottom:5px;">
+                                <button type="button" class="btn btn-outline-warning" id="no_class"
+                                        style="width: 100%">No class
+                                </button>
+                            </div>
                         <h5 id="selected_items_amount">Selected (0)</h5>
                         <div id="selected_items_list"></div>
                         </div>
