@@ -33,8 +33,9 @@ def gen_prime(x):
 def processing_function(self, thumbs_dir, input_fname, input_fname_stem, img_ext, id, storage_dir=None, cat=None,
                         description=None, title=None, video_id=None):
     # self.update_state(state='STARTED')
-    #TODO убрать костыль для докера
-    storage_dir = f"{STORAGE_PATH}/{'/'.join(storage_dir.split(sep='/')[-4:])}" if STORAGE_PATH else storage_dir
+    #TODO убрать костыль для докера локального хранения
+    ind = storage_dir.find('project')
+    storage_dir = f"{STORAGE_PATH}/{storage_dir[ind:]}" if STORAGE_PATH else storage_dir
 
     thumbs_dir = os.path.join(storage_dir, thumbs_dir)
     is_link = validators.url(input_fname)
