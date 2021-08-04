@@ -438,6 +438,14 @@ class Diff(db.Model):
     )
 
 
+class CeleryTask(db.Model):
+    __tablename__ = 'celerytasks'
+    task_id = db.Column(db.String, primary_key=True, nullable=False)
+
+    def __init__(self, task_id):
+        self.task_id = task_id
+
+
 class Changes(db.Model):
     __tablename__ = 'changes'
     version_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False)
