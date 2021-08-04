@@ -52,7 +52,11 @@ def download_file(filename):
 def save_changes():
     """Записывает в БД изменения классов"""
     if request.method == "POST":
-        data = request.json
+        # TODO переписать по человечьи
+        data = list(request.form)
+        if len(data) == 0:
+            return "Failed"
+        data = json.loads(data[0])
         if (data is not None) and ("moderated_items" in data):
             node_id = get_id_by_name(data['node_name'])
             # Уже имеющиеся изменения
