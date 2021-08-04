@@ -265,14 +265,29 @@
             <div class="col-10">
                 <div class="card-columns easySelectable" id="easySelectable">
                     {% for item in version_items %}
-                        <li class="card border-secondary mb-3 selectable-item"
-                            style="max-width: 13rem;"
-                            has-class="false"
+                        <li style="max-width: 13rem;"
+                            {% if item["id"] in changed %}
+{#                                {% set has-class = "true" %}#}
+                                has-class="true"
+                                {% if changed[item["id"]] == None %}
+                                    class="card border-danger mb-3 selectable-item"
+                                    deleted="true"
+                                {% else %}
+                                    class="card mb-3 selectable-item border-success"
+                                    deleted="false"
+                                {% endif %}
+                            {% else %}
+                                class="card border-secondary mb-3 selectable-item"
+                                has-class="false"
+                                deleted="false"
+                            {% endif %}
                             has-select="false"
-                            deleted="false"
                             ver="{{ item["version"] }}"
                             id="{{ item["id"] }}">
                             <div class="card-header text-center" id="text_class_{{ item["id"] }}">{{ item["label"] }}
+                                {% if item["id"] in changed %}
+                                    changed
+                                {% endif %}
                             </div>
                             <div class="card-body text-primary" style="padding: 5px">
                                 <img class="card-img"
@@ -307,7 +322,7 @@
                                 style="width: 100%">Delete
                         </button>
                     </div>
-                    <h5 id="selected_items_amount">Selected (0)</h5>
+                    <h5 id="selected_items_amount">Unsaved (0)</h5>
                     <h5 id="changed_items_amount">Changed (0)</h5>
                 </div>
             </div>
