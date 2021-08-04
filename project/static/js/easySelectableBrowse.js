@@ -45,21 +45,21 @@ options = null;
                 $(this).trigger('start_select');
                 var offset = $(this).offset();
                 // var hasClass = $(this).hasClass('es-selected');
-                var hasSelect = $(this).data("has-select");
+                var hasSelect = $(this).attr("has-select");
                 var prev_el = false;
                 el.on('mouseover', options.item, function (e) {
                     if (prev_el == $(this).index()) return true;
                     prev_el = $(this).index();
-                    var hasClass2 = $(this).data("has-select");
+                    var hasClass2 = $(this).attr("has-select");
 
                     for (var cur_class in all_cards_classes){
                         console.log(all_cards_classes[cur_class])
                         $(this).removeClass(all_cards_classes[cur_class])
                     }
 
-                    if (!hasClass2) {
-                        if ($(this).data("has-class")) {
-                            if ($(this).data("deleted")) {
+                    if (!(hasClass2 == 'true')) {
+                        if ($(this).attr("has-class") == 'true') {
+                            if ($(this).attr("deleted") == 'true') {
                                 $(this).addClass(es_selected_has_class_del).trigger('selected');
                             } else {
                                 $(this).addClass(es_selected_has_class).trigger('selected');
@@ -67,15 +67,15 @@ options = null;
                         } else {
                             $(this).addClass(es_selected_no_class).trigger('selected');
                         }
-                        $(this).data("has-select", true)
+                        $(this).attr("has-select", true)
                         el.trigger('selected');
                         options.onSelecting($(this));
                         options.onSelected($(this));
                         selected_items_set.add({"li": $(this), "div": el});
                         update_selected_items_text();
                     } else {
-                        if ($(this).data("has-class")) {
-                            if ($(this).data("deleted")) {
+                        if ($(this).attr("has-class") == 'true') {
+                            if ($(this).attr("deleted") == 'true') {
                                 $(this).addClass(es_unselected_has_class_del).trigger('unselected');
                             } else {
                                 $(this).addClass(es_unselected_has_class).trigger('unselected');
@@ -83,7 +83,7 @@ options = null;
                         } else {
                             $(this).addClass(es_unselected_no_class).trigger('unselected');
                         }
-                        $(this).data("has-select", false)
+                        $(this).attr("has-select", false)
                         el.trigger('unselected');
                         options.onSelecting($(this))
                         options.onUnSelected($(this));
@@ -100,10 +100,10 @@ options = null;
                     console.log(all_cards_classes[cur_class])
                     $(this).removeClass(all_cards_classes[cur_class])
                 }
-                if (!hasSelect) {
+                if (!(hasSelect == 'true')) {
                     prev_el = $(this).index();
-                    if ($(this).data("has-class")) {
-                        if ($(this).data("deleted")) {
+                    if ($(this).attr("has-class") == 'true') {
+                        if ($(this).attr("deleted") == 'true') {
                             $(this).addClass(es_selected_has_class_del).trigger('selected');
                         } else {
                             $(this).addClass(es_selected_has_class).trigger('selected');
@@ -111,7 +111,7 @@ options = null;
                     } else {
                         $(this).addClass(es_selected_no_class).trigger('selected');
                     }
-                    $(this).data("has-select", true)
+                    $(this).attr("has-select", true)
                     el.trigger('selected');
                     options.onSelecting($(this));
                     options.onSelected($(this));
@@ -119,8 +119,8 @@ options = null;
                     update_selected_items_text();
                 } else {
                     prev_el = $(this).index();
-                    if ($(this).data("has-class")) {
-                        if ($(this).data("deleted")) {
+                    if ($(this).attr("has-class") == 'true') {
+                        if ($(this).attr("deleted") == 'true') {
                             $(this).addClass(es_unselected_has_class_del).trigger('unselected');
                         } else {
                             $(this).addClass(es_unselected_has_class).trigger('unselected');
@@ -128,7 +128,7 @@ options = null;
                     } else {
                         $(this).addClass(es_unselected_no_class).trigger('unselected');
                     }
-                    $(this).data("has-select", false)
+                    $(this).attr("has-select", false)
                     el.trigger('unselected');
                     options.onSelecting($(this));
                     options.onUnSelected($(this));
@@ -163,9 +163,9 @@ options = null;
                 item["li"].removeClass(es_selected_no_class).trigger('unselected');
                 item["li"].removeClass(es_selected_has_class_del).trigger('unselected');
 
-                item["li"].data("has-class", false);
-                item["li"].data("has-select", false);
-                item["li"].data("deleted", false);
+                item["li"].attr("has-class", false);
+                item["li"].attr("has-select", false);
+                item["li"].attr("deleted", false);
                 item["li"].addClass(es_unselected_has_class).trigger('selected');
                 if (item["li"][0].id in moderated_items_set) {
                     delete moderated_items_set[item["li"][0].id]
@@ -201,19 +201,19 @@ options = null;
                 item["li"].removeClass(es_selected_no_class).trigger('unselected');
                 item["li"].removeClass(es_selected_has_class_del).trigger('unselected');
 
-                item["li"].data("has-class", true);
-                item["li"].data("has-select", false);
+                item["li"].attr("has-class", true);
+                item["li"].attr("has-select", false);
                 let f = true
                 if (del_btn != null){
                     if ($(this).text() == del_btn.innerHTML) {
-                        item["li"].data("deleted", true);
+                        item["li"].attr("deleted", true);
                         item["li"].addClass(es_unselected_has_class_del).trigger('selected');
                         moderated_items_set[item["li"][0].id] = {"cl": "-1", "ver": item["li"][0].getAttribute("ver")}
                         f = false
                     }
                 }
                 if (f) {
-                        item["li"].data("deleted", false);
+                        item["li"].attr("deleted", false);
                         item["li"].addClass(es_unselected_has_class).trigger('selected');
                         moderated_items_set[item["li"][0].id] = {"cl": $(this)[0].getAttribute("cl_id"), "ver": item["li"][0].getAttribute("ver")}
                 }
@@ -246,29 +246,10 @@ options = null;
             console.log('ajax')
             $.post("/todo/moderate/" + $('#save_btn').attr("value"), encodeURIComponent(JSON.stringify(moderated_items_set)));
             window.location.href = '/todo/index';
-            // $.ajax({
-            //    type: "POST",
-            //    contentType: "application/json; charset=utf-8",
-            //    url: "/todo/moderate/"+$('#save_btn').attr("value"),
-            //    data: JSON.stringify({"id": moderated_items_set}),
-            //    success: [],
-            //    dataType: "json"
-            // }).done(function(){
-            //    // $('#message').html('test');
-            //     console.log('/todo/index')
-            //     window.location.href = '/todo/index';
-            // }).fail(function(response){
-            //     console.log(response)
-            //     console.log('fail?')
-            //     console.log('/todo/index')
-            //     // $("html").html(response)
-            //     window.location.href = '/todo/index';
-            //    // $('#message').html(response['responseText']);
-            // });
         });
     })
 
     function update_selected_items_text() {
-        $('#selected_items_amount').html("Selected (" + selected_items_set.size + ")");
+        $('#selected_items_amount').html("Unsaved (" + selected_items_set.size + ")");
     }
 })(jQuery);
