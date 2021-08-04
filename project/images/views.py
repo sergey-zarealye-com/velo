@@ -6,7 +6,6 @@ import math
 import os
 import ntpath
 from collections import Counter
-from typing import Dict
 
 from flask import render_template, Blueprint, redirect, url_for, flash, request
 from flask import abort, session, send_from_directory
@@ -15,8 +14,8 @@ from markupsafe import Markup
 
 from project import app, db
 from project.datasets.queries import get_nodes_above
-from project.images.queries import get_items_of_version, get_uncommited_items, uncommited_items_filter, \
-    get_id_by_name, update_changes, get_changed_items
+from project.images.queries import get_items_of_version, get_uncommited_items, get_id_by_name, update_changes, \
+    get_changed_items
 from project.models import Version, Category, Changes
 
 # CONFIG

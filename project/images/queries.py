@@ -69,13 +69,6 @@ def get_uncommited_items(sess, node_name: str) -> List[version_item]:
                          ) for item in query.all()]
 
 
-def uncommited_items_filter(sess, item_ids) -> List[int]:
-    """Возвращает id только незакомиченных объектов"""
-    query = sess.query(TmpTable) \
-        .filter(TmpTable.item_id.in_(item_ids))
-    return [item.item_id for item in query.all()]
-
-
 def update_changes(db, changes: List[Dict]) -> None:
     """Обновить записи в таблице изменений"""
     stmt = (
