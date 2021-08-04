@@ -53,7 +53,6 @@ options = null;
                     var hasClass2 = $(this).attr("has-select");
 
                     for (var cur_class in all_cards_classes){
-                        console.log(all_cards_classes[cur_class])
                         $(this).removeClass(all_cards_classes[cur_class])
                     }
 
@@ -97,7 +96,6 @@ options = null;
                     }
                 });
                 for (var cur_class in all_cards_classes){
-                    console.log(all_cards_classes[cur_class])
                     $(this).removeClass(all_cards_classes[cur_class])
                 }
                 if (!(hasSelect == 'true')) {
@@ -243,7 +241,6 @@ options = null;
 
 
         $('#save_btn').click(function () {
-            console.log('ajax')
             $.post("/todo/moderate/" + $('#save_btn').attr("value"), encodeURIComponent(JSON.stringify(moderated_items_set)));
             window.location.href = '/todo/index';
         });
