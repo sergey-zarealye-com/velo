@@ -1,11 +1,16 @@
-version: "2.3"
+version: '2.3'
 
 services:
   rabbit:
     image: rabbitmq:3-management
     ports:
+<<<<<<< HEAD
       - 15672:15672
       - 5672:5672
+=======
+      - 15674:15672
+      - 5674:5672
+>>>>>>> fix_tmp_rm
     networks:
       - main
 
@@ -21,7 +26,7 @@ services:
     depends_on:
       - redis
     volumes:
-      - /home/alexey/PycharmProjects/Napoleon/velo_data/:/storage
+      - /storage1/mrowl/image_storage/videos:/storage
     links:
       - redis
     environment:

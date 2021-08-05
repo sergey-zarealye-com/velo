@@ -141,12 +141,14 @@ def get_message(queue_name: str, queue):
 
                                 updated_deduplication: List[Tuple[str, str, int]] = []
 
-                                for path1, path2, similarity in deduplication_result:
-                                    updated_deduplication.append((
-                                        path_to_id[path1],
-                                        path_to_id[path2],
-                                        similarity
-                                    ))
+                                for item_index, (path1, path2, similarity) in enumerate(deduplication_result):
+                                    updated_deduplication.append({
+                                        'item_index': item_index,
+                                        'image1': path_to_id[path1],
+                                        'image2': path_to_id[path2],
+                                        'similarity': similarity,
+                                        'removed': False
+                                    })
 
                                 response['deduplication'] = updated_deduplication
 

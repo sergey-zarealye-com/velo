@@ -4,5 +4,5 @@ saving_pool_size: 3
 dedup_batch_size: 64
 rabbit_login: guest
 rabbit_passw: guest
-rabbit_port: 5673
+rabbit_port: 5672
 rabbit_host: 127.0.0.1
