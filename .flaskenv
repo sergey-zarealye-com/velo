@@ -4,9 +4,9 @@ APP_SETTINGS="config.DevelopmentConfig"
 SECRET_KEY="123"
 #SET DATABASE URL IF YOU ARE NOT USING SQLITE
 DATABASE_URL="postgresql://velo:123@localhost:5432/velo"
-STORAGE_DIR = '/storage1/mrowl/image_storage'
-MODERATION_STORAGE_DIR = '/storage1/mrowl/image_storage/videos'
+STORAGE_DIR = '/home/alexey/PycharmProjects/Napoleon/velo_image_storage'
+MODERATION_STORAGE_DIR = '/home/alexey/PycharmProjects/Napoleon/velo_data'
 RABBIT_LOGIN = 'guest'
 RABBIT_PASSW = 'guest'
-RABBIT_PORT = 5673
-RABBIT_HOST = '127.0.0.1'
+RABBIT_PORT = 5672
+RABBIT_HOST = localhost

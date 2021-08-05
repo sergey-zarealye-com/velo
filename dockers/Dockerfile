@@ -1,4 +1,4 @@
-FROM python:3.8-buster
+FROM nvidia/cuda:11.0-base
 WORKDIR /improch
 
 ENV PATH="/root/miniconda3/bin:${PATH}"
