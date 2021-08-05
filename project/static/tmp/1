@@ -1,7 +1,24 @@
 digraph "dsvers" {
         init[URL="/datasets/select/init", style="bold", fillcolor="white"];
-test1[URL="/datasets/select/test1", style="filled,bold", fillcolor="lightgrey"];
+adas[URL="/datasets/select/adas", style="", fillcolor="white"];
+ds2[URL="/datasets/select/ds2", style="bold", fillcolor="white"];
+ds21[URL="/datasets/select/ds21", style="", fillcolor="white"];
+ds3[URL="/datasets/select/ds3", style="bold", fillcolor="white"];
+ds31[URL="/datasets/select/ds31", style="", fillcolor="white"];
+abcd[URL="/datasets/select/abcd", style="", fillcolor="white"];
+fhtagn[URL="/datasets/select/fhtagn", style="bold", fillcolor="white"];
+ctulhu[URL="/datasets/select/ctulhu", style="", fillcolor="white"];
+rleh[URL="/datasets/select/rleh", style="", fillcolor="white"];
+lgknrs[URL="/datasets/select/lgknrs", style="bold", fillcolor="white"];
+lgjelnd[URL="/datasets/select/lgjelnd", style="", fillcolor="white"];
+_123[URL="/datasets/select/_123", style="bold", fillcolor="white"];
+pfefg[URL="/datasets/select/pfefg", style="filled", fillcolor="lightgrey"];
 
-        init->test1;
+        init->adas;
+ds2->ds21;
+ds3->ds31;
+fhtagn->ctulhu;
+lgknrs->lgjelnd;
+_123->pfefg;
 
         }

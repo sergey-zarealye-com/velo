@@ -407,7 +407,7 @@
         <form method="POST" action="{{ url_for('deduplication.save_result', task_id=task_id, selected_ds=selected_ds) }}">
             <aside class="sidebar">
                 <div class="component">
-                    <button class="input">Delete checked</button>
+                    <button class="input" action="submit" name="delete_btn" value="delete_checked">Delete checked</button>
                     <button class="button" onclick="uncheck_all({{ count_items }});">Uncheck all</button>
                 </div>
             </aside>
@@ -431,7 +431,7 @@
                 </div>
                 <br/>
             {% endfor %}
-            <input type="submit" action="submit">
+            <input type="submit" action="submit" name="submit_btn" value="save_result">
         </form>
     </article>
 </main>

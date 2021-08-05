@@ -1,8 +1,8 @@
-storage_path: /home/s/Documents/xxx/tmp/image_storage
-dedup_index_path: /home/s/Documents/xxx/tmp/tmp_storage
+storage_path: /storage1/mrowl/image_storage
+dedup_index_path: /storage1/mrowl/dedup_index
 saving_pool_size: 3
 dedup_batch_size: 64
 rabbit_login: guest
 rabbit_passw: guest
-rabbit_port: 5672
+rabbit_port: 5673
 rabbit_host: 127.0.0.1
