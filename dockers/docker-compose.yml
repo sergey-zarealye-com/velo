@@ -1,4 +1,4 @@
-version: "3"
+version: "2.3"
 
 services:
   rabbit:
@@ -25,11 +25,11 @@ services:
     links:
       - redis
     environment:
-      - DOCKER_USE: 1
-      - STORAGE_PATH: /storage
-      - AWS_ENDPOINT_URL: "${DATABASE_URL}"
-      - AWS_ACCESS_KEY_ID: "${miniouser}"
-      - AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+      - DOCKER_USE=1
+      - STORAGE_PATH=/image_storage
+      - AWS_ENDPOINT_URL= "${DATABASE_URL}"
+      - AWS_ACCESS_KEY_ID= "${miniouser}"
+      - AWS_SECRET_ACCESS_KEY= "${AWS_SECRET_ACCESS_KEY}"
     networks:
       - main
 
