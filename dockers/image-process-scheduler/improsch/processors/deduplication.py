@@ -19,6 +19,7 @@ from copy import deepcopy
 import logging
 import argparse
 import json
+import torch
 
 
 log = logging.getLogger(__name__)
@@ -40,6 +41,7 @@ class NNfeatureExtractor(FeatureExtractor, torch.nn.Module):
             raise AttributeError("Not supported model:", torch_model_name)
 
         torch.nn.Module.__init__(self)
+        print('\t\tIS CUDA AVAILABLE', torch.cuda.is_available())
 
         # self.model = torch.hub.load(
         #     repo,
@@ -62,28 +64,52 @@ class NNfeatureExtractor(FeatureExtractor, torch.nn.Module):
             self,
             images: np.ndarray,
             batch_size: int,
-            device: str = 'cuda'
+            device: str = 'cpu'
             # device: str = 'cpu'
     ) -> np.ndarray:
         # if not isinstance(images, torch.Tensor):
         #     images = torch.Tensor(images).permute(0, 3, 1, 2)
+        print('\tCalculating on', device)
+        import sys
+        sys.stdout.flush()
 
+        print('\tTRYING TO PREPROCESS')
+        print('\tCONUT OF IMAGES:', len(images))
+        print('\tSHAPES:', images[0].shape, images[1].shape)
+        sys.stdout.flush()
         images = torch.stack([self.preprocess(img) for img in images])
+        print('\tIMAGES STACK')
+        sys.stdout.flush()
 
         dataset = torch.utils.data.TensorDataset(images)
+        print('\tDATASET BUILDED')
+        sys.stdout.flush()
         dataloader = torch.utils.data.DataLoader(
             dataset, shuffle=False, drop_last=False,
             batch_size=batch_size  # TODO num_workers and pin_memory
         )
+        print('Builded dataloader')
+        sys.stdout.flush()
 
         self.model.to(device)
         embeddings = []
+        print('MODEL MOVED TO DEVICE', device)
+        sys.stdout.flush()
 
+        print('\tBEFORE NO GRAD')
+        sys.stdout.flush()
         with torch.no_grad():
+            print('\tAFTER NO GRAD')
+            sys.stdout.flush()
             for image_batch, in dataloader:
+                print(f'\t\tCalculation iteration')
+                sys.stdout.flush()
                 image_batch = image_batch.to(device)
                 embed = self.model(image_batch).cpu().numpy()
                 embeddings.append(embed)
+
+        print('FINISHED CALCULATIONS')
+        sys.stdout.flush()
 
         return np.concatenate(embeddings)
 
@@ -349,8 +375,15 @@ class Deduplicator:
         saving_index_proc.start()
 
     def __call__(self, images: List[np.ndarray], imagenames: List[str], data_dir: str, batch_size: int) -> None:
+        import sys
+        print('\tGetting embeddings...')
+        sys.stdout.flush()
         embeddings = self._get_embeddings(images, batch_size)
+        print('\tGot embeddings')
+        sys.stdout.flush()
         neighbours = self.process_embeddings(embeddings, imagenames, data_dir)
+        print('\tFinish')
+        sys.stdout.flush()
         # save index in parallel thread
         self.save_index()
 
