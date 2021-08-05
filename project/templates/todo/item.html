@@ -12,46 +12,47 @@
 {% from "_formshelper.html" import render_field %}
 {% block content %}
 
-{#    <form method="POST" action="{{ url_for('todo.moderate', item_id=todo.id) }}">#}
-        <div class="container">
-            {% for task in categs.keys() %}
-                {% if task == 1 %}
-                    <div class="row">
-                        <div class="col-10">
-                            <h5>{{ tasks[task] }}</h5>
-                            <div class="card-columns easySelectable" id="easySelectable">
-                                {% for frame in frames %}
-                                    <li class="card border-secondary mb-3 selectable-item" style="max-width: 13rem;" id="{{ frame[0] }}"
-                                        ver="{{ frame[1] }}" has-class="false" has-select="false">
-                                        <div class="card-header text-center"
-                                        id="text_class_{{ frame[0] }}"></div>
-                                        <div class="card-body text-primary" style="padding: 5px">
+    {#    <form method="POST" action="{{ url_for('todo.moderate', item_id=todo.id) }}">#}
+    <div class="container">
+        {% for task in categs.keys() %}
+            {% if task == 1 %}
+                <div class="row">
+                    <div class="col-10">
+                        <h5>{{ tasks[task] }}</h5>
+                        <div class="card-columns easySelectable" id="easySelectable">
+                            {% for frame in frames %}
+                                <li class="card border-secondary mb-3 selectable-item" style="max-width: 13rem;"
+                                    id="{{ frame[0] }}"
+                                    ver="{{ frame[1] }}" has-class="false" has-select="false">
+                                    <div class="card-header text-center"
+                                         id="text_class_{{ frame[0] }}"></div>
+                                    <div class="card-body text-primary" style="padding: 5px">
                                         <img class="card-img"
-                                             src="{{ url_for('static', filename='images/tmp/' + frame[0]) }}"
+                                             src="{{ url_for('images.download_file', filename=frame[0]) }}"
                                              alt="...***...">
-                                        </div>
-                                    </li>
-                                {% endfor %}
-                            </div>
+                                    </div>
+                                </li>
+                            {% endfor %}
                         </div>
-                        <div class="col-2">
+                    </div>
+                    <div class="col-2">
                         <div class="sticky-top" style="top: 30px">
-                        <div>
-                            <h5>
-                                Select visual class:
-                                <a href="{{url_for('maintenance.categ_help', task_id=task)}}"
-                                   target="_blank" role="button">
-                                    <i class="fas fa-info-circle"></i>
-                                </a>
-                            </h5>
-                        </div>
-{#                            {% for categ in categs[task] %}#}
-{#                                <div class="form-check" style="padding: 0px; margin-bottom:5px;">#}
-{#                                    <button type="button" class="btn btn-outline-info" id="class_id_{{ loop.index }}"#}
-{#                                            style="width: 100%">{{ categ.name }}</button>#}
-{#                                  </label>#}
-{#                                </div>#}
-{#                            {% endfor %}#}
+                            <div>
+                                <h5>
+                                    Select visual class:
+                                    <a href="{{ url_for('maintenance.categ_help', task_id=task) }}"
+                                       target="_blank" role="button">
+                                        <i class="fas fa-info-circle"></i>
+                                    </a>
+                                </h5>
+                            </div>
+                            {#                            {% for categ in categs[task] %}#}
+                            {#                                <div class="form-check" style="padding: 0px; margin-bottom:5px;">#}
+                            {#                                    <button type="button" class="btn btn-outline-info" id="class_id_{{ loop.index }}"#}
+                            {#                                            style="width: 100%">{{ categ.name }}</button>#}
+                            {#                                  </label>#}
+                            {#                                </div>#}
+                            {#                            {% endfor %}#}
                             {% for value in categs[1] %}
                                 <div class="form-check" style="padding: 0px; margin-bottom:5px;">
                                     <button type="button" class="btn btn-outline-info" id="class_id_{{ loop.index }}"
@@ -64,69 +65,69 @@
                                         style="width: 100%">No class
                                 </button>
                             </div>
-                        <h5 id="selected_items_amount">Unsaved (0)</h5>
-                        <div id="selected_items_list"></div>
-                        </div>
+                            <h5 id="selected_items_amount">Unsaved (0)</h5>
+                            <div id="selected_items_list"></div>
                         </div>
                     </div>
-                {% else %}
-                    <div class="row">
-                        <div class="col-9">
-                            <h5>{{ tasks[task] }}</h5>
-                            <dl class="row">
-                                <dt class="col-2">Title</dt>
-                                <dd class="col-10">{{ todo.title }}</dd>
-                                <dt class="col-2">Description</dt>
-                                <dd class="col-10">{{ todo.description }}</dd>
-                                <dt class="col-2">Audio</dt>
-                                <dd class="col-10">{{ todo.audio }}
-                                    Жительница американского штата Массачусетс Джоанна Гарделл угнала пикап со
-                                    строительной площадки, после чего устроила дебош на дороге. Остановить ее удалось
-                                    только после того, как женщина решила заказать еду в McDonald's, сообщает FoxNews.
-                                    За время поездки она неоднократно проезжала на красный свет, выезжала на встречную
-                                    полосу, причем во время одного из таких маневров столкнулась с фургоном.
-                                    Владелец пикапа оснастил его GPS-трекером, поэтому полиция смогла вычислить
-                                    нахождение автомобиля без продолжения преследования. Они позвонили в McDonald's и
-                                    попросили сотрудников задержать заказ.
-                                    Но когда полицейские попытались арестовать Гарделл, она заявила, что пикап
-                                    принадлежит ей, после чего протаранила патрульную машину, другой автомобиль
-                                    посетителя ресторана, а затем выехала на траву и застряла. В итоге женщину
-                                    задержали, ей предъявлены многочисленные обвинения. Возможная причина ее поведения
-                                    не сообщается.
-                                </dd>
-                            </dl>
-                        </div>
-                        <div class="col-3">
+                </div>
+            {% else %}
+                <div class="row">
+                    <div class="col-9">
+                        <h5>{{ tasks[task] }}</h5>
+                        <dl class="row">
+                            <dt class="col-2">Title</dt>
+                            <dd class="col-10">{{ todo.title }}</dd>
+                            <dt class="col-2">Description</dt>
+                            <dd class="col-10">{{ todo.description }}</dd>
+                            <dt class="col-2">Audio</dt>
+                            <dd class="col-10">{{ todo.audio }}
+                                Жительница американского штата Массачусетс Джоанна Гарделл угнала пикап со
+                                строительной площадки, после чего устроила дебош на дороге. Остановить ее удалось
+                                только после того, как женщина решила заказать еду в McDonald's, сообщает FoxNews.
+                                За время поездки она неоднократно проезжала на красный свет, выезжала на встречную
+                                полосу, причем во время одного из таких маневров столкнулась с фургоном.
+                                Владелец пикапа оснастил его GPS-трекером, поэтому полиция смогла вычислить
+                                нахождение автомобиля без продолжения преследования. Они позвонили в McDonald's и
+                                попросили сотрудников задержать заказ.
+                                Но когда полицейские попытались арестовать Гарделл, она заявила, что пикап
+                                принадлежит ей, после чего протаранила патрульную машину, другой автомобиль
+                                посетителя ресторана, а затем выехала на траву и застряла. В итоге женщину
+                                задержали, ей предъявлены многочисленные обвинения. Возможная причина ее поведения
+                                не сообщается.
+                            </dd>
+                        </dl>
+                    </div>
+                    <div class="col-3">
 
-                            <div class="card m-4">
+                        <div class="card m-4">
 
-                                <div class="card-header">
-                                    <h5>{{ tasks[task] }}</h5>
-                                </div>
-                                <ul class="list-group list-group-flush">
-                                    {% for categ in categs[task] %}
-                                        <li class="list-group-item">
-                                            <div class="form-check">
-                                                <input name="categ_task[{{ task }}]_categ[{{ categ.id }}]"
-                                                       class="form-check-input" type="checkbox">
-                                                <label class="form-check-label" for="defaultCheck1">
-                                                    {{ categ.name }}
-                                                </label>
-                                            </div>
-
-                                        </li>
-                                    {% endfor %}
-                                </ul>
+                            <div class="card-header">
+                                <h5>{{ tasks[task] }}</h5>
                             </div>
+                            <ul class="list-group list-group-flush">
+                                {% for categ in categs[task] %}
+                                    <li class="list-group-item">
+                                        <div class="form-check">
+                                            <input name="categ_task[{{ task }}]_categ[{{ categ.id }}]"
+                                                   class="form-check-input" type="checkbox">
+                                            <label class="form-check-label" for="defaultCheck1">
+                                                {{ categ.name }}
+                                            </label>
+                                        </div>
+
+                                    </li>
+                                {% endfor %}
+                            </ul>
                         </div>
                     </div>
-                {% endif %}
-            {% endfor %}
-            <div class="text-center">
-                <button class="btn btn-danger btn-lg" id="save_btn" value="{{ todo.id }}">Save</button>
-            </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+        <div class="text-center">
+            <button class="btn btn-danger btn-lg" id="save_btn" value="{{ todo.id }}">Save</button>
         </div>
-{#    </form>#}
+    </div>
+    {#    </form>#}
 
 
 {% endblock %}

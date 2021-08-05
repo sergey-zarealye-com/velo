@@ -68,6 +68,7 @@ def create_video_task(task_id, data_path_str: str, labels: Dict[str, int], cat, 
     media_type = get_media_type(data_path)
     if media_type == MediaType.VIDEO:
         storage_dir = os.getenv("MODERATION_STORAGE_DIR", '/home/alexey/PycharmProjects/Napoleon/velo/project/static/images/tmp')
+        storage_dir = os.path.join(storage_dir, 'tmp')
         assert storage_dir, "Variable STORAGE_DIR is not defined in .flaskenv!"
 
         task_dir = os.path.join(storage_dir, task_id)
