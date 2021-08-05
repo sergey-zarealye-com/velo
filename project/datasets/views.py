@@ -24,7 +24,8 @@ from multiprocessing import Process, Queue
 from .rabbitmq_connector import send_message, get_message
 import json
 import uuid
-from project.datasets.queries import get_labels_of_version, get_nodes_above, get_items_of_nodes, prepare_to_commit
+from project.datasets.queries import get_labels_of_version, get_nodes_above, get_items_of_nodes, prepare_to_commit, \
+    get_items_of_nodes_with_label
 from project.datasets.utils import get_data_samples
 
 log = logging.getLogger(__name__)
@@ -642,11 +643,16 @@ def checkout(selected):
     if version is None:
         abort(404)
     nodes = get_nodes_above(db.session, version.id)
-    data_items = get_items_of_nodes(nodes)
-    files = [item.path for item in data_items]
+    data_items = get_items_of_nodes_with_label(nodes)
     task = upload_files_to_storage.delay(
         version.name,
-        files
+        data_items
     )
     return redirect(url_for('datasets.select', selected=version.name))
 
+
+if __name__ == '__main__':
+    # data_items = get_items_of_nodes([8, 9])
+    # print(data_items)
+    items = get_items_of_nodes_with_label([8, 9])
+    print(items)
