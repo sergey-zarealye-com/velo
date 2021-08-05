@@ -21,7 +21,7 @@ services:
     depends_on:
       - redis
     volumes:
-      - /home/alexey/PycharmProjects/Napoleon/velo/:/storage
+      - /home/alexey/PycharmProjects/Napoleon/velo_data/:/storage
     links:
       - redis
     environment:
