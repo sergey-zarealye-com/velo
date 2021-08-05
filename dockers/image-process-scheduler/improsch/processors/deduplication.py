@@ -2,7 +2,7 @@
 Includes model for features extraction and model for neighbours searching."""
 from functools import partial
 import logging
-from multiprocessing import Pool
+from torch.multiprocessing import Pool
 import os
 from threading import Thread
 from typing import Dict, List, Optional, Tuple, Union
@@ -64,7 +64,7 @@ class NNfeatureExtractor(FeatureExtractor, torch.nn.Module):
             self,
             images: np.ndarray,
             batch_size: int,
-            device: str = 'cpu'
+            device: str = 'cuda'
             # device: str = 'cpu'
     ) -> np.ndarray:
         # if not isinstance(images, torch.Tensor):
@@ -77,7 +77,8 @@ class NNfeatureExtractor(FeatureExtractor, torch.nn.Module):
         print('\tCONUT OF IMAGES:', len(images))
         print('\tSHAPES:', images[0].shape, images[1].shape)
         sys.stdout.flush()
-        images = torch.stack([self.preprocess(img) for img in images])
+        # images = torch.stack([self.preprocess(img) for img in images])
+        images = torch.Tensor(images)
         print('\tIMAGES STACK')
         sys.stdout.flush()
 
@@ -252,12 +253,21 @@ class ImageIndex:
 
 class Deduplicator:
     def __init__(self, index_path: Optional[str], pool_size: Optional[int], create_new: bool = False) -> None:
+        import sys
+        print('\CREATING FFE')
+        sys.stdout.flush()
         self.feature_extractor = NNfeatureExtractor('googlenet')
+        print('\tFFE CREATED')
+        sys.stdout.flush()
 
+        print('\tCREATING IMAGEINDEX')
+        sys.stdout.flush()
         if create_new:
             self.index = ImageIndex(feat_dim=1024)
         else:
             self.index = ImageIndex(index_path)
+        print('\tIMAGEINDEX CREATED')
+        sys.stdout.flush()
 
         self.pool_size = pool_size or 1
         self.index_path = index_path

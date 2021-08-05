@@ -29,10 +29,19 @@ async def main(
         # Declaring queue
         queue = await channel.declare_queue(queue_name, auto_delete=False)
 
+        import sys
         async with queue.iterator() as queue_iter:
+            print('\tQUEUE ITERATOR')
+            sys.stdout.flush()
             async for message in queue_iter:
+                print('\tMESSAGE')
+                sys.stdout.flush()
                 async with message.process():
+                    print('\PROCESS')
+                    sys.stdout.flush()
                     options = json.loads(message.body.decode('utf-8'))
+                    print('\tGOT MESSAGE!')
+                    sys.stdout.flush()
                     processing_queue.put(options)
 
 

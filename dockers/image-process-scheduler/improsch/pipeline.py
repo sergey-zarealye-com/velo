@@ -16,12 +16,19 @@ class Preprocessor:
             dedup_batch_size: int,
             dedup_index_path: str
     ):
+        import sys
+        print('\tCREATING PREPROCESSOR')
+        sys.stdout.flush()
         create_new = True
         if os.path.isdir(dedup_index_path):
             if os.path.isfile(os.path.join(dedup_index_path, 'index.faiss')):
                 create_new = False
 
+        print('\tCREATING DEDUP')
+        sys.stdout.flush()
         self.deduplicator = Deduplicator(dedup_index_path, 8, create_new=create_new)
+        print('\DEDUP CREATED')
+        sys.stdout.flush()
         self.storage_path = storage_path
         self.dedup_batch_size = dedup_batch_size
         self.saving_pool_size = saving_pool_size

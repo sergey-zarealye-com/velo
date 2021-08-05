@@ -8,7 +8,7 @@ from argparse import ArgumentParser
 import yaml
 import time
 import os
-from multiprocessing import Process, Queue
+from torch.multiprocessing import Process, Queue
 
 
 async def send_message_back(message, loop, login, passw, port, host):
@@ -51,9 +51,11 @@ def params_mapper(config):
 
 def run(pipeline, login: str, passw: str, port: int, host: str, image_storage: str):
     def print_pipeline_result(queue, login, passw, port, host, image_storage):
+        import sys
         while request := queue.get():
             print('\tGot request:')
             print(request)
+            sys.stdout.flush()
             if request.get('directory'):
                 request["directory"] = os.path.join(image_storage, request["directory"])
                 print("\tDirectory:\t", request["directory"])
@@ -81,12 +83,19 @@ def run(pipeline, login: str, passw: str, port: int, host: str, image_storage: s
                 send_message_back(result_string, asyncio.get_event_loop(), login, passw, port, host)
             )
 
+    import sys
     queue = Queue()
+    print('\tCREATED QUEUE')
+    sys.stdout.flush()
     worker = Process(
         target=print_pipeline_result,
         args=(queue, login, passw, port, host, image_storage),
     )
+    print('\CREATED WORKER')
+    sys.stdout.flush()
     worker.start()
+    print('\tWORKER STARTED')
+    sys.stdout.flush()
 
     print("Run async connector")
     run_async_rabbitmq_connection('deduplication_1', queue, login, passw, port, host)
@@ -105,6 +114,7 @@ if __name__ == '__main__':
         print('Sleeping...')
         time.sleep(5.)
 
+    print('Runing!')
     parser = ArgumentParser()
     parser.add_argument('--config', type=str, default='config.yml')
     parser.add_argument('--pipeline', type=str, default='base_pipeline.yml')
