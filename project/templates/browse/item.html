@@ -1,12 +1,10 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/easySelectable/easySelectable.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/easySelectable/style.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/rangeSlider/wrunner-default-theme.css') }}">
-{#<link rel="stylesheet" href="{{ url_for('static', filename='css/browse/bootstrap.min.css') }}">#}
 {% block javascript %}
     <script src="{{ url_for('static', filename='js/jquery-3.5.1.min.js') }}"></script>
-    {#    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>#}
     <script src="{{ url_for('static', filename='js/jquery.bootpag.min.js') }}" type="text/javascript"></script>
-    <script src="{{ url_for('static', filename='js/easySelectableBrowse.js') }}"></script>
+    {% if not commited %}<script src="{{ url_for('static', filename='js/easySelectableBrowse.js') }}"></script>{% endif %}
     <script src="{{ url_for('static', filename='js/wrunner-jquery.js') }}"></script>
     <script src="{{ url_for('static', filename='js/wrunner-native.js') }}"></script>
     <script>
@@ -14,40 +12,28 @@
             let version_name = "{{ version.name }}"
             let items = "{{ items }}"
 
-            console.log('filters:', "{{filters}}")
-            console.log('filters committed:', "{{filters['committed']}}")
-            console.log('filters uncommitted:', "{{filters['uncommitted']}}")
-
             $('#pageAmountSelector').change(function () {
                 let optionSelected = $(this).find("option:selected");
-                {#var valueSelected = optionSelected.val();#}
-                {#window.location = version_name + '&page=' + (Math.floor(page / valueSelected) + 1) + '&items=' + optionSelected.text();#}
                 window.location = version_name + '&page=1&items=' + optionSelected.text();
             });
 
             $('#select_all_classes').change(function () {
                 if ($(this).prop('checked')) {
                     $('[id^="filter_class_"]').prop('checked', true);
-                    {#filters = init_class_filters();#}
 
                 } else {
                     $('[id^="filter_class_"]').prop('checked', false);
-                    {#filters = new Set();#}
                 }
-                {#console.log('filters:', filters)#}
             });
 
 
             $('#select_all_sets').change(function () {
                 if ($(this).prop('checked')) {
                     $('[id^="filter_set_"]').prop('checked', true);
-                    {#filters = init_class_filters();#}
 
                 } else {
                     $('[id^="filter_set_"]').prop('checked', false);
-                    {#filters = new Set();#}
                 }
-                console.log('filters:', filters)
             });
 
             function send_moderated_items_set() {
@@ -60,37 +46,44 @@
                 });
 
                 let filter_dict = {
-                    {#"class_filter": Array.from(cl_filters),#}
                     "committed": $('#special-control-filter1a').prop('checked'),
                     "uncommitted": $('#special-control-filter1b').prop('checked')
                 }
 
                 let items_to_save = {}
+                {% if not commited %}
                 if (Object.keys(moderated_items_set).length) {
                     items_to_save["moderated_items"] = moderated_items_set
                     items_to_save["node_name"] = version_name
                 }
+                {% endif %}
                 let filters_arr = encodeURIComponent(JSON.stringify(filter_dict));
                 items_to_save = encodeURIComponent(JSON.stringify(items_to_save));
-                console.log(filters_arr)
-
                 return {filters_arr: filters_arr, items_to_save: items_to_save}
             }
 
             $('#apply_filters_btn').click(function () {
                 let {filters_arr, items_to_save} = send_moderated_items_set();
-                $.post("/images/save_changes", items_to_save, function (response) {
+                {% if commited %}
                     window.location = version_name + '&page=1&items=' + items + '&filters=' + filters_arr;
-                });
+                {% else %}
+                    $.post("/images/save_changes", items_to_save, function (response) {
+                        window.location = version_name + '&page=1&items=' + items + '&filters=' + filters_arr;
+                    });
+                {% endif %}
             });
 
             $('.page-item').click(function () {
                 console.log(this)
                 let page = this.getAttribute('data-lp')
                 let {filters_arr, items_to_save} = send_moderated_items_set();
-                $.post("/images/save_changes", items_to_save, function (response) {
+                {% if commited %}
                     window.location = version_name + '&page='+page+'&items=' + items;
-                });
+                {% else %}
+                    $.post("/images/save_changes", items_to_save, function (response) {
+                        window.location = version_name + '&page='+page+'&items=' + items;
+                    });
+                {% endif %}
             });
 
             $('#div-save-changes').click(function () {
@@ -116,6 +109,7 @@
 
             }
             let slider = wRunner(setting);
+            {% if not commited %}
             $('#navbar_top').hide();
             window.addEventListener('scroll', function () {
                 if (window.scrollY > 30) {
@@ -129,15 +123,17 @@
                     document.body.style.paddingTop = '0';
                 }
             });
-
+            {% endif %}
         });
     </script>
 {% endblock %}
+{% if not commited %}
 <nav id="navbar_top" class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container" id="div-save-changes">
         <div class="navbar-brand" id="navbar_text"></div>
-    </div> <!-- container-fluid.// -->
+    </div>
 </nav>
+{% endif %}
 {% extends "_base.html" %}
 {% block title %}Browse{% endblock %}
 
@@ -269,7 +265,7 @@
                             {% if item["id"] in changed %}
 {#                                {% set has-class = "true" %}#}
                                 has-class="true"
-                                {% if changed[item["id"]] == None %}
+                                {% if changed[item["id"]]["id"] == None %}
                                     class="card border-danger mb-3 selectable-item"
                                     deleted="true"
                                 {% else %}
@@ -286,7 +282,12 @@
                             id="{{ item["id"] }}">
                             <div class="card-header text-center" id="text_class_{{ item["id"] }}">{{ item["label"] }}
                                 {% if item["id"] in changed %}
-                                    changed
+                                    →
+                                    {% if changed[item["id"]]["id"] == None %}
+                                        <i class="fas fa-trash-alt"></i>
+                                    {% else %}
+                                        {{ changed[item["id"]]["label"] }}
+                                    {% endif %}
                                 {% endif %}
                             </div>
                             <div class="card-body text-primary" style="padding: 5px">
@@ -299,32 +300,34 @@
                 </div>
             </div>
             <div class="col-2">
-                <div class="sticky-top" style="top: 30px">
-                    <div>
-                        <h5>
-                            Select visual class:
-                            <a href="{{ url_for('maintenance.categ_help', task_id=1) }}"
-                               target="_blank" role="button">
-                                <i class="fas fa-info-circle"></i>
-                            </a>
-                        </h5>
-                    </div>
-                    {% for key, value in classes_info.items() %}
-                        <div class="form-check" style="padding: 0px; margin-bottom:5px;">
-                            <button type="button" class="btn btn-outline-info" id="class_id_{{ loop.index }}"
-                                    cl_id="{{ value["id"] }}"
-                                    style="width: 100%">{{ key }}</button>
+                {% if not commited %}
+                    <div class="sticky-top" style="top: 30px">
+                        <div>
+                            <h5>
+                                Select visual class:
+                                <a href="{{ url_for('maintenance.categ_help', task_id=1) }}"
+                                   target="_blank" role="button">
+                                    <i class="fas fa-info-circle"></i>
+                                </a>
+                            </h5>
                         </div>
-                    {% endfor %}
-                    <br>
-                    <div class="form-check" style="padding: 0px; margin-bottom:5px;">
-                        <button type="button" class="btn btn-outline-danger" id="class_id_0"
-                                style="width: 100%">Delete
-                        </button>
+                        {% for key, value in classes_info.items() %}
+                            <div class="form-check" style="padding: 0px; margin-bottom:5px;">
+                                <button type="button" class="btn btn-outline-info" id="class_id_{{ loop.index }}"
+                                        cl_id="{{ value["id"] }}"
+                                        style="width: 100%">{{ key }}</button>
+                            </div>
+                        {% endfor %}
+                        <br>
+                        <div class="form-check" style="padding: 0px; margin-bottom:5px;">
+                            <button type="button" class="btn btn-outline-danger" id="class_id_0"
+                                    style="width: 100%">Delete
+                            </button>
+                        </div>
+                        <h5 id="selected_items_amount">Unsaved (0)</h5>
+                        <h5 id="changed_items_amount">Changed (0)</h5>
                     </div>
-                    <h5 id="selected_items_amount">Unsaved (0)</h5>
-                    <h5 id="changed_items_amount">Changed (0)</h5>
-                </div>
+                {% endif %}
             </div>
         </div>
         <div class="d-flex justify-content-center">
