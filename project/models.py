@@ -456,10 +456,3 @@ class Changes(db.Model):
         PrimaryKeyConstraint('version_id', 'item_id'),
     )
 
-
-class CeleryTask(db.Model):
-    __tablename__ = 'celerytasks'
-    task_id = db.Column(db.String, primary_key=True, nullable=False)
-
-    def __init__(self, task_id):
-        self.task_id = task_id
