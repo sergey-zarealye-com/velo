@@ -1,5 +1,8 @@
 aio_pika==6.8.0
+boto3==1.18.11
+botocore==1.21.11
 pyyaml==5.4.1
 nest_asyncio==1.5.1
 validators==0.18.2
 celery[redis]==5.1.2
+transliterate==1.10.2

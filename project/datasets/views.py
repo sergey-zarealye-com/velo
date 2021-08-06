@@ -18,12 +18,15 @@ import sys
 import logging
 import shutil
 
+from project.celery.tasks import upload_files_to_storage
+
 from multiprocessing import Process, Queue
 from .rabbitmq_connector import send_message, get_message
 import json
 import uuid
-from .queries import get_labels_of_version, get_nodes_above, get_items_of_nodes, prepare_to_commit
-from .utils import get_data_samples
+from project.datasets.queries import get_labels_of_version, get_nodes_above, get_items_of_nodes, prepare_to_commit, \
+    get_items_of_nodes_with_label
+from project.datasets.utils import get_data_samples
 
 log = logging.getLogger(__name__)
 
@@ -32,6 +35,8 @@ TMPDIR = os.path.join('project', 'static', 'tmp')
 datasets_blueprint = Blueprint('datasets', __name__,
                                template_folder='templates',
                                url_prefix='/datasets')
+
+# TODO: вынести процессы в какой нибудь init файл
 
 # Processes for communication module
 sending_queue: Queue = Queue()
@@ -638,5 +643,16 @@ def checkout(selected):
     if version is None:
         abort(404)
     nodes = get_nodes_above(db.session, version.id)
-    data_items = get_items_of_nodes(nodes)
+    data_items = get_items_of_nodes_with_label(nodes)
+    task = upload_files_to_storage.delay(
+        version.name,
+        data_items
+    )
     return redirect(url_for('datasets.select', selected=version.name))
+
+
+if __name__ == '__main__':
+    # data_items = get_items_of_nodes([8, 9])
+    # print(data_items)
+    items = get_items_of_nodes_with_label([8, 9])
+    print(items)

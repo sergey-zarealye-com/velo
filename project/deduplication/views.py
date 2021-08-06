@@ -1,6 +1,7 @@
 # project/users/views.py
 
 # IMPORTS
+import logging
 import os
 from flask import (
     render_template,
@@ -13,10 +14,11 @@ from flask import (
     session
 )
 from flask_login import current_user, login_required
-from project import app
+from project import db
 
-from project.models import DataItems, Deduplication, Version
+from project.models import DataItems, Deduplication, Version, DeduplicationStatus
 from project.datasets.views import fillup_tmp_table, get_labels_of_version
+from .forms import TestForm
 
 
 # CONFIG
@@ -35,11 +37,16 @@ def temporary_remove():
     ids_to_remove = content.get('checkboxes', [])
     task_id = content.get('task_id')
 
-    if not task_id:
+    db_result = Deduplication.query.filter_by(task_uid=task_id)
+
+    if not task_id or not db_result:
         abort(404)
 
     for idx in ids_to_remove:
         temporary_storage[task_id][idx]['removed'] = True
+
+    db_result.result = temporary_storage[task_id]
+    db.session.commit()
 
     return ('', 204)
 
@@ -86,12 +93,36 @@ def save_result(task_id, selected_ds):
 
     dedup_result = task.result['deduplication']
     filenames_to_remove = [
-        os.path.join(os.getenv("STORAGE_DIR"), dedup_result[int(i)][0]) for i in selected
+        os.path.join(
+            os.getenv("STORAGE_DIR"),
+            DataItems.query.filter_by(id=dedup_result[int(i)]['image1']).first().path
+        )
+        for i in selected
     ]
     print('\tFilenames to remove:', filenames_to_remove)
+
     storage_dir = os.getenv('STORAGE_DIR')
     assert storage_dir
+
+    logging.info('Removing from submit')
     for filename in filenames_to_remove:
+        try:
+            if filename[0] == '/':
+                filename = filename[1:]
+            filepath = os.path.join(storage_dir, filename)
+            os.remove(filepath)
+        except Exception as err:
+            print(err)
+
+    logging.info('Removing from temp storage')
+
+    if task_id not in temporary_storage:
+        temporary_storage[task_id] = task.result.get('deduplication')
+
+    for item in filter(lambda x: x['removed'], temporary_storage[task_id]):
+        file_id = item['image1']
+        filename = DataItems.query.filter_by(id=file_id).first().path
+
         try:
             if filename[0] == '/':
                 filename = filename[1:]
@@ -129,17 +160,15 @@ def show_dedup(task_id, selected_ds):
     if not dedup_result:
         return render_template('deduplication/taskFinished.html', task_id=task.task_uid)
 
+    form = TestForm(request.form)
+    print(form)
+    # if request.form["submit_btn"] == 'delete_checked':
+    #     selected = request.form.getlist('rm_checkbox')
+    #     for i in selected:
+    #         temporary_storage[task_id][i]['removed'] = True
+
     if not task_id in temporary_storage:
-        images = [
-            {
-                'item_index': i,
-                'image1': row[0],
-                'image2': row[1],
-                'similarity': row[2],
-                'removed': False
-            }
-            for i, row in enumerate(dedup_result)
-        ]
+        images = dedup_result
         temporary_storage[task_id] = images
     else:
         images = list(filter(lambda x: not x['removed'], temporary_storage[task_id]))

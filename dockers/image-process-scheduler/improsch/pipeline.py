@@ -83,6 +83,9 @@ class Preprocessor:
             )
 
         if request['deduplication']:
+            print('Starting deduplication')
+            import sys
+            sys.stdout.flush()
             dedup_result = self.deduplicator(
                 resized_images,
                 parted_filenames,

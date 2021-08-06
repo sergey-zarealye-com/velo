@@ -1,11 +1,17 @@
 import os
+import random
 import shutil
 import subprocess
 from pathlib import Path
+from typing import List, Tuple
 
+import boto3
 import urllib3
 import validators
+from botocore.exceptions import NoCredentialsError
 from celery import Celery
+
+from project.celery.storage_utils.s3_utils import create_bucket_if_not_exists, upload_file_to_bucket
 
 IN_DOCKER = os.environ.get("DOCKER_USE", False)
 STORAGE_PATH = os.environ.get("STORAGE_PATH", None)
@@ -33,7 +39,7 @@ def gen_prime(x):
 def processing_function(self, thumbs_dir, input_fname, input_fname_stem, img_ext, id, storage_dir=None, cat=None,
                         description=None, title=None, video_id=None):
     # self.update_state(state='STARTED')
-    #TODO убрать костыль для докера локального хранения
+    # TODO убрать костыль для докера локального хранения
     ind = storage_dir.find('project')
     storage_dir = f"{STORAGE_PATH}/{storage_dir[ind:]}" if STORAGE_PATH else storage_dir
 
@@ -86,3 +92,32 @@ def processing_function(self, thumbs_dir, input_fname, input_fname_stem, img_ext
         "title": title,
         "video_id": video_id
     }
+
+
+@app.task
+def upload_files_to_storage(version: str, items: List[Tuple[str, str]]):
+    try:
+        s3 = boto3.resource(
+            service_name='s3',
+            endpoint_url=os.getenv("AWS_ENDPOINT_URL", "http://s3.amazonaws.com")
+        )
+        bucket = create_bucket_if_not_exists(s3, "versions")
+        random.shuffle(items)
+        train_size = 0.8
+        k = int(len(items) * train_size)
+        train = items[0:k]
+        test = items[k:]
+        upload(bucket, train, version, "train")
+        upload(bucket, test, version, "val")
+    except NoCredentialsError as ex:
+        app.log.error(ex)
+
+
+def upload(bucket, items, version, prefix) -> None:
+    """Временные меры"""
+    for item in items:
+        file, label = item
+        i = file.find("/image_storage")
+        if i >= 0:
+            path = file[i:]
+            upload_file_to_bucket(bucket, path, f"{version}/{prefix}/{label}")

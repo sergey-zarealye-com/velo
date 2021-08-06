@@ -21,12 +21,15 @@ services:
     depends_on:
       - redis
     volumes:
-      - /home/alexey/PycharmProjects/Napoleon/velo/:/storage
+      - ${IMAGE_STORAGE}:/image_storage
     links:
       - redis
     environment:
       - DOCKER_USE=1
-      - STORAGE_PATH=/storage
+      - STORAGE_PATH=/image_storage
+      - AWS_ENDPOINT_URL= "${DATABASE_URL}"
+      - AWS_ACCESS_KEY_ID= "${miniouser}"
+      - AWS_SECRET_ACCESS_KEY= "${AWS_SECRET_ACCESS_KEY}"
     networks:
       - main
 
@@ -35,8 +38,8 @@ services:
     depends_on:
       - rabbit
     volumes:
-      - /storage1/mrowl/image_storage/:/image_storage
-      - /storage1/mrowl/dedup_index/:/dedup_index
+      - ${IMAGE_STORAGE}
+      - ${DEDUP_INDEX}
     networks:
       - main
     runtime: nvidia

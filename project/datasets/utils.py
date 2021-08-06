@@ -16,21 +16,21 @@ from project.video_utils import ffmpeg_job
 
 log = logging.getLogger(__name__)
 
+# TODO: вынести процессы и очереди куда нибудь
+sending_queue = multiprocessing.Queue()
+sending_process = Process(
+    target=send_message,
+    args=('frames_extraction', sending_queue)
+)
+sending_process.start()
 
-# sending_queue = multiprocessing.Queue()
-# sending_process = Process(
-#     target=send_message,
-#     args=('frames_extraction', sending_queue)
-# )
-# sending_process.start()
-#
-# pulling_queue = multiprocessing.Queue()
-# print("Объявление ", id(pulling_queue))
-# pulling_process = Process(
-#     target=get_message,
-#     args=('frames_extraction_result', pulling_queue)
-# )
-# pulling_process.start()
+pulling_queue = multiprocessing.Queue()
+print("Объявление ", id(pulling_queue))
+pulling_process = Process(
+    target=get_message,
+    args=('frames_extraction_result', pulling_queue)
+)
+pulling_process.start()
 
 
 image_extensions = ['.jpg', '.png', '.bmp']

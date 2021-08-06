@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from sqlalchemy import create_engine, and_
 from sqlalchemy.orm import sessionmaker
 
@@ -31,6 +31,27 @@ def get_items_of_nodes(node_ids: List[int]) -> List[DataItems]:
         .with_entities(VersionItems.item_id) \
         .all()
     return DataItems.query.filter(DataItems.id.in_(item_ids)).all()
+
+
+def get_items_of_nodes_with_label(node_ids: List[int]) -> List[Tuple[str, str]]:
+    """Работает не совсем корректно"""
+    item_ids = VersionItems \
+        .query \
+        .filter(VersionItems.version_id.in_(node_ids)) \
+        .with_entities(VersionItems.item_id) \
+        .all()
+    items = DataItems.query.filter(DataItems.id.in_(item_ids)).all()
+    cat = Category \
+        .query \
+        .filter(Category.version_id.in_(node_ids)) \
+        .all()
+    cal_label = {item.id: item.name for item in cat}
+    itms_label = []
+    for item in items:
+        cat_id = item.vi[0].category_id
+        cat_name = cal_label[cat_id]
+        itms_label.append((item.path, cat_name))
+    return itms_label
 
 
 def get_labels_of_version(version: int) -> Dict[str, int]:
