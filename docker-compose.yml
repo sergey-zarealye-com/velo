@@ -1,0 +1,56 @@
+version: "3"
+
+services:
+  rabbit:
+    image: rabbitmq:3-management
+    ports:
+      - 15672:15672
+      - 5672:5672
+    networks:
+      - main
+
+  redis:
+    image: redis
+    ports:
+      - 6379:6379
+    networks:
+      - main
+
+  ffmpeg:
+    image: moderation
+    depends_on:
+      - redis
+    volumes:
+      - ${STORAGE_DIR}:${STORAGE_PATH_IN_DOCKER}
+    links:
+      - redis
+    environment:
+      STORAGE: "${STORAGE_PATH_IN_DOCKER}"
+      REDIS: "${REDIS}"
+      AWS_ENDPOINT_URL: "${AWS_ENDPOINT_URL}"
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+    networks:
+      - main
+
+  improsch:
+    image: improsch
+    depends_on:
+      - rabbit
+    volumes:
+      - ${STORAGE_DIR}:${STORAGE_PATH_IN_DOCKER}
+      - ${DEDUP_INDEX}:${DEDUP_PATH_IN_DOCKER}
+    networks:
+      - main
+    deploy:
+      resources:
+        limits:
+          memory: 20G
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu, utility ]
+
+networks:
+  main:

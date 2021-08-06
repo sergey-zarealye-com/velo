@@ -6,21 +6,18 @@ from pathlib import Path
 from typing import List, Tuple
 
 import boto3
-import urllib3
-import validators
 from botocore.exceptions import NoCredentialsError
 from celery import Celery
+import urllib3
+import validators
+import transliterate
 
 from project.celery.storage_utils.s3_utils import create_bucket_if_not_exists, upload_file_to_bucket
 
-IN_DOCKER = os.environ.get("DOCKER_USE", False)
 STORAGE_PATH = os.environ.get("STORAGE_PATH", None)
-if IN_DOCKER:
-    app = Celery('ffmpeg', backend='redis://redis:6379/0', broker='redis://redis:6379/0')
-else:
-    app = Celery('ffmpeg', backend='redis://localhost:6379/0', broker='redis://localhost:6379/0')
+app = Celery('ffmpeg', backend=os.getenv("REDIS"), broker=os.getenv("REDIS"))
+
 app.autodiscover_tasks(force=True)
-print(f"Celery id = {id(app)}")
 
 
 @app.task
@@ -41,7 +38,7 @@ def processing_function(self, thumbs_dir, input_fname, input_fname_stem, img_ext
     # self.update_state(state='STARTED')
     # TODO убрать костыль для докера локального хранения
     ind = storage_dir.find('project')
-    storage_dir = f"{STORAGE_PATH}/{storage_dir[ind:]}" if STORAGE_PATH else storage_dir
+    storage_dir = f"{STORAGE_PATH}/tmp/" if STORAGE_PATH else storage_dir
 
     thumbs_dir = os.path.join(storage_dir, thumbs_dir)
     is_link = validators.url(input_fname)
@@ -49,12 +46,12 @@ def processing_function(self, thumbs_dir, input_fname, input_fname_stem, img_ext
         input_fname = os.path.join(storage_dir, input_fname)
     else:
         input_fname = input_fname
-    input_fname_stem = input_fname_stem
+    input_fname_stem = transliterate.translit(input_fname_stem, 'ru', reversed=True)
     img_ext = img_ext
 
     # ToDo загрузка видео по ссылке
     path_input_fname = Path(input_fname)
-    file_path = os.path.join(storage_dir, id, path_input_fname.name)
+    file_path = os.path.join(storage_dir, id, transliterate.translit(path_input_fname.name, 'ru', reversed=True))
     if not is_link:
         pass
     else:
