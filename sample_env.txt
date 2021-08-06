@@ -1,0 +1,20 @@
+FLASK_APP=project
+FLASK_ENV=development
+APP_SETTINGS="config.DevelopmentConfig"
+SECRET_KEY="***"
+#SET DATABASE URL IF YOU ARE NOT USING SQLITE
+DATABASE_URL="postgresql://velo:123@localhost:5432/velo"
+STORAGE_DIR = '/media/alexander/D/PycharmProjects/Napoleon/velo/project/static/image_storage'
+MODERATION_STORAGE_DIR = '/media/alexander/D/PycharmProjects/Napoleon/velo/project/static/image_storage'
+STORAGE_PATH_IN_DOCKER = '/image_storage'
+DEDUP_PATH_IN_DOCKER = '/dedup_index'
+DEDUP_INDEX = '/media/alexander/D/PycharmProjects/Napoleon/velo/project/static/dedup_index
+RABBIT_LOGIN = '***'
+RABBIT_PASSW = '***'
+RABBIT_PORT = 5672
+RABBIT_HOST = localhost
+AWS_ENDPOINT_URL = '***'
+AWS_ACCESS_KEY_ID = '***'
+AWS_SECRET_ACCESS_KEY = '***'
+REDIS = 'redis://redis:6379/0'
+
