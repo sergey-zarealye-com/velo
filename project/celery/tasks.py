@@ -6,11 +6,11 @@ from pathlib import Path
 from typing import List, Tuple
 
 import boto3
+from botocore.exceptions import NoCredentialsError
+from celery import Celery
 import urllib3
 import validators
 import transliterate
-from botocore.exceptions import NoCredentialsError
-from celery import Celery
 
 from project.celery.storage_utils.s3_utils import create_bucket_if_not_exists, upload_file_to_bucket
 
@@ -40,7 +40,7 @@ def gen_prime(x):
 def processing_function(self, thumbs_dir, input_fname, input_fname_stem, img_ext, id, storage_dir=None, cat=None,
                         description=None, title=None, video_id=None):
     # self.update_state(state='STARTED')
-    #TODO убрать костыль для докера локального хранения
+    # TODO убрать костыль для докера локального хранения
     ind = storage_dir.find('project')
     storage_dir = f"{STORAGE_PATH}/tmp/" if STORAGE_PATH else storage_dir
 
