@@ -38,8 +38,8 @@ services:
     depends_on:
       - rabbit
     volumes:
-      - ${IMAGE_STORAGE}
-      - ${DEDUP_INDEX}
+      - ${IMAGE_STORAGE}:/image_storage
+      - ${DEDUP_INDEX}:/dedup_index
     networks:
       - main
     runtime: nvidia
