@@ -8,6 +8,7 @@ from typing import List, Tuple
 import boto3
 import urllib3
 import validators
+import transliterate
 from botocore.exceptions import NoCredentialsError
 from celery import Celery
 
@@ -39,9 +40,9 @@ def gen_prime(x):
 def processing_function(self, thumbs_dir, input_fname, input_fname_stem, img_ext, id, storage_dir=None, cat=None,
                         description=None, title=None, video_id=None):
     # self.update_state(state='STARTED')
-    # TODO убрать костыль для докера локального хранения
+    #TODO убрать костыль для докера локального хранения
     ind = storage_dir.find('project')
-    storage_dir = f"{STORAGE_PATH}/{storage_dir[ind:]}" if STORAGE_PATH else storage_dir
+    storage_dir = f"{STORAGE_PATH}/tmp/" if STORAGE_PATH else storage_dir
 
     thumbs_dir = os.path.join(storage_dir, thumbs_dir)
     is_link = validators.url(input_fname)
@@ -49,12 +50,12 @@ def processing_function(self, thumbs_dir, input_fname, input_fname_stem, img_ext
         input_fname = os.path.join(storage_dir, input_fname)
     else:
         input_fname = input_fname
-    input_fname_stem = input_fname_stem
+    input_fname_stem = transliterate.translit(input_fname_stem, 'ru', reversed=True)
     img_ext = img_ext
 
     # ToDo загрузка видео по ссылке
     path_input_fname = Path(input_fname)
-    file_path = os.path.join(storage_dir, id, path_input_fname.name)
+    file_path = os.path.join(storage_dir, id, transliterate.translit(path_input_fname.name, 'ru', reversed=True))
     if not is_link:
         pass
     else:
