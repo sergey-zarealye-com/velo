@@ -61,7 +61,7 @@ def natural_sort(l):
 #         pass
 
 
-def create_video_task(task_id, data_path_str: str, labels: Dict[str, int], cat, description, title, i) -> None:
+def create_video_task(task_uuid, data_path_str: str, labels: Dict[str, int], cat, description, title, i) -> None:
     link_str = data_path_str
     data_path: Path = Path(data_path_str)
     # если это один файл
@@ -71,7 +71,7 @@ def create_video_task(task_id, data_path_str: str, labels: Dict[str, int], cat, 
         storage_dir = os.path.join(storage_dir, 'tmp')
         assert storage_dir, "Variable STORAGE_DIR is not defined in .flaskenv!"
 
-        task_dir = os.path.join(storage_dir, task_id)
+        task_dir = os.path.join(storage_dir, task_uuid)
         os.mkdir(task_dir)
 
         thumbs_dir = os.path.join(task_dir, 'thumbs')
@@ -80,7 +80,7 @@ def create_video_task(task_id, data_path_str: str, labels: Dict[str, int], cat, 
         if data_path.is_file():
             dst_video_path = os.path.join(task_dir, data_path.name)
             shutil.copy(data_path, dst_video_path)
-            input_fname = os.path.join(task_id, data_path.name)
+            input_fname = os.path.join(task_uuid, data_path.name)
         else:
             input_fname = link_str
 
@@ -88,22 +88,22 @@ def create_video_task(task_id, data_path_str: str, labels: Dict[str, int], cat, 
         # отправляем только путь из task_id и имени файла/папки
         # воркер должен сам подставить абсолютный путь, основываясь на storage_dir из своего конфига
         task = processing_function.delay(
-            os.path.join(task_id, 'thumbs'),
+            os.path.join(task_uuid, 'thumbs'),
             input_fname,
             data_path.stem,
             ".jpg",
-            task_id,
+            task_uuid,
             storage_dir,
             cat,
             description, title,
             i
         )
         # task = processing_function(
-        #     os.path.join(task_id, 'thumbs'),
+        #     os.path.join(task_uuid, 'thumbs'),
         #     input_fname,
         #     data_path.stem,
         #     ".jpg",
-        #     task_id,
+        #     task_uuid,
         #     storage_dir,
         #     cat,
         #     description, title,

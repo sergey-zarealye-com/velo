@@ -8,6 +8,7 @@ from typing import List, Tuple
 import boto3
 import urllib3
 import validators
+import transliterate
 from botocore.exceptions import NoCredentialsError
 from celery import Celery
 
@@ -38,10 +39,8 @@ def gen_prime(x):
 @app.task(bind=True)
 def processing_function(self, thumbs_dir, input_fname, input_fname_stem, img_ext, id, storage_dir=None, cat=None,
                         description=None, title=None, video_id=None):
-    # self.update_state(state='STARTED')
-    # TODO убрать костыль для докера локального хранения
-    ind = storage_dir.find('project')
-    storage_dir = f"{STORAGE_PATH}/{storage_dir[ind:]}" if STORAGE_PATH else storage_dir
+    self.update_state(state='STARTED')
+    storage_dir = f"{STORAGE_PATH}/tmp/" if STORAGE_PATH else storage_dir
 
     thumbs_dir = os.path.join(storage_dir, thumbs_dir)
     is_link = validators.url(input_fname)
@@ -49,25 +48,25 @@ def processing_function(self, thumbs_dir, input_fname, input_fname_stem, img_ext
         input_fname = os.path.join(storage_dir, input_fname)
     else:
         input_fname = input_fname
-    input_fname_stem = input_fname_stem
+    input_fname_stem = transliterate.translit(input_fname_stem, 'ru', reversed=True)
     img_ext = img_ext
 
     # ToDo загрузка видео по ссылке
     path_input_fname = Path(input_fname)
-    file_path = os.path.join(storage_dir, id, path_input_fname.name)
+    file_path = os.path.join(storage_dir, id, transliterate.translit(path_input_fname.name, 'ru', reversed=True))
     if not is_link:
         pass
     else:
-        # self.update_state(state='DOWNLOADING')
+        self.update_state(state='DOWNLOADING')
         http = urllib3.PoolManager()
         with open(str(file_path), 'wb') as out:
             r = http.request('GET', input_fname, preload_content=False)
             shutil.copyfileobj(r, out)
 
     out = f"{os.path.join(thumbs_dir, f'{input_fname_stem}_frame_' + '%0d' + img_ext)}"
-    command = f"""ffmpeg -y -i {str(input_fname)} -vsync vfr -filter_complex "[0:v]select=eq(pict_type\,PICT_TYPE_I)[pre_thumbs];[pre_thumbs]select=gt(scene\,0.2),scale=256:256[thumbs]" -map [thumbs] {out} 2>&1"""
+    command = f"""ffmpeg -y -i {str(file_path)} -vsync vfr -filter_complex "[0:v]select=eq(pict_type\,PICT_TYPE_I)[pre_thumbs];[pre_thumbs]select=gt(scene\,0.2),scale=256:256[thumbs]" -map [thumbs] {out} 2>&1"""
 
-    # self.update_state(state='PROCESSING')
+    self.update_state(state='PROCESSING')
     process = subprocess.Popen(
         command,
         shell=True,
@@ -76,8 +75,8 @@ def processing_function(self, thumbs_dir, input_fname, input_fname_stem, img_ext
     )
     (output, err) = process.communicate()
     if not len(os.listdir(thumbs_dir)):
-        command = f"""ffmpeg -y -i {str(input_fname)} -vsync vfr -vf "select='eq(pict_type,PICT_TYPE_I)" -s 224:224 -frame_pts 1 {out} 2>&1"""
-        # self.update_state(state='PROCESSING')
+        command = f"""ffmpeg -y -i {str(file_path)} -vsync vfr -vf "select='eq(pict_type,PICT_TYPE_I)" -s 224:224 -frame_pts 1 {out} 2>&1"""
+        self.update_state(state='PROCESSING')
         process = subprocess.Popen(
             command,
             shell=True,

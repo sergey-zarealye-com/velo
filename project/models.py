@@ -379,17 +379,21 @@ class ToDoItem(db.Model):
     audio_text = db.Column(db.String, unique=False, nullable=True)
     gt_category = db.Column(db.String, unique=False, nullable=False)
     assigned_categories_json = db.Column(db.String, unique=False, nullable=True)
+    cv_status = db.Column(db.String, nullable=True)
+    nlp_status = db.Column(db.String, nullable=True)
+    video_uuid = db.Column(db.String, nullable=False)
 
     user = db.relationship("User")
     version = db.relationship("Version")
 
-    def __init__(self, file_path, title, description, gt_category, id):
+    def __init__(self, file_path, title, description, gt_category, id, video_uuid):
         self.file_path = file_path
         self.title = title
         self.description = description
         self.gt_category = gt_category
         self.created_at = datetime.now()
         self.id = id
+        self.video_uuid = video_uuid
         self.user_id = None
         self.version_id = None
         self.assigned_categories_json = None
@@ -440,10 +444,15 @@ class Diff(db.Model):
 
 class CeleryTask(db.Model):
     __tablename__ = 'celerytasks'
-    task_id = db.Column(db.String, primary_key=True, nullable=False)
+    video_uuid = db.Column(db.String, nullable=False)
+    cv_task_id = db.Column(db.String, primary_key=True, nullable=False)
+    nlp_task_id = db.Column(db.String, primary_key=True, nullable=False)
+    todo_id = db.Column(db.Integer, nullable=True)
 
-    def __init__(self, task_id):
-        self.task_id = task_id
+    def __init__(self, cv_task_id, video_uuid, nlp_task_id='123'):
+        self.cv_task_id = cv_task_id
+        self.video_uuid = video_uuid
+        self.nlp_task_id = nlp_task_id
 
 
 class Changes(db.Model):
