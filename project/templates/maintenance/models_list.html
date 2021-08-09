@@ -16,10 +16,26 @@
   </li>
 </ul>
 
-<ul class="list-group list-group-flush">
-{% for category in categs %}
-  <li class="list-group-item">{{category.name}}</li>
-{% endfor %}  
-</ul>
+<div class="card-columns">
+    {% for task in models.keys() %}
+        <div class="card m-4">
+            <div class="card-header">
+                {{tasks[task]}}
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for model in models[task] %}
+                    <li class="list-group-item">{{model.name}}
+                        <div class="btn-group btn-group-sm float-right" role="group" aria-label="Basic example">
+                          <a href="{{url_for('maintenance.model_edit', model_id=model.id)}}" class="btn btn-light"><i class="far fa-edit"></i></a>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+            <a href="{{url_for('maintenance.model_add', selected=version.name, task_id=task)}}" 
+                class="btn btn-primary btn-small m-4">Add model
+            </a>
+        </div>
+    {% endfor %}
+</div>
 
 {% endblock %}
