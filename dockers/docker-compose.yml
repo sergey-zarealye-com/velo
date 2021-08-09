@@ -4,8 +4,8 @@ services:
   rabbit:
     image: rabbitmq:3-management
     ports:
-      - 15672:15672
-      - 5672:5672
+      - 15674:15672
+      - 5674:5672
     networks:
       - main
 
@@ -38,8 +38,8 @@ services:
     depends_on:
       - rabbit
     volumes:
-      - ${IMAGE_STORAGE}
-      - ${DEDUP_INDEX}
+      - ${IMAGE_STORAGE}:/image_storage
+      - ${DEDUP_INDEX}:/dedup_index
     networks:
       - main
     runtime: nvidia
