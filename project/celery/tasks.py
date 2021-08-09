@@ -16,8 +16,8 @@ from celery import Celery
 
 from project.celery.storage_utils.s3_utils import create_bucket_if_not_exists, upload_file_to_bucket
 
-IN_DOCKER = os.environ.get("DOCKER_USE", False)
-STORAGE_PATH = os.environ.get("STORAGE_PATH", None)
+IN_DOCKER = os.environ.get("IN_DOCKER", False)
+STORAGE_PATH = os.environ.get("STORAGE", None)
 if IN_DOCKER:
     app = Celery('ffmpeg', backend=os.getenv("REDIS"), broker=os.getenv("REDIS"))
 else:
@@ -75,6 +75,8 @@ def processing_function(self, thumbs_dir, input_fname, input_fname_stem, img_ext
         encoding='utf8'
     )
     (output, err) = process.communicate()
+    if 'Invalid data found when processing input' in output:
+        raise OSError
     if not len(os.listdir(thumbs_dir)):
         command = f"""ffmpeg -y -i {str(file_path)} -vsync vfr -vf "select='eq(pict_type,PICT_TYPE_I)" -s 224:224 -frame_pts 1 {out} 2>&1"""
         self.update_state(state='PROCESSING')

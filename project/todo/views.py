@@ -108,6 +108,27 @@ def take(item_id):
     return redirect(url_for('todo.item', item_id=todo.id))
 
 
+@todo_blueprint.route('/delete/<item_id>', methods=['POST'])
+@login_required
+def delete(item_id):
+    todo = ToDoItem.query.get(item_id)
+    if todo is None:
+        abort(404)
+    if 'selected_version' in session:
+        version = Version.query.filter_by(name=session['selected_version']).first()
+    else:
+        version = Version.get_first()
+    if version is None:
+        message = Markup("There was no version found!")
+        flash(message, 'warning')
+        return redirect(url_for('datasets.index'))
+    shutil.rmtree(todo.file_path, ignore_errors=True)
+    CeleryTask.query.filter_by(video_uuid=todo.video_uuid).delete()
+    ToDoItem.query.filter_by(id=item_id).delete()
+    db.session.commit()
+    return redirect(url_for('todo.index'))
+
+
 @todo_blueprint.route('/item/<item_id>')
 @login_required
 def item(item_id):
