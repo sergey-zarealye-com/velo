@@ -464,3 +464,32 @@ class Changes(db.Model):
     __table_args__ = (
         PrimaryKeyConstraint('version_id', 'item_id'),
     )
+
+class Model(db.Model):
+    __tablename__ = 'models'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    version_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False)
+    name = db.Column(db.String, unique=False, nullable=False)
+    task = db.Column(db.SmallInteger, nullable=False)  # 1=CV classes, 2=NLP classes
+    description = db.Column(db.String, nullable=True)
+    kf_uid = db.Column(db.String, nullable=True)
+    local_chkpoint = db.Column(db.String, nullable=True)
+
+    version = db.relationship("Version")
+
+    def __init__(self, name, version_id, task, description=None, kf_uid=None, local_chkpoint=None):
+        self.name = name
+        self.version_id = version_id
+        self.task = task
+        self.description = description
+        self.kf_uid = kf_uid
+        self.local_chkpoint = local_chkpoint
+
+    @staticmethod
+    def list(task, version_name):
+        version = Version.query.filter_by(name=version_name).first()
+        if version is None:
+            return []
+        return Model.query \
+            .filter_by(version_id=version.id, task=task) \
+            .all()
