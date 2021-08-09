@@ -464,4 +464,3 @@ class Changes(db.Model):
     __table_args__ = (
         PrimaryKeyConstraint('version_id', 'item_id'),
     )
-

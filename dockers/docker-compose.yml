@@ -4,8 +4,8 @@ services:
   rabbit:
     image: rabbitmq:3-management
     ports:
-      - 15672:15672
-      - 5672:5672
+      - 15674:15672
+      - 5674:5672
     networks:
       - main
 
