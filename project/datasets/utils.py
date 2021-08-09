@@ -1,37 +1,10 @@
-import asyncio
 import enum
 import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Generator, Dict, List, Union
-from multiprocessing import Process
-import multiprocessing
-from project.todo.rabbitmq_connector import send_message, get_message
-from flask import flash
-import os
-import uuid
-import shutil
-
-from project.video_utils import ffmpeg_job
 
 log = logging.getLogger(__name__)
-
-# TODO: вынести процессы и очереди куда нибудь
-sending_queue = multiprocessing.Queue()
-sending_process = Process(
-    target=send_message,
-    args=('frames_extraction', sending_queue)
-)
-sending_process.start()
-
-pulling_queue = multiprocessing.Queue()
-print("Объявление ", id(pulling_queue))
-pulling_process = Process(
-    target=get_message,
-    args=('frames_extraction_result', pulling_queue)
-)
-pulling_process.start()
-
 
 image_extensions = ['.jpg', '.png', '.bmp']
 audio_extensions = ['.mp3', '.wav']
