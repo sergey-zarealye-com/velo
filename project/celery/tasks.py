@@ -16,9 +16,12 @@ from celery import Celery
 
 from project.celery.storage_utils.s3_utils import create_bucket_if_not_exists, upload_file_to_bucket
 
+IN_DOCKER = os.environ.get("DOCKER_USE", False)
 STORAGE_PATH = os.environ.get("STORAGE_PATH", None)
-app = Celery('ffmpeg', backend=os.getenv("REDIS"), broker=os.getenv("REDIS"))
-
+if IN_DOCKER:
+    app = Celery('ffmpeg', backend=os.getenv("REDIS"), broker=os.getenv("REDIS"))
+else:
+    app = Celery('ffmpeg', backend='redis://localhost:6379/0', broker='redis://localhost:6379/0')
 app.autodiscover_tasks(force=True)
 
 
