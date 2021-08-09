@@ -11,6 +11,7 @@ import logging
 import pandas as pd
 import transliterate
 from celery.result import AsyncResult
+from celery.worker.control import revoke
 from flask import render_template, Blueprint, request, redirect, url_for
 from flask import flash, Markup, abort, session
 from flask_login import current_user, login_required
@@ -122,6 +123,10 @@ def delete(item_id):
         message = Markup("There was no version found!")
         flash(message, 'warning')
         return redirect(url_for('datasets.index'))
+    cv_task = CeleryTask.query.filter_by(video_uuid=todo.video_uuid).first()
+    if cv_task is not None:
+        cv_task_id = cv_task.cv_task_id
+        app.control.revoke(task_id=cv_task_id, terminate=True)
     shutil.rmtree(todo.file_path, ignore_errors=True)
     CeleryTask.query.filter_by(video_uuid=todo.video_uuid).delete()
     ToDoItem.query.filter_by(id=item_id).delete()

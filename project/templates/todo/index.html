@@ -30,7 +30,8 @@
             <th scope="col">Started</th>
             <th scope="col">CV status</th>
             <th scope="col">NLP status</th>
-            <th scope="col">&nbsp;</th>
+            <th scope="col"> </th>
+            <th scope="col"> </th>
         </tr>
         </thead>
         <tbody>
@@ -43,7 +44,7 @@
                 <td>{{ todo.cv_status }}</td>
                 <td>{{ todo.nlp_status }}</td>
                 <td>
-                    {% if (todo.started_at == None) and (todo.cv_status != 'FAILURE') %}
+                    {% if (todo.started_at == None) %}
                         <form method="post" , action="{{ url_for('todo.take', item_id=todo.id) }}">
                             {% if (todo.cv_status != 'SUCCESS') %}
                                 <button type="submit" class="btn btn-primary btn-sm" disabled>Take</button>
@@ -51,13 +52,16 @@
                                 <button type="submit" class="btn btn-primary btn-sm active">Take</button>
                             {% endif %}
                         </form>
-                    {% elif (todo.cv_status == 'FAILURE') %}
-                        <form method="post" , action="{{ url_for('todo.delete', item_id=todo.id) }}">
-                            <button type="submit" class="btn btn-primary btn-sm active">Delete</button>
-                        </form>
                     {% else %}
                         <a href="{{ url_for('todo.item', item_id=todo.id) }}" class="btn btn-success btn-sm active"
                            role="button" aria-pressed="true">Open</a>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if (todo.started_at == None) %}
+                        <form method="post" , action="{{ url_for('todo.delete', item_id=todo.id) }}">
+                            <button type="submit" class="btn btn-primary btn-sm active">Delete</button>
+                        </form>
                     {% endif %}
                 </td>
             </tr>
