@@ -56,7 +56,8 @@ def copy_directory(
         dst_size: Tuple[int, int],
         is_dedup: bool,
         label_ds: Dict[str, int],
-        selected_ds: str
+        selected_ds: str,
+        create_missing_cats: bool
 ):
     logging.info("Start copying data...")
     sys.stdout.flush()
@@ -82,7 +83,7 @@ def copy_directory(
     celery_task_id = create_image_processing_task(message)
     print('celery task_id:', celery_task_id)
 
-    commit_queue.put((task_id, celery_task_id))
+    commit_queue.put((task_id, celery_task_id, create_missing_cats))
     log.info("Processing entry created")
 
     logging.info(f"Sended task with id {task_id}")
@@ -360,7 +361,7 @@ def import2ds(selected):
                         list(files)
                     )
 
-                    if form.category_select.data == "folder":
+                    if not form.is_create_categs_from_folders and form.category_select.data == "folder":
                         for folder_name in files:
                             if folder_name not in label_ids:
                                 flash(f"{folder_name} not in labels!", "error")
@@ -377,7 +378,8 @@ def import2ds(selected):
                             (int(form.resize_h.data), int(form.resize_w.data)),
                             bool(form.is_dedup.data),
                             label_ids,
-                            selected
+                            selected,
+                            bool(form.is_create_categs_from_folders)
                         )
                     )
                     proc_to_copy_files.start()

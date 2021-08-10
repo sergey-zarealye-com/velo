@@ -9,7 +9,7 @@ from project import db
 
 
 # TODO config?
-app = Celery('improsch', backend='redis://localhost:6379/0', broker='redis://localhost:6379/0')
+app = Celery('improsch', backend='redis://localhost:6379/1', broker='redis://localhost:6379/1')
 
 
 def create_image_processing_task(message) -> str:
@@ -80,7 +80,14 @@ def process_response(response: dict):
             label_ids = response['label_ds']
             selected_ds = response['selected_ds']
             version = Version.query.filter_by(name=selected_ds).first()
-            fillup_tmp_table(label_ids, selected_ds, os.path.join(storage_dir, task_id), version)
+            fillup_tmp_table(
+                label_ids,
+                selected_ds,
+                os.path.join(storage_dir, task_id),
+                version,
+                create_missing_categories=task_entry.create_missing_categories,
+                version_name=selected_ds
+            )
             task_entry.task_status = DeduplicationStatus.finished.value
             db.session.commit()
 

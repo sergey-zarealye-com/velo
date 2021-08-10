@@ -79,7 +79,7 @@ def add_cv_catregory(version_name: str, category_name: str) -> int:
     db.session.add(category)
     db.session.flush()
 
-    db.sesssion.commit()
+    db.session.commit()
 
     return category.position
 
@@ -106,7 +106,9 @@ def fillup_tmp_table(
     selected: str,
     src: str,
     version: Version,
-    commit_batch: int = 1000
+    commit_batch: int = 1000,
+    create_missing_categories: bool = False,
+    version_name: Optional[str] = None
 ) -> None:
     """
     Заполнить временную таблицу
@@ -114,7 +116,12 @@ def fillup_tmp_table(
     заполняет таблицу TmpTable
     """
     objects, categories = [], []
-    for sample in get_data_samples(src, label_ids):
+    for sample in get_data_samples(
+        src,
+        label_ids,
+        force_creating_categories=create_missing_categories,
+        version_name=version_name
+    ):
         res = DataItems.query.filter_by(path=sample.path).first()
         if res:
             continue
@@ -135,8 +142,7 @@ def get_data_samples(
     data_path_str: str,
     labels: Dict[str, int],
     force_creating_categories: bool = False,
-    version_name: Optional[str] = None,
-    category_name: Optional[str] = None
+    version_name: Optional[str] = None
 ) -> Generator[DataSample, None, None]:
     data_path: Path = Path(data_path_str)
     # # если это один файл
@@ -150,13 +156,12 @@ def get_data_samples(
                 label = item.name
                 if label not in labels:
                     log.warning(f"Folder name {label} not in labels of current version")
-                    warnings.append(f"Folder name {label} not in labels of current version")
 
                     if force_creating_categories:
-                        assert version_name and category_name
+                        assert version_name
 
-                    new_category_pos = add_cv_catregory(version_name, category_name)  # type: ignore
-                    labels[category_name] = new_category_pos  # type: ignore
+                    new_category_pos = add_cv_catregory(version_name, label)
+                    labels[label] = new_category_pos
                 for file in item.iterdir():
                     if file.is_file():
                         media_type = get_media_type(file)

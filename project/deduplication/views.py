@@ -136,7 +136,9 @@ def save_result(task_id, selected_ds):
         label_ids,
         selected_ds,
         os.path.join(os.getenv("STORAGE_DIR"), task_id),
-        version
+        version,
+        create_missing_categories=task.create_missing_categories,
+        version_name=selected_ds
     )
 
     return redirect(f'/datasets/select/{selected_ds}')
