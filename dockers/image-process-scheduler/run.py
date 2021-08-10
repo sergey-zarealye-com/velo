@@ -14,9 +14,9 @@ def parse_config(config_path: str):
 IN_DOCKER = os.environ.get("DOCKER_USE", False)
 STORAGE_PATH = os.environ.get("STORAGE_PATH", None)
 if IN_DOCKER:
-    app = Celery('improsch', backend='redis://redis:6379/0', broker='redis://redis:6379/0')
+    app = Celery('improsch', backend='redis://redis:6379/1', broker='redis://redis:6379/1')
 else:
-    app = Celery('improsch', backend='redis://localhost:6379/0', broker='redis://localhost:6379/0')
+    app = Celery('improsch', backend='redis://localhost:6379/1', broker='redis://localhost:6379/1')
 app.autodiscover_tasks(force=True)
 
 
