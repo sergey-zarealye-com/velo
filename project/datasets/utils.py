@@ -81,7 +81,7 @@ def add_cv_catregory(version_name: str, category_name: str) -> int:
 
     db.session.commit()
 
-    return category.position
+    return category.id
 
 
 def import_data(categories: List[str], objects: List[DataItems], selected: str, version: Version) -> None:
@@ -158,7 +158,7 @@ def get_data_samples(
                     log.warning(f"Folder name {label} not in labels of current version")
 
                     if force_creating_categories:
-                        assert version_name
+                        assert version_name, ValueError("version_name can't be None or '' if set flag force_creating_categories")
 
                     new_category_pos = add_cv_catregory(version_name, label)
                     labels[label] = new_category_pos
