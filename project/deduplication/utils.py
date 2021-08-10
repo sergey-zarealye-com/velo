@@ -9,7 +9,9 @@ from project import db
 
 
 # TODO config?
-app = Celery('improsch', backend='redis://localhost:6379/1', broker='redis://localhost:6379/1')
+redis_port = os.getenv('REDIS_PORT') or 6379
+redis_port = int(redis_port)
+app = Celery('improsch', backend=f'redis://localhost:{redis_port}/1', broker=f'redis://localhost:{redis_port}/1')
 
 
 def create_image_processing_task(message) -> str:

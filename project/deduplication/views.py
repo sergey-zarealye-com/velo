@@ -153,11 +153,12 @@ def show_dedup(task_id, selected_ds):
 
     if task.result is None:
         response = get_task_result(task.celery_task_id)
-        task = process_response(response)
 
         if not response:
             statuses = task.stages_status
             return render_template('deduplication/taskPending.html', task_id=task.task_uid, statuses=statuses)
+
+        task = process_response(response)
 
     # page_length = request.args.get("num_items")
     # page_num = request.args.get("page_num")
