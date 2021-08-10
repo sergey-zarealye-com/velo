@@ -24,14 +24,14 @@ sending_process = Process(
 )
 sending_process.start()
 
-pulling_queue = multiprocessing.Queue()
-print("Объявление ", id(pulling_queue))
-pulling_process = Process(
-    target=get_message,
-    args=('frames_extraction_result', pulling_queue),
-    daemon=True
-)
-pulling_process.start()
+# pulling_queue = multiprocessing.Queue()
+# print("Объявление ", id(pulling_queue))
+# pulling_process = Process(
+#     target=get_message,
+#     args=('frames_extraction_result', pulling_queue),
+#     daemon=True
+# )
+# pulling_process.start()
 
 
 image_extensions = ['.jpg', '.png', '.bmp']
@@ -127,7 +127,7 @@ def fillup_tmp_table(
             continue
         data_item = DataItems(path=sample.path)
         objects.append(data_item)
-        categories.append(str(sample.category))
+        categories.append(sample.category)
         if len(objects) == commit_batch:
             import_data(categories, objects, selected, version)
             objects.clear()
@@ -160,8 +160,8 @@ def get_data_samples(
                     if force_creating_categories:
                         assert version_name, ValueError("version_name can't be None or '' if set flag force_creating_categories")
 
-                    new_category_pos = add_cv_catregory(version_name, label)
-                    labels[label] = new_category_pos
+                    new_category_id = add_cv_catregory(version_name, label)
+                    labels[label] = new_category_id
                 for file in item.iterdir():
                     if file.is_file():
                         media_type = get_media_type(file)
