@@ -11,8 +11,8 @@ from flask_mail import Message
 from datetime import datetime, timedelta
 
 from project import app, db, mail
-from project.models import User, Version, Category
-from .forms import AddCategoryForm, EditCategoryForm
+from project.models import User, Version, Category, Model
+from .forms import AddCategoryForm, EditCategoryForm, AddModelForm, EditModelForm
 import traceback
 import difflib
 
@@ -107,9 +107,11 @@ def models_list(selected):
         message = Markup("There was no version found!")
         flash(message, 'warning')
         return redirect(url_for('datasets.index'))
-    models = []
+    models = {}
+    for task in TASKS:
+        models[task[0]] = Model.list(task[0], version.name)
     return render_template('maintenance/models_list.html', 
-                           version=version, models=models)    
+                           version=version, models=models, tasks=dict(TASKS))    
 
 @maintenance_blueprint.route('/category/edit/<category_id>', methods=['GET', 'POST'])
 @login_required
@@ -335,3 +337,114 @@ def help_diff(task_id, backsteps):
                            this=version,
                            parent=parent,
                            task_id=task_id)
+
+@maintenance_blueprint.route('/model/add/<task_id>', methods=['GET', 'POST'])
+@login_required
+def model_add(task_id):
+    if 'selected_version' in session:
+        version = Version.query.filter_by(name=session['selected_version']).first()
+    else:
+        abort(400)
+    if version is None:
+        message = Markup("There was no version found!")
+        flash(message, 'warning')
+        return redirect(url_for('datasets.index'))
+    if version.status in [3]:
+        message = Markup(
+            "<strong>Warning!</strong> Unable to add model to committed version. ")
+        flash(message, 'warning')
+        return redirect(url_for('maintenance.models_list', 
+                                selected=version.name))
+    form = AddModelForm(request.form)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            try:
+                model = Model(form.name.data,
+                                 version.id,
+                                 task_id,
+                                 description=form.description.data,
+                                 kf_uid=form.kf_uid.data,
+                                 local_chkpoint=form.local_chkpoint.data
+                                 )
+                db.session.add(model)
+                db.session.commit()
+                message = Markup("Saved successfully!")
+                flash(message, 'success')
+                return redirect(url_for('maintenance.models_list', 
+                                        selected=version.name))
+            except Exception as e:
+                traceback.print_exc()
+                db.session.rollback()
+                message = Markup(
+                    "<strong>Error!</strong> Unable to save this model. " + str(e))
+                flash(message, 'danger')
+    return render_template('maintenance/add_model.html', 
+                           form=form,
+                           task_id=task_id,
+                           selected=version.name)
+
+
+@maintenance_blueprint.route('/model/edit/<model_id>', methods=['GET', 'POST'])
+@login_required
+def model_edit(model_id):
+    model = Model.query.get(model_id)
+    if model is None:
+        abort(404)
+    version = model.version
+    if version.status in [3]:
+        message = Markup(
+            "<strong>Warning!</strong> Unable to edit model to committed version. ")
+        flash(message, 'warning')
+        return redirect(url_for('maintenance.models_list', 
+                                selected=version.name))
+    form = EditModelForm(request.form)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            try:
+                model.name = form.name.data
+                model.description = form.description.data
+                model.kf_uid = form.kf_uid.data
+                model.local_chkpoint = form.local_chkpoint.data
+                db.session.commit()
+                message = Markup("Saved successfully!")
+                flash(message, 'success')
+                return redirect(url_for('maintenance.models_list', 
+                                        selected=version.name))
+            except Exception as e:
+                traceback.print_exc()
+                db.session.rollback()
+                message = Markup(
+                    "<strong>Error!</strong> Unable to save this model. " + str(e))
+                flash(message, 'danger')
+    form.description.data = model.description
+    return render_template('maintenance/model_edit.html', 
+                           form=form,
+                           model=model,
+                           selected=version.name)
+
+@maintenance_blueprint.route('/model/del/<model_id>')
+@login_required
+def model_del(model_id):
+    model = Model.query.get(model_id)
+    if model is None:
+        abort(404)
+    version = model.version
+    if version.status in [3]:
+        message = Markup(
+            "<strong>Warning!</strong> Unable to edit model to committed version. ")
+        flash(message, 'warning')
+        return redirect(url_for('maintenance.models_list', 
+                                selected=version.name))
+    try:
+        db.session.delete(model)
+        db.session.commit()
+        message = Markup("Saved successfully!")
+        flash(message, 'success')
+    except Exception as e:
+        traceback.print_exc()
+        db.session.rollback()
+        message = Markup(
+            "<strong>Error!</strong> Unable to delete this model. " + str(e))
+        flash(message, 'danger')
+    return redirect(url_for('maintenance.models_list', 
+                                selected=version.name))

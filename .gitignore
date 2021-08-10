@@ -1,6 +1,6 @@
 velo/*
 project/static/images/tmp/*
-.flaskenv
+.env
 project/static/tmp/*
 dockers/image-process-scheduler/config.yml
 

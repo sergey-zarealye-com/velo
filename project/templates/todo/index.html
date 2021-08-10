@@ -1,55 +1,72 @@
 {% extends "_base.html" %}
 {% block title %}To do
-<a href="{{url_for('todo.new_batch')}}" role="button" class="btn btn-primary float-right">New batch</a>
+    <a href="{{ url_for('todo.new_batch') }}" role="button" class="btn btn-primary float-right">New batch</a>
 {% endblock %}
 
 {% from "helpers.html" import version_details %}
 {% block content %}
 
-<div class="container">
-    {{ version_details(version) }}
-</div>
+    <div class="container">
+        {{ version_details(version) }}
+    </div>
 
-<ul class="nav nav-tabs mt-4">
-  <li class="nav-item">
-    <a class="nav-link active" href="#">Post-moderation</a>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link" href="{{url_for('deduplication.show_task_list')}}">Deduplication</a>
-  </li>
-  <li class="nav-item">
-    <a class="nav-link" href="#">Checkouts</a>
-  </li>
-</ul>
+    <ul class="nav nav-tabs mt-4">
+        <li class="nav-item">
+            <a class="nav-link active" href="#">Post-moderation</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('deduplication.show_task_list') }}">Deduplication</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#">Checkouts</a>
+        </li>
+    </ul>
 
-<table class="table table-striped">
-  <thead>
-    <tr>
-      <th scope="col">Their label</th>
-      <th scope="col">Created</th>
-      <th scope="col">Started</th>
-      <th scope="col">&nbsp;</th>
-    </tr>
-  </thead>
-  <tbody>
-      <meta http-equiv="refresh" content="1">
-      {% for todo in todoitems %}
-          <tr>
-              <td>{{todo.gt_category}}</td>
-              <td>{{todo.created_at}}</td>
-              <td>{{todo.started_at}}</td>
-              <td>
-                  {% if todo.started_at == None %}
-                      <form method="post", action="{{url_for('todo.take', item_id=todo.id)}}">
-                      <button type="submit" class="btn btn-primary btn-sm active">Take</button>
-                      </form>
-                  {% else %}
-                      <a href="{{url_for('todo.item', item_id=todo.id)}}" class="btn btn-success btn-sm active" role="button" aria-pressed="true">Open</a>
-                  {% endif %}
-              </td>
-          </tr>
-      {% endfor %}
-  </tbody>
-</table>
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <th scope="col">Their label</th>
+            <th scope="col">Created</th>
+            <th scope="col">Started</th>
+            <th scope="col">CV status</th>
+            <th scope="col">NLP status</th>
+            <th scope="col"> </th>
+            <th scope="col"> </th>
+        </tr>
+        </thead>
+        <tbody>
+        <meta http-equiv="refresh" content="1">
+        {% for todo in todoitems %}
+            <tr>
+                <td>{{ todo.gt_category }}</td>
+                <td>{{ todo.created_at }}</td>
+                <td>{{ todo.started_at }}</td>
+                <td>{{ todo.cv_status }}</td>
+                <td>{{ todo.nlp_status }}</td>
+                <td>
+                    {% if (todo.started_at == None) %}
+                        <form method="post" , action="{{ url_for('todo.take', item_id=todo.id) }}">
+                            {% if (todo.cv_status != 'SUCCESS') %}
+                                <button type="submit" class="btn btn-primary btn-sm" disabled>Take</button>
+                            {% else %}
+                                <button type="submit" class="btn btn-primary btn-sm active">Take</button>
+                            {% endif %}
+                        </form>
+                    {% else %}
+                        <a href="{{ url_for('todo.item', item_id=todo.id) }}" class="btn btn-success btn-sm active"
+                           role="button" aria-pressed="true">Open</a>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if (todo.started_at == None) %}
+                        <form method="post" , action="{{ url_for('todo.delete', item_id=todo.id) }}">
+                            <button type="submit" class="btn btn-primary btn-sm active">Delete</button>
+                        </form>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
 
 {% endblock %}

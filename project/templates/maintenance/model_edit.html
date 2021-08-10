@@ -1,0 +1,34 @@
+{% extends "_base.html" %}
+{% block title %}Edit model
+<a href="{{url_for('maintenance.model_del', model_id=model.id)}}" role="button" class="btn btn-danger float-right">Delete the model</a>
+{% endblock %}
+{% from "_formshelper.html" import render_field %}
+{% block content %}
+
+<div class="card bg-light mb-3">
+    <div class="card-body">
+        <form action="{{ url_for('maintenance.model_edit', model_id=model.id) }}" method="post" name="editform">
+            {{ form.csrf_token }}
+            <div class="form-group mb-4">
+              {{ form.name.label }}
+              {{ render_field(form.name, class="form-control", value=model.name) }}
+            </div>
+            <div class="form-group mb-4">
+              {{ form.description.label }}
+              {{ render_field(form.description, class="form-control", value=model.description) }}
+            </div>
+            <div class="form-group mb-4">
+              {{ form.kf_uid.label }}
+              {{ render_field(form.kf_uid, class="form-control", value=model.kf_uid) }}
+            </div>
+            <div class="form-group mb-4">
+              {{ form.local_chkpoint.label }}
+              {{ render_field(form.local_chkpoint, class="form-control", value=model.local_chkpoint) }}
+            </div>
+            <input type="submit" value="Save" class="btn btn-primary">
+            <a href="{{url_for('maintenance.models_list', selected=selected)}}" role="button" class="btn btn-secondary float-right">Cancel</a>            
+        </form>
+    </div>
+</div>
+
+{% endblock %}

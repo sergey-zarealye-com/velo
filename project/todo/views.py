@@ -11,6 +11,7 @@ import logging
 import pandas as pd
 import transliterate
 from celery.result import AsyncResult
+from celery.worker.control import revoke
 from flask import render_template, Blueprint, request, redirect, url_for
 from flask import flash, Markup, abort, session
 from flask_login import current_user, login_required
@@ -54,47 +55,17 @@ def index():
         return redirect(url_for('datasets.index'))
 
     # ToDo написать обработку получения результатов для отображения
-    tasks = CeleryTask.query.distinct("task_id").all()
+    tasks = CeleryTask.query.distinct("cv_task_id").all()
     for task in tasks:
-        task_id = task.task_id
+        task_id = task.cv_task_id
+        video_uuid = task.video_uuid
         task_res = AsyncResult(task_id, app=app)
-        if task_res.state == 'SUCCESS':
-            data = task_res.info
-            path = TMP_PATH.joinpath(data['id'], 'thumbs')
-            file_list = os.listdir(path)
-            objects = []
-            for file in file_list:
-                sample_path = os.path.join(path, file)
-                item2moderate = Moderation(src=str(path),
-                                           file=sample_path,
-                                           src_media_type="VIDEO",  # ToDO расхардкодить
-                                           category=data["cat"],
-                                           description=data["description"],
-                                           title=data["title"],
-                                           id=data["video_id"])
-                objects.append(item2moderate)
-            try:
-                db.session.bulk_save_objects(objects, return_defaults=True)
-                CeleryTask.query.filter_by(task_id=task_id).delete()
-                db.session.commit()
-            except Exception as ex:
-                log.error(ex)
-                db.session.rollback()
-
-    q = Moderation.query.distinct("id").all()
-    for i, t in enumerate(q):
-        todo = ToDoItem.query.filter_by(id=t.id).first()
-        if todo is None:
-            todo = ToDoItem(
-                file_path=t.src,
-                title=t.title,
-                description=t.description,
-                gt_category=t.category,
-                id=t.id
-            )
-            db.session.add(todo)
+        task_status = task_res.state
+        todo = ToDoItem.query.filter_by(video_uuid=video_uuid).first()
+        todo.cv_status = task_status
+        if task_status == "SUCCESS":
+            CeleryTask.query.filter_by(cv_task_id=task_id).delete()
     db.session.commit()
-
     todoitems = ToDoItem.fetch_for_user(current_user.id)
     return render_template('todo/index.html', todoitems=todoitems, version=version)
 
@@ -116,9 +87,51 @@ def take(item_id):
     todo.started_at = datetime.now()
     todo.user_id = current_user.id
     todo.version_id = version.id
-    db.session.commit()
-
+    path = TMP_PATH.joinpath(todo.file_path, 'thumbs')
+    file_list = os.listdir(path)
+    objects = []
+    for file in file_list:
+        sample_path = os.path.join(path, file)
+        item2moderate = Moderation(src=str(path),
+                                   file=sample_path,
+                                   src_media_type="VIDEO",  # ToDO расхардкодить
+                                   category=todo.gt_category,
+                                   description=todo.description,
+                                   title=todo.title,
+                                   id=todo.id)
+        objects.append(item2moderate)
+    try:
+        db.session.bulk_save_objects(objects, return_defaults=True)
+        db.session.commit()
+    except Exception as ex:
+        log.error(ex)
+        db.session.rollback()
     return redirect(url_for('todo.item', item_id=todo.id))
+
+
+@todo_blueprint.route('/delete/<item_id>', methods=['POST'])
+@login_required
+def delete(item_id):
+    todo = ToDoItem.query.get(item_id)
+    if todo is None:
+        abort(404)
+    if 'selected_version' in session:
+        version = Version.query.filter_by(name=session['selected_version']).first()
+    else:
+        version = Version.get_first()
+    if version is None:
+        message = Markup("There was no version found!")
+        flash(message, 'warning')
+        return redirect(url_for('datasets.index'))
+    cv_task = CeleryTask.query.filter_by(video_uuid=todo.video_uuid).first()
+    if cv_task is not None:
+        cv_task_id = cv_task.cv_task_id
+        app.control.revoke(task_id=cv_task_id, terminate=True)
+    shutil.rmtree(todo.file_path, ignore_errors=True)
+    CeleryTask.query.filter_by(video_uuid=todo.video_uuid).delete()
+    ToDoItem.query.filter_by(id=item_id).delete()
+    db.session.commit()
+    return redirect(url_for('todo.index'))
 
 
 @todo_blueprint.route('/item/<item_id>')
@@ -187,12 +200,9 @@ def new_batch():
         version = Version.query.filter_by(name=session['selected_version']).first()
     else:
         abort(400)
-    label_ids = get_labels_of_version(version.id)
 
     if request.method == 'POST':
         if form.validate_on_submit():
-            user_id = current_user.id
-            created_at = datetime.now()
             # TODO -- add queue to download and preprocess videos and create todo items
             with open(form.src.data) as f:
                 data = pd.read_csv(f)
@@ -207,13 +217,23 @@ def new_batch():
             else:
                 max_id = 0
             for i, (path, cat, title, description) in enumerate(zip(paths, cats, titles, descriptions), start=max_id+1):
-                task_id = str(uuid.uuid4())
-                task_meta = create_video_task(task_id, path, version.id, cat, description, title, i)
+                task_uuid = str(uuid.uuid4())
+                task_meta = create_video_task(task_uuid, path, version.id, cat, description, title, i)
                 if task_meta is not None:
                     task = CeleryTask(
-                        task_meta.task_id
+                        cv_task_id=task_meta.task_id,
+                        video_uuid=task_uuid
                     )
                     db.session.add(task)
+                    todo = ToDoItem(
+                        file_path=os.path.join(os.getenv("MODERATION_STORAGE_DIR"), 'tmp', task_uuid),
+                        title=title,
+                        description=description,
+                        gt_category=cat,
+                        id=i,
+                        video_uuid=task_uuid
+                    )
+                    db.session.add(todo)
             db.session.commit()
 
             return redirect(url_for('todo.index'))

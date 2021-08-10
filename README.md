@@ -38,25 +38,16 @@ flask db upgrade
 2. Initialize and run database migrations
     4. Run `flask db upgrade`
 
-## 3. Image preprocessor
+## 3. Создание docker images
 
 1. Создайте две директории для работы с картинками (<image_dir>) и хранения индекса (<dedup_dir>).
-2. Добавьте пути к этим директориям в image-process-scheduler/docker-compose.yml
-3. В директории image-process-scheduler собирается образ:
+2. Добавьте пути к этим директориям в dockers/docker-compose.yml
+3. В корневой директории проекта выполните
    ```
-    cd image-process-scheduler
-    docker build -t improsch .
-    ```
+   echo your_sudo_password | ./create_images.sh
+   ```
 4. Запускается docker-compose:
    docker-compose up # show logs docker-compose up -d # detached
-5. Примерно после 3-5 секунд сервис готов к работе, можно запускать flask
-
-## 4. Celery worker
-
-1. В директории project/celery собрать образ:
-   ```
-   docker build -t moderation .
-   ```
 
 ## 5. Deploy
 

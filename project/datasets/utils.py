@@ -1,37 +1,13 @@
-import asyncio
 import enum
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Generator, Dict, List, Optional, Union
-from multiprocessing import Process
-import multiprocessing
-from project.todo.rabbitmq_connector import send_message, get_message
-from flask import flash
+from typing import Generator, Dict, List, Optional, Union
 from project import db
 from project.models import Version, Category, DataItems, TmpTable
 
-from project.video_utils import ffmpeg_job
 
 log = logging.getLogger(__name__)
-
-# TODO: вынести процессы и очереди куда нибудь
-sending_queue = multiprocessing.Queue()
-sending_process = Process(
-    target=send_message,
-    args=('frames_extraction', sending_queue),
-    daemon=True
-)
-sending_process.start()
-
-# pulling_queue = multiprocessing.Queue()
-# print("Объявление ", id(pulling_queue))
-# pulling_process = Process(
-#     target=get_message,
-#     args=('frames_extraction_result', pulling_queue),
-#     daemon=True
-# )
-# pulling_process.start()
 
 
 image_extensions = ['.jpg', '.png', '.bmp']
@@ -84,7 +60,7 @@ def add_cv_catregory(version_name: str, category_name: str) -> int:
     return category.id
 
 
-def import_data(categories: List[str], objects: List[DataItems], selected: str, version: Version) -> None:
+def import_data(categories: List[Union[str, int]], objects: List[DataItems], selected: str, version: Version) -> None:
     try:
         db.session.bulk_save_objects(objects, return_defaults=True)
         tmp = [TmpTable(item_id=obj.id,
@@ -158,9 +134,11 @@ def get_data_samples(
                     log.warning(f"Folder name {label} not in labels of current version")
 
                     if force_creating_categories:
-                        assert version_name, ValueError("version_name can't be None or '' if set flag force_creating_categories")
+                        assert version_name, ValueError(
+                            "version_name can't be None or '' if set flag force_creating_categories"
+                        )
 
-                    new_category_id = add_cv_catregory(version_name, label)
+                    new_category_id = add_cv_catregory(version_name, label)  # type: ignore
                     labels[label] = new_category_id
                 for file in item.iterdir():
                     if file.is_file():

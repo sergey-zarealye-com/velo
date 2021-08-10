@@ -167,6 +167,8 @@ def browse(selected, page=1, items=50, filters=None):
                            page=page,
                            items=items,
                            changed=changed,
+                           # version.status = 2 есть не закомиченные данные
+                           commited=(version.status != 2),
                            filters=cur_filters)
 
 

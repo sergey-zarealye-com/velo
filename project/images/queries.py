@@ -40,9 +40,9 @@ def get_changed_items(sess, node_id: int) -> Dict:
     changed_items = {}
     for item in res:
         if item.Category:
-            changed_items[item.Changes.item_id] = item.Category.id
+            changed_items[item.Changes.item_id] = {'id': item.Category.id, 'label': item.Category.name}
         else:
-            changed_items[item.Changes.item_id] = None
+            changed_items[item.Changes.item_id] = {'id': None, 'label': 'deleted'}
     return changed_items
 
 
