@@ -1,4 +1,4 @@
-storage_path: /storage1/mrowl/image_storage
-dedup_index_path: /storage1/mrowl/dedup_index
+storage_path: /image_storage
+dedup_index_path: /dedup_index
 saving_pool_size: 3
 dedup_batch_size: 64
