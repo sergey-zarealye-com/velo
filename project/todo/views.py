@@ -23,7 +23,7 @@ from .forms import NewBatchForm
 
 # CONFIG
 from ..datasets.queries import get_labels_of_version
-from ..datasets.views import fillup_tmp_table
+from project.datasets.utils import fillup_tmp_table
 from project.todo.utils import create_video_task
 from project.celery.tasks import app
 

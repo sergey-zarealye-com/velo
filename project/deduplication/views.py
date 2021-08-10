@@ -13,12 +13,13 @@ from flask import (
     flash,
     session
 )
-from flask_login import current_user, login_required
+from flask_login import  login_required
 from project import db
 
-from project.models import DataItems, Deduplication, Version, DeduplicationStatus
-from project.datasets.views import fillup_tmp_table, get_labels_of_version
-from .forms import TestForm
+from project.models import DataItems, Deduplication, Version
+from project.datasets.utils import fillup_tmp_table
+from project.datasets.queries import get_labels_of_version
+from .utils import process_response, get_task_result
 
 
 # CONFIG
@@ -149,23 +150,20 @@ def show_dedup(task_id, selected_ds):
         abort(404)
 
     if task.result is None:
-        statuses = task.stages_status
-        return render_template('deduplication/taskPending.html', task_id=task.task_uid, statuses=statuses)
+        response = get_task_result(task.celery_task_id)
+        task = process_response(response)
 
-    page_length = request.args.get("num_items")
-    page_num = request.args.get("page_num")
+        if not response:
+            statuses = task.stages_status
+            return render_template('deduplication/taskPending.html', task_id=task.task_uid, statuses=statuses)
+
+    # page_length = request.args.get("num_items")
+    # page_num = request.args.get("page_num")
 
     dedup_result = task.result.get('deduplication')
 
     if not dedup_result:
         return render_template('deduplication/taskFinished.html', task_id=task.task_uid)
-
-    form = TestForm(request.form)
-    print(form)
-    # if request.form["submit_btn"] == 'delete_checked':
-    #     selected = request.form.getlist('rm_checkbox')
-    #     for i in selected:
-    #         temporary_storage[task_id][i]['removed'] = True
 
     if not task_id in temporary_storage:
         images = dedup_result

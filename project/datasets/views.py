@@ -15,18 +15,16 @@ from uuid import uuid4
 import traceback
 from distutils.dir_util import copy_tree
 import sys
-import logging
 import shutil
 
 from project.celery.tasks import upload_files_to_storage
 
 from multiprocessing import Process, Queue
-from .rabbitmq_connector import send_message, get_message
-import json
+from .rabbitmq_connector import send_message
 import uuid
 from project.datasets.queries import get_labels_of_version, get_nodes_above, get_items_of_nodes, prepare_to_commit, \
     get_items_of_nodes_with_label
-from project.datasets.utils import get_data_samples
+from project.deduplication.utils import create_image_processing_task
 
 log = logging.getLogger(__name__)
 
@@ -39,22 +37,13 @@ datasets_blueprint = Blueprint('datasets', __name__,
 # TODO: вынести процессы в какой нибудь init файл
 
 # Processes for communication module
-sending_queue: Queue = Queue()
-sending_process = Process(
+commit_queue: Queue = Queue()
+commit_process = Process(
     target=send_message,
-    args=('deduplication_1', sending_queue),
+    args=(commit_queue,),
     daemon=True
 )
-sending_process.start()
-
-pulling_queue: Queue = Queue()
-# print("Объявление в датасетс", id(pulling_queue))
-pulling_process = Process(
-    target=get_message,
-    args=('deduplication_result_1', pulling_queue),
-    daemon=True
-)
-pulling_process.start()
+commit_process.start()
 
 
 def copy_directory(
@@ -79,19 +68,23 @@ def copy_directory(
     logging.info("Sending task to queue...")
     sys.stdout.flush()
 
-    sending_queue.put(
-        (task_id, json.dumps({
-            'id': task_id,
-            'directory': task_id,
-            'is_size_control': is_size_control,
-            'min_size': min_size,
-            'is_resize': bool(is_resize),
-            'dst_size': tuple(dst_size),
-            'deduplication': bool(is_dedup),
-            'label_ds': label_ds,
-            'selected_ds': selected_ds
-        }))
-    )
+    message = {
+        'id': task_id,
+        'directory': task_id,
+        'is_size_control': is_size_control,
+        'min_size': min_size,
+        'is_resize': bool(is_resize),
+        'dst_size': tuple(dst_size),
+        'deduplication': bool(is_dedup),
+        'label_ds': label_ds,
+        'selected_ds': selected_ds
+    }
+    celery_task_id = create_image_processing_task(message)
+    print('celery task_id:', celery_task_id)
+
+    commit_queue.put((task_id, celery_task_id))
+    log.info("Processing entry created")
+
     logging.info(f"Sended task with id {task_id}")
     sys.stdout.flush()
 
@@ -119,16 +112,14 @@ def send_merge_control_request(filepaths: List[str]):
         shutil.copy(src_path, dst_path)
         names_mapping[dst_path] = src_path
 
-    sending_queue.put((
-        task_id,
-        json.dumps({
-            'id': task_id,
-            'type': 'merge_control',
-            'directory': task_dir,
-            'merge_check': True,
-            'names_mapping': names_mapping
-        })
-    ))
+    message = {
+        'id': task_id,
+        'type': 'merge_control',
+        'directory': task_dir,
+        'merge_check': True,
+        'names_mapping': names_mapping
+    }
+    create_image_processing_task(message)
 
 
 # ROUTES
@@ -390,7 +381,6 @@ def import2ds(selected):
                         )
                     )
                     proc_to_copy_files.start()
-                    proc_to_copy_files.join()
 
                     # если включена дедупликация, то сохранение нужно после
                     # процесса ручного отбора картинок (project/deduplication/views/def save_result)
@@ -426,36 +416,6 @@ def import2ds(selected):
             ))
     return render_template('datasets/import.html', form=form, selected=selected, version=version)
 
-
-def fillup_tmp_table(label_ids: Dict[str, int],
-                     selected: str,
-                     src: str,
-                     version: Version,
-                     commit_batch: int = 1000) -> List[str]:
-    """
-    Заполнить временную таблицу
-    функция проходит по указанной директории src, добавляет найденные файлы в таблицу DataItems,
-    заполняет таблицу TmpTable
-    """
-    objects, categories = [], []
-    warnings = []
-    for sample in get_data_samples(src, label_ids, warnings):
-        res = DataItems.query.filter_by(path=sample.path).first()
-        if res:
-            continue
-        data_item = DataItems(path=sample.path)
-        objects.append(data_item)
-        categories.append(sample.category)
-        if len(objects) == commit_batch:
-            import_data(categories, objects, selected, version)
-            objects.clear()
-            categories.clear()
-    if len(objects):
-        import_data(categories, objects, selected, version)
-        objects.clear()
-        categories.clear()
-
-    return warnings
 
 
 @datasets_blueprint.route('/commit/<selected>', methods=['GET', 'POST'])
@@ -499,11 +459,14 @@ def commit(selected):
                 filepaths = [
                     DataItems.query.filter_by(id=item.item_id).first().path for item in items_to_commit
                 ]
-                sending_queue.put((str(uuid.uuid4()), json.dumps({
-                    'id': str(uuid.uuid4()),
+                task_id = str(uuid.uuid4())
+                task_request = {
+                    'id': task_id,
                     'type': 'merge_indexes',
                     'files_to_keep': filepaths
-                })))
+                }
+                create_image_processing_task(task_request)
+
                 message = Markup("Saved successfully!")
                 flash(message, 'success')
                 return redirect(url_for('datasets.select',
@@ -585,13 +548,13 @@ def merge_categs(parent, child):
                 try:
                     pos = int(request.values['categ_%d' % ch_c.id])
                     task_categs_seq.append((pos, ch_c))
-                except:
+                except Exception:
                     pass
             for pa_c in categs[task[0]]['parent']:
                 try:
                     pos = int(request.values['categ_%d' % pa_c.id])
                     task_categs_seq.append((pos, pa_c))
-                except:
+                except Exception:
                     pass
             task_categs_seq.sort(key=lambda o: o[0])
             checking_validity_list = [o[0] for o in task_categs_seq]
