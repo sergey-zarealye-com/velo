@@ -22,6 +22,39 @@
         </li>
     </ul>
 
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        .loader {
+            border: 2px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 2px solid #3498db;
+            border-bottom: 2px solid #3498db;
+            width: 20px;
+            height: 20px;
+            -webkit-animation: spin 2s linear infinite; /* Safari */
+            animation: spin 2s linear infinite;
+        }
+
+        /* Safari */
+        @-webkit-keyframes spin {
+            0% {
+                -webkit-transform: rotate(0deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+            }
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+
     <table class="table table-striped">
         <thead>
         <tr>
@@ -30,25 +63,28 @@
             <th scope="col">Started</th>
             <th scope="col">CV status</th>
             <th scope="col">NLP status</th>
-            <th scope="col"> </th>
-            <th scope="col"> </th>
+            <th scope="col"></th>
+            <th scope="col"></th>
         </tr>
         </thead>
         <tbody>
-        <meta http-equiv="refresh" content="1">
+        <meta http-equiv="refresh" content="2">
         {% for todo in todoitems %}
             <tr>
                 <td>{{ todo.gt_category }}</td>
                 <td>{{ todo.created_at }}</td>
                 <td>{{ todo.started_at }}</td>
-                <td>{{ todo.cv_status }}</td>
+                <td>
+                    {{ todo.cv_status }}
+                    {% if todo.cv_status != 'FAILURE' and todo.cv_status != 'SUCCESS' %}
+                        <div class="loader"></div>
+                    {% endif %}
+                </td>
                 <td>{{ todo.nlp_status }}</td>
                 <td>
                     {% if (todo.started_at == None) %}
                         <form method="post" , action="{{ url_for('todo.take', item_id=todo.id) }}">
-                            {% if (todo.cv_status != 'SUCCESS') %}
-                                <button type="submit" class="btn btn-primary btn-sm" disabled>Take</button>
-                            {% else %}
+                            {% if (todo.cv_status == 'SUCCESS') %}
                                 <button type="submit" class="btn btn-primary btn-sm active">Take</button>
                             {% endif %}
                         </form>
