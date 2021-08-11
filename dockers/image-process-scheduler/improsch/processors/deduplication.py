@@ -327,6 +327,7 @@ class Deduplicator:
 
     def get_neighbours_by_filenames(self, filenames):
         indexes = [self.index.tmp_id_to_filename[name] for name in filenames]
+        faiss.normalize_L2(embeddings)
         vectors = np.array([self.index.tmp_index.reconstruct(index) for index in indexes])
 
         neighbours = self.index.find_neighbours(vectors, filenames)
