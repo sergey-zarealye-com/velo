@@ -2,7 +2,3 @@ storage_path: /image_storage
 dedup_index_path: /dedup_index
 saving_pool_size: 3
 dedup_batch_size: 64
-rabbit_login: guest
-rabbit_passw: guest
-rabbit_port: 5672
-rabbit_host: rabbit

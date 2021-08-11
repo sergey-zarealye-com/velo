@@ -428,6 +428,7 @@ class Deduplication(db.Model):
     __tablename__ = 'deduplication'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     task_uid = db.Column(db.String)
+    celery_task_id = db.Column(db.String)  # to access task result and status if service has restarted
     # user who has created this task
     # user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     stages_status = db.Column(JSON)
@@ -435,6 +436,7 @@ class Deduplication(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     started_at = db.Column(db.DateTime, nullable=True, default=None)
     task_status = db.Column(db.String, default=DeduplicationStatus.staged.value)
+    create_missing_categories = db.Column(db.Boolean)
 
 
 class Diff(db.Model):
