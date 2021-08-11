@@ -1,5 +1,7 @@
 """Module to handle deduplication of images.
 Includes model for features extraction and model for neighbours searching."""
+import argparse
+from copy import deepcopy
 from functools import partial
 import logging
 from multiprocessing import Pool
@@ -15,13 +17,9 @@ import torch
 import torchvision
 from torchvision import transforms
 import imagehash
-from copy import deepcopy
-import argparse
-
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
-
 
 CONFIG_NAME = 'config.json'
 FILENAMES_JSON_NAME = 'ids_to_filenames.json'
@@ -73,7 +71,7 @@ class NNfeatureExtractor(FeatureExtractor, torch.nn.Module):
         )
         self.model.to(device)
         embeddings = []
-    
+
         with torch.no_grad():
             for image_batch, in dataloader:
                 image_batch = image_batch.to(device)
