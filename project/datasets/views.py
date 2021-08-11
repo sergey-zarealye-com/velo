@@ -9,7 +9,7 @@ from flask_login import current_user, login_required
 
 from project import db, app
 from project.models import Version, VersionChildren, DataItems, TmpTable, Category, Changes
-from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm
+from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm, SplitForm
 import graphviz
 from uuid import uuid4
 import traceback
@@ -26,7 +26,7 @@ import json
 import uuid
 from project.datasets.queries import get_labels_of_version, get_nodes_above, get_items_of_nodes, prepare_to_commit, \
     get_items_of_nodes_with_label
-from project.datasets.utils import get_data_samples
+from project.datasets.utils import get_data_samples, split_data_items
 
 log = logging.getLogger(__name__)
 
@@ -649,6 +649,28 @@ def checkout(selected):
         data_items
     )
     return redirect(url_for('datasets.select', selected=version.name))
+
+
+@datasets_blueprint.route('/split/<selected>', methods=['GET', 'POST'])
+@login_required
+def split(selected):
+    version = Version.query.filter_by(name=selected).first()
+    if version is None:
+        abort(404)
+    if version.status == 3:
+        abort(400)
+    form = SplitForm(request.form)
+    nodes = get_nodes_above(db.session, version.id)
+    data_items = get_items_of_nodes(nodes)
+    split_data_items(data_items)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            pass
+    return render_template(
+        'datasets/split.html',
+        version=version,
+        form=form
+    )
 
 
 if __name__ == '__main__':

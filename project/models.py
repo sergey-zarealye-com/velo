@@ -315,6 +315,11 @@ class DataItems(db.Model):
         cascade="all, delete",
         passive_deletes=True
     )
+    t = relationship(
+        "Splits", back_populates="data_item",
+        cascade="all, delete",
+        passive_deletes=True
+    )
 
     def add_if_not_exists(path: str) -> int:
         entry = DataItems.query.filter_by(path=path).first()
@@ -465,6 +470,7 @@ class Changes(db.Model):
         PrimaryKeyConstraint('version_id', 'item_id'),
     )
 
+
 class Model(db.Model):
     __tablename__ = 'models'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -493,3 +499,14 @@ class Model(db.Model):
         return Model.query \
             .filter_by(version_id=version.id, task=task) \
             .all()
+
+
+class Splits(db.Model):
+    __tablename__ = 'splits'
+    version_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False)
+    category = db.Column(db.String, nullable=False)  # Train/Test/Val
+    item_id = db.Column(db.Integer, db.ForeignKey('data_items.id', ondelete='CASCADE'), nullable=False)
+    data_item = relationship("DataItems", back_populates="t")
+    __table_args__ = (
+        PrimaryKeyConstraint('version_id', 'item_id', 'category'),
+    )

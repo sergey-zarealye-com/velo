@@ -12,15 +12,14 @@ from project.models import Deduplication, DeduplicationStatus
 from project.models import Version, DataItems, TmpTable
 from project.datasets.utils import get_data_samples
 
-
 log = logging.getLogger(__name__)
-
 
 rabbit_login = os.getenv("RABBIT_LOGIN") or "guest"
 rabbit_passw = os.getenv("RABBIT_PASSW") or "guest"
 rabbit_port = os.getenv("RABBIT_PORT") or 5672
 rabbit_host = os.getenv("RABBIT_HOST") or "127.0.0.1"
 rabbit_port = int(rabbit_port)
+
 
 
 def import_data(categories: List[str], objects: List[DataItems], selected: str, version: Version) -> None:
@@ -99,7 +98,7 @@ def send_message(queue_name: str, queue):
                     routing_key=queue_name,
                 )
 
-    loop.run_until_complete(func(loop, queue_name, queue))
+    # loop.run_until_complete(func(loop, queue_name, queue))
 
 
 def get_message(queue_name: str, queue):
@@ -176,4 +175,4 @@ def get_message(queue_name: str, queue):
                                 task_entry.task_status = DeduplicationStatus.finished.value
                                 db.session.commit()
 
-    loop.run_until_complete(func(loop, queue_name, queue))
+    # loop.run_until_complete(func(loop, queue_name, queue))

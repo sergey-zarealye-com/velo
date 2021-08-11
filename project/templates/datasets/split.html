@@ -1,0 +1,16 @@
+{% extends "_base.html" %}
+{% block title %}Edit dataset details{% endblock %}
+{% from "_formshelper.html" import render_field %}
+{% block content %}
+
+<div class="card bg-light mb-3">
+    <div class="card-body">
+        <form action="{{ url_for('datasets.split', selected=version.name) }}" method="post" name="editform">
+            {{ form.csrf_token }}
+            <input type="submit" value="Save" class="btn btn-primary">
+            <a href="{{url_for('datasets.select', selected=version.name)}}" role="button" class="btn btn-secondary float-right">Cancel</a>            
+        </form>
+    </div>
+</div>
+
+{% endblock %}
