@@ -164,7 +164,7 @@ def split_data_items(items: List[DataItems], train_size: float = 0.7, val_size: 
         train_items = items[0:t]
         val_items = items[t:t + v]
         test_items = items[t + v:]
-        print()
+        return train_items, val_items, test_items
 
 
 class TaskManager:
