@@ -2,6 +2,7 @@ from improsch.pipeline import Preprocessor
 import yaml
 import os
 from celery import Celery
+from celery.result import allow_join_result
 
 
 def parse_config(config_path: str):
@@ -15,8 +16,10 @@ IN_DOCKER = os.environ.get("DOCKER_USE", False)
 STORAGE_PATH = os.environ.get("STORAGE_PATH", None)
 if IN_DOCKER:
     app = Celery('improsch', backend='redis://redis:6379/1', broker='redis://redis:6379/1')
+    app_scoring = Celery('score', backend='redis://redis:6379/2', broker='redis://redis:6379/2')
 else:
     app = Celery('improsch', backend='redis://localhost:6379/1', broker='redis://localhost:6379/1')
+    app_scoring = Celery('score', backend='redis://localhost:6379/2', broker='redis://localhost:6379/2')
 app.autodiscover_tasks(force=True)
 
 
@@ -49,5 +52,21 @@ def process(self, request: dict):
         result['selected_ds'] = request['selected_ds']
 
     result['id'] = request['id']
+
+    if request.get('is_scoring'):
+        with allow_join_result():
+            scoring_task = app_scoring.send_task(
+                'main.process',
+                args=(request['scoring_model'], request['directory'], request['is_resize'])
+            )
+            scoring_task.wait(timeout=None, interval=0.5)
+
+            print('STATE:', scoring_task.state)
+            print(scoring_task.result)
+
+            if scoring_task.state == 'SUCCESS':
+                result['scoring'] = scoring_task.result
+            else:
+                result['scoring'] = 'ERROR'
 
     return result

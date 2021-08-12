@@ -1,14 +1,6 @@
 version: "2.3"
 
 services:
-  rabbit:
-    image: rabbitmq:3-management
-    ports:
-      - 15674:15672
-      - 5674:5672
-    networks:
-      - main
-
   redis:
     image: redis
     ports:
@@ -21,7 +13,7 @@ services:
     depends_on:
       - redis
     volumes:
-      - ${IMAGE_STORAGE}:/image_storage
+      - /storage1/mrowl/image_storage:/image_storage
     links:
       - redis
     environment:
@@ -36,10 +28,26 @@ services:
   improsch:
     image: improsch
     depends_on:
-      - rabbit
+      - redis
     volumes:
-      - ${IMAGE_STORAGE}:/image_storage
-      - ${DEDUP_INDEX}:/dedup_index
+      - /storage1/mrowl/image_storage:/image_storage
+      - /storage1/mrowl/dedup_index:/dedup_index
+    environment:
+      - DOCKER_USE=1
+    networks:
+      - main
+    runtime: nvidia
+
+  scoring:
+    image: scoring
+    depends_on: 
+      - redis
+    volumes:
+      - /storage1/mrowl/scoring_models:/models_storage
+      - /storage1/mrowl/image_storage:/storage
+    environment:
+      - IN_DOCKER=1
+      - MODELS_STORAGE=/models_storage
     networks:
       - main
     runtime: nvidia

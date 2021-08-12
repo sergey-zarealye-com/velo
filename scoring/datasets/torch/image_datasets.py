@@ -23,6 +23,6 @@ class ImageDataLoader(DataLoader):
             self.dataset,
             batch_size=batch_size,
             pin_memory=pin_memory,
-            num_workers=num_workers,
+            num_workers=0,
             shuffle=False
         )
