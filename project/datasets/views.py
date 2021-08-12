@@ -47,6 +47,8 @@ commit_process = Process(
 )
 commit_process.start()
 
+shortlife_processes: List[Process] = []
+
 
 def copy_directory(
         src_dir: str,
@@ -385,6 +387,10 @@ def import2ds(selected):
                         model_name = model.local_chkpoint
                         _, model_name = os.path.split(model_name)
 
+                    for proc in shortlife_processes:
+                        if not proc.is_alive():
+                            proc.terminate()
+
                     proc_to_copy_files = Process(
                         target=copy_directory,
                         args=(
@@ -401,10 +407,12 @@ def import2ds(selected):
                             bool(form.is_create_categs_from_folders),
                             bool(form.is_score_model.data),
                             model_name
-                        )
+                        ),
+                        daemon=True
                     )
                     proc_to_copy_files.start()
-                    proc_to_copy_files.join()
+                    shortlife_processes.append(proc_to_copy_files)
+                    # proc_to_copy_files.join()
 
                     # если включена дедупликация, то сохранение нужно после
                     # процесса ручного отбора картинок (project/deduplication/views/def save_result)
