@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import List, Dict, Set, Tuple
+from typing import List, Dict, Optional, Set, Tuple
 
 from flask import render_template, Blueprint, request, redirect, url_for
 from flask import flash, Markup, abort, session
@@ -72,7 +72,8 @@ def copy_directory(
         selected_ds: str,
         create_missing_cats: bool,
         is_scoring: bool,
-        scoring_model: str
+        scoring_model: str,
+        set_category: Optional[Category]
 ):
     logging.info("Start copying data...")
     sys.stdout.flush()
@@ -101,7 +102,7 @@ def copy_directory(
     print('celery task_id:', celery_task_id)
     task_queue.put(celery_task)
 
-    commit_queue.put((task_id, celery_task_id, create_missing_cats))
+    commit_queue.put((task_id, celery_task_id, create_missing_cats, set_category.id))
     log.info("Processing entry created")
 
     logging.info(f"Sended task with id {task_id}")
@@ -355,7 +356,8 @@ def import2ds(selected):
             if form.reason.data == 'moderation':
                 pass
             else:
-                if form.category_select.data == 'folder':
+                # if form.category_select.data == 'folder':
+                if True:
                     # send message to preprocessor
                     storage_dir = os.getenv("STORAGE_DIR")
                     task_id = str(uuid.uuid4())
@@ -411,6 +413,10 @@ def import2ds(selected):
                         model_name = model.local_chkpoint
                         _, model_name = os.path.split(model_name)
 
+                    set_category = None
+                    if form.category_select.data == 'set':
+                        set_category = categories[form.category.data]
+
                     for proc in shortlife_processes:
                         if not proc.is_alive():
                             proc.terminate()
@@ -430,7 +436,8 @@ def import2ds(selected):
                             selected,
                             bool(form.is_create_categs_from_folders),
                             bool(form.is_score_model.data),
-                            model_name
+                            model_name,
+                            set_category
                         ),
                         daemon=True
                     )

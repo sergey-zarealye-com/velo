@@ -459,6 +459,7 @@ class Deduplication(db.Model):
     started_at = db.Column(db.DateTime, nullable=True, default=None)
     task_status = db.Column(db.String, default=DeduplicationStatus.staged.value)
     create_missing_categories = db.Column(db.Boolean)
+    set_category = db.Column(db.Integer, db.ForeignKey("categories.id"), nullable=True)
 
 
 class Diff(db.Model):

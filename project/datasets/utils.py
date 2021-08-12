@@ -92,29 +92,20 @@ def fillup_tmp_table(
     commit_batch: int = 1000,
     create_missing_categories: bool = False,
     version_name: Optional[str] = None,
-    set_category: Optional[str] = None
+    set_category: Optional[int] = None
 ) -> None:
     """
     Заполнить временную таблицу
     функция проходит по указанной директории src, добавляет найденные файлы в таблицу DataItems,
     заполняет таблицу TmpTable
     """
-    import pdb
-    pdb.set_trace()
-
-    category_id = None
-    if set_category:
-        version = Version.query.filter_by(name=version_name).first()
-        category = Category.query.filter_by(version_id=version.id, name=set_category).first()
-        category_id = category.id
-
     objects, categories = [], []
     for sample in get_data_samples(
         src,
         label_ids,
         force_creating_categories=create_missing_categories,
         version_name=version_name,
-        set_category=category_id
+        set_category=set_category
     ):
         res = DataItems.query.filter_by(path=sample.path).first()
         if res:
@@ -139,8 +130,6 @@ def get_data_samples(
     version_name: Optional[str] = None,
     set_category: Optional[int] = None
 ) -> Generator[DataSample, None, None]:
-    import pdb
-    pdb.set_trace()
     data_path: Path = Path(data_path_str)
     # # если это один файл
     if data_path.is_file():
@@ -164,11 +153,12 @@ def get_data_samples(
                 for file in item.iterdir():
                     if file.is_file():
                         media_type = get_media_type(file)
-                        sample = DataSample(str(file), labels[label], media_type)
+                        set_label = set_category or labels[label]
+                        sample = DataSample(str(file), set_label, media_type)
                         yield sample
             elif item.is_file() and set_category:
-                media_type = get_media_type(file)
-                sample = DataSample(str(file), set_category, media_type)
+                media_type = get_media_type(item)
+                sample = DataSample(str(item), set_category, media_type)
                 yield sample
 
 

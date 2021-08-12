@@ -35,14 +35,17 @@ def send_message(queue):
     async def func(queue):
         while True:
             print('waiting for message...')
-            task_id, celery_task_id, create_missing_categories = queue.get()  # blocking operation
+            task_id, celery_task_id, create_missing_categories, cat_id = queue.get()  # blocking operation
 
+            print("Add new image processing entry")
             new_task_entry = Deduplication(
                 task_uid=task_id,
                 celery_task_id=celery_task_id,
-                create_missing_categories=create_missing_categories
+                create_missing_categories=create_missing_categories,
+                set_category=cat_id
             )
             db.session.add(new_task_entry)
             db.session.commit()
+            print("Added")
 
     loop.run_until_complete(func(queue))
