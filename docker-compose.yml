@@ -7,6 +7,7 @@ services:
     ports:
       - 15672:15672
       - 5672:5672
+
   redis:
     image: redis
     container_name: redis
@@ -23,29 +24,32 @@ services:
 #      - redis
 #      - improsch
 
-#  ffmpeg:
-#    image: moderation
-#    depends_on:
-#      - redis
-#    volumes:
-#      - ${STORAGE_DIR}:${STORAGE_PATH_IN_DOCKER}
-#    links:
-#      - redis
-#    environment:
-#      IN_DOCKER: 1
-#      STORAGE: "${STORAGE_PATH_IN_DOCKER}"
-#      REDIS: "${REDIS}"
-#      AWS_ENDPOINT_URL: "${AWS_ENDPOINT_URL}"
-#      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
-#      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
-#
+  ffmpeg:
+    image: moderation
+    depends_on:
+      - redis
+    volumes:
+      - ${STORAGE_DIR}:${STORAGE_PATH_IN_DOCKER}
+    links:
+      - redis
+    environment:
+      IN_DOCKER: 1
+      STORAGE: "${STORAGE_PATH_IN_DOCKER}"
+      REDIS: "${REDIS}"
+      AWS_ENDPOINT_URL: "${AWS_ENDPOINT_URL}"
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+
   improsch:
     image: improsch
+    container_name: improsch
     depends_on:
       - rabbit
     volumes:
       - ${STORAGE_DIR}:${STORAGE_PATH_IN_DOCKER}
       - ${DEDUP_INDEX}:${DEDUP_PATH_IN_DOCKER}
+    environment:
+      DOCKER_USE: 1
     deploy:
       resources:
         limits:
