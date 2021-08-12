@@ -380,6 +380,14 @@ def import2ds(selected):
                             )
                         )
                     )
+
+                    if form.category_select.data == "folder" and not len(files):
+                        flash(
+                            f'Set category strategy to "folder" but no folder found in {form.flocation.data}',
+                            "error"
+                        )
+                        return render_template('datasets/import.html', form=form, selected=selected, version=version)
+
                     files = map(
                         lambda x: os.path.split(x)[-1],
                         list(files)
@@ -389,6 +397,7 @@ def import2ds(selected):
                         for folder_name in files:
                             if folder_name not in label_ids:
                                 flash(f"{folder_name} not in labels!", "error")
+                                return render_template('datasets/import.html', form=form, selected=selected, version=version)
 
                     model_name = ''
                     if bool(form.is_score_model.data):

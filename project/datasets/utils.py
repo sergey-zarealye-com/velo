@@ -98,6 +98,8 @@ def fillup_tmp_table(
     функция проходит по указанной директории src, добавляет найденные файлы в таблицу DataItems,
     заполняет таблицу TmpTable
     """
+    import pdb
+    pdb.set_trace()
     objects, categories = [], []
     for sample in get_data_samples(
         src,
@@ -127,6 +129,8 @@ def get_data_samples(
     force_creating_categories: bool = False,
     version_name: Optional[str] = None
 ) -> Generator[DataSample, None, None]:
+    import pdb
+    pdb.set_trace()
     data_path: Path = Path(data_path_str)
     # # если это один файл
     if data_path.is_file():

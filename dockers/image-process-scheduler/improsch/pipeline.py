@@ -131,4 +131,4 @@ class Preprocessor:
             self.deduplicator.add_indexes_from_tmp(filenames)
             return {'status': 'done'}
 
-        return self.parted_preprocessing(request, 100)
+        return self.parted_preprocessing(request, 500)
