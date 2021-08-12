@@ -2,14 +2,13 @@ import enum
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from random import shuffle
-from typing import Any, Generator, Dict, List, Union
 from typing import Generator, Dict, List, Optional, Union
 from project import db
 from project.models import Version, Category, DataItems, TmpTable
+import asyncio
+import time
+import sys
 
-
-from project.models import DataItems
 
 log = logging.getLogger(__name__)
 
@@ -151,25 +150,34 @@ def get_data_samples(
                         yield sample
 
 
-def split_data_items(items: List[DataItems], train_size: float = 0.7, val_size: float = 0.1):
-    if len(items) < 5:
-        log.error("Too small items")
-    else:
-        shuffle(items)
-        t = int(len(items) * train_size)
-        v = int(len(items) * val_size)
-        if v == 0:
-            v += 1
-        train_items = items[0:t]
-        val_items = items[t:t + v]
-        test_items = items[t + v:]
-        return train_items, val_items, test_items
+class TaskManager:
+    def __init__(self):
+        self.tasks = []
 
+    def add_task(self, task):
+        self.tasks.append(task)
 
-if __name__ == '__main__':
-    import pickle
+    def run(self):
+        try:
+            loop = asyncio.get_event_loop()
+        except Exception:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
 
-    with open("items.pkl", "rb") as f:
-        items = pickle.load(f)
+        self.check()
+        # loop.run_until_complete(self.check())
 
-    split_data_items(items)
+    def check(self):
+        while True:
+            for i, task in enumerate(self.tasks):
+                if task.read():
+                    response = task.result
+
+                    if response['type'] == 'filtered':
+                        print('FILTERED:', response)
+                        sys.stdout.flush()
+
+                    del self.tasks[i]
+                    break
+                
+            time.sleep(1.)
