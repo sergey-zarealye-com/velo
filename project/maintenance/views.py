@@ -425,7 +425,7 @@ def model_edit(model_id):
                 db.session.commit()
                 message = Markup("Saved successfully!")
                 flash(message, 'success')
-                return redirect(url_for('maintenance.models_list', 
+                return redirect(url_for('maintenance.models_list',
                                         selected=version.name))
             except Exception as e:
                 traceback.print_exc()

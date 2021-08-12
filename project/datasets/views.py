@@ -26,7 +26,8 @@ import uuid
 from project.datasets.queries import get_labels_of_version, get_nodes_above, get_items_of_nodes, prepare_to_commit, \
     get_items_of_nodes_with_label
 from project.deduplication.utils import create_image_processing_task
-from project.datasets.utils import get_data_samples, split_data_items
+from project.datasets.utils import split_data_items
+from project.datasets.utils import TaskManager
 
 log = logging.getLogger(__name__)
 
@@ -46,6 +47,14 @@ commit_process = Process(
     daemon=True
 )
 commit_process.start()
+
+task_queue: Queue = Queue()
+task_manager = TaskManager(task_queue)
+task_proc = Process(
+    target=task_manager.run,
+    daemon=True
+)
+task_proc.start()
 
 shortlife_processes: List[Process] = []
 
@@ -88,8 +97,9 @@ def copy_directory(
         'is_scoring': is_scoring,
         'scoring_model': scoring_model
     }
-    celery_task_id = create_image_processing_task(message)
+    celery_task, celery_task_id = create_image_processing_task(message)
     print('celery task_id:', celery_task_id)
+    task_queue.put(celery_task)
 
     commit_queue.put((task_id, celery_task_id, create_missing_cats))
     log.info("Processing entry created")

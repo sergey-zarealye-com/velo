@@ -1,15 +1,17 @@
+from typing import Generator, Dict, List, Optional, Union, Any
 import enum
 import logging
 from dataclasses import dataclass
 from pathlib import Path
 from random import shuffle
-from typing import Generator, Dict, List, Optional, Union
 from project import db
 from project.models import Version, Category, DataItems, TmpTable
-import asyncio
+from multiprocessing import Queue
 import time
 import sys
 from random import shuffle
+from project.models import Deduplication, DeduplicationStatus
+import os
 
 
 log = logging.getLogger(__name__)
@@ -169,34 +171,95 @@ def split_data_items(items: List[DataItems], train_size: float = 0.7, val_size: 
         return train_items, val_items, test_items
 
 
-class TaskManager:
-    def __init__(self):
-        self.tasks = []
+def process_response(response: dict):
+    task_id = response['id']
+    task_entry = Deduplication.query.filter_by(task_uid=task_id).first()
 
-    def add_task(self, task):
-        self.tasks.append(task)
+    if task_entry:
+        if response['type'] == 'deduplication_result':
+            print('\tGot result:')
+            print(response)
+
+            deduplication_result = response['deduplication']
+            path_to_id: Dict[str, int] = {}
+
+            for path1, path2, _ in deduplication_result:
+                path_to_id[path1] = DataItems.add_if_not_exists(path1)
+                path_to_id[path2] = DataItems.add_if_not_exists(path2)
+
+            updated_deduplication: List[Dict[str, Any]] = []
+
+            for item_index, (path1, path2, similarity) in enumerate(deduplication_result):
+                updated_deduplication.append({
+                    'item_index': item_index,
+                    'image1': path_to_id[path1],
+                    'image2': path_to_id[path2],
+                    'similarity': similarity,
+                    'removed': False
+                })
+
+            response['deduplication'] = updated_deduplication
+
+            task_entry.result = response
+            task_entry.task_status = DeduplicationStatus.finished.value
+            db.session.commit()
+        elif response['type'] == 'status_update':
+            print('\t Got status update')
+            print(response)
+            task_entry.stages_status = response
+            db.session.commit()
+        elif response['type'] == 'merge_control':
+            print('MERGE CONTROL RESULT')
+        elif response['type'] == 'filtered':
+            print("\t\tFILTERED RESULT MESSAGE")
+            print("Result filenames", response["filenames"])
+            # TODO: handle exceptions, add s3 source
+            # вынести куда нибудь commit_batch
+            storage_dir = os.getenv('STORAGE_DIR')
+            assert storage_dir
+            label_ids = response['label_ds']
+            selected_ds = response['selected_ds']
+            version = Version.query.filter_by(name=selected_ds).first()
+            fillup_tmp_table(
+                label_ids,
+                selected_ds,
+                os.path.join(storage_dir, task_id),
+                version,
+                create_missing_categories=task_entry.create_missing_categories,
+                version_name=selected_ds
+            )
+            task_entry.task_status = DeduplicationStatus.finished.value
+            db.session.commit()
+
+    return task_entry
+
+
+class TaskManager:
+    def __init__(self, queue):
+        self.tasks = []
+        self.queue: Queue = queue
 
     def run(self):
-        try:
-            loop = asyncio.get_event_loop()
-        except Exception:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        self.check()
-        # loop.run_until_complete(self.check())
-
-    def check(self):
+        print('\tTaskManager started!')
+        sys.stdout.flush()
         while True:
-            for i, task in enumerate(self.tasks):
-                if task.read():
-                    response = task.result
+            while not self.queue.empty():
+                print('New task!')
+                sys.stdout.flush()
+                task = self.queue.get()
+                self.tasks.append(task)
 
-                    if response['type'] == 'filtered':
-                        print('FILTERED:', response)
-                        sys.stdout.flush()
+            sys.stdout.flush()
+
+            for i, task in enumerate(self.tasks):
+                if task.ready():
+                    print(f'Task {task} is ready!')
+                    breakpoint()
+                    response = task.result
+                    process_response(response)
 
                     del self.tasks[i]
                     break
 
+            sys.stdout.flush()
             time.sleep(1.)

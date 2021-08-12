@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 from celery import Celery
 from celery.result import AsyncResult
 import os
@@ -14,9 +14,9 @@ redis_port = int(redis_port)
 app = Celery('improsch', backend=f'redis://localhost:{redis_port}/1', broker=f'redis://localhost:{redis_port}/1')
 
 
-def create_image_processing_task(message) -> str:
+def create_image_processing_task(message) -> Tuple[Any, str]:
     task = app.send_task('run.process', args=(message,))
-    return task.task_id
+    return task, task.task_id
 
 
 def get_task_result(celery_task_id: str):
