@@ -75,5 +75,6 @@ validators==0.18.2
 vine==5.0.0
 wcwidth==0.2.5
 Werkzeug==2.0.1
-WTForms==2.1
+WTForms==2.3.3
 yarl==1.6.3
+email_validator==1.1.3

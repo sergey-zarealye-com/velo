@@ -11,9 +11,11 @@ from flask import (
     send_from_directory,
     redirect,
     flash,
-    session
+    session,
+    url_for,
+    Markup
 )
-from flask_login import  login_required
+from flask_login import login_required
 from project import db
 
 from project.models import DataItems, Deduplication, Version
@@ -168,7 +170,7 @@ def show_dedup(task_id, selected_ds):
     if not dedup_result:
         return render_template('deduplication/taskFinished.html', task_id=task.task_uid)
 
-    if not task_id in temporary_storage:
+    if task_id not in temporary_storage:
         images = dedup_result
         temporary_storage[task_id] = images
     else:
@@ -207,6 +209,7 @@ def show_task_list():
         message = Markup("There was no version found!")
         flash(message, 'warning')
         return redirect(url_for('datasets.index'))
+
     tasks = Deduplication.query.all()
 
     return render_template(
@@ -224,3 +227,18 @@ def show_task_list():
             for task in tasks
         ]
     )
+
+
+@dedup_blueprint.route('/delete_task/<task_id>', methods=['POST'])
+@login_required
+def delete_task(task_id):
+    if 'selected_version' in session:
+        version = Version.query.filter_by(name=session['selected_version']).first()
+    else:
+        version = Version.get_first()
+    if version is None:
+        message = Markup("There was no version found!")
+        flash(message, 'warning')
+        return redirect(url_for('datasets.index'))
+
+    

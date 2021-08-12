@@ -30,9 +30,12 @@ class ImportForm(FlaskForm):
                                            ('set', 'Set category')],
                                   coerce=str)
     is_create_categs_from_folders = BooleanField('Create categories if missing')
-    category = SelectField('Category',  # TODO -- shall be dynamic!!!
-                           choices=[],
-                           coerce=int)
+    category = SelectField(
+        'Category',  # TODO -- shall be dynamic!!!
+        choices=[],
+        coerce=int,
+        validate_choice=False
+    )
     general_category = StringField('Category for video',
                                    default='',
                                    validators=[Length(min=0, max=254)])
@@ -40,14 +43,10 @@ class ImportForm(FlaskForm):
     score_model = SelectField(
         'Classification model',
         choices=[],
-        coerce=int
+        coerce=int,
+        validate_choice=False
     )
 
-    # Deduplication settings
-    score_model = SelectField('Classification model',  # TODO -- shall be dynamic!!!
-                              choices=[(1, 'ResNet'),
-                                       (2, 'EfficientNet')],
-                              coerce=int)
     is_dedup = BooleanField('Check for duplicates')
     dedup_model = SelectField(
         'Model for image deduplication',
