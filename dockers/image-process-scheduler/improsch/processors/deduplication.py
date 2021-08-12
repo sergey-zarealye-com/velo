@@ -1,5 +1,7 @@
 """Module to handle deduplication of images.
 Includes model for features extraction and model for neighbours searching."""
+import argparse
+from copy import deepcopy
 from functools import partial
 import logging
 from multiprocessing import Pool
@@ -15,16 +17,9 @@ import torch
 import torchvision
 from torchvision import transforms
 import imagehash
-from copy import deepcopy
-import logging
-import argparse
-import json
-import torch
-
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
-
 
 CONFIG_NAME = 'config.json'
 FILENAMES_JSON_NAME = 'ids_to_filenames.json'
@@ -67,49 +62,21 @@ class NNfeatureExtractor(FeatureExtractor, torch.nn.Module):
             device: str = 'cpu'
             # device: str = 'cpu'
     ) -> np.ndarray:
-        # if not isinstance(images, torch.Tensor):
-        #     images = torch.Tensor(images).permute(0, 3, 1, 2)
-        print('\tCalculating on', device)
-        import sys
-        sys.stdout.flush()
+        images = torch.stack([self.preprocess(img) for img in images])  # type: ignore
 
-        print('\tTRYING TO PREPROCESS')
-        print('\tCONUT OF IMAGES:', len(images))
-        print('\tSHAPES:', images[0].shape, images[1].shape)
-        sys.stdout.flush()
-        images = torch.stack([self.preprocess(img) for img in images])
-        print('\tIMAGES STACK')
-        sys.stdout.flush()
-
-        dataset = torch.utils.data.TensorDataset(images)
-        print('\tDATASET BUILDED')
-        sys.stdout.flush()
+        dataset = torch.utils.data.TensorDataset(images)  # type: ignore
         dataloader = torch.utils.data.DataLoader(
             dataset, shuffle=False, drop_last=False,
             batch_size=batch_size  # TODO num_workers and pin_memory
         )
-        print('Builded dataloader')
-        sys.stdout.flush()
-
         self.model.to(device)
         embeddings = []
-        print('MODEL MOVED TO DEVICE', device)
-        sys.stdout.flush()
 
-        print('\tBEFORE NO GRAD')
-        sys.stdout.flush()
         with torch.no_grad():
-            print('\tAFTER NO GRAD')
-            sys.stdout.flush()
             for image_batch, in dataloader:
-                print(f'\t\tCalculation iteration')
-                sys.stdout.flush()
                 image_batch = image_batch.to(device)
                 embed = self.model(image_batch).cpu().numpy()
                 embeddings.append(embed)
-
-        print('FINISHED CALCULATIONS')
-        sys.stdout.flush()
 
         return np.concatenate(embeddings)
 
@@ -197,7 +164,6 @@ class ImageIndex:
             similarity = min(1., similarity)
             similarity = max(0., similarity)
 
-
             updated_neighbours.append(
                 (
                     tmp_id_to_filename[item[0]],
@@ -236,7 +202,6 @@ class ImageIndex:
 
         faiss.write_index(self.index, os.path.join(directory_path, 'index.faiss'))
         faiss.write_index(self.index, os.path.join(directory_path, 'tmp_index.faiss'))
-
 
         with open(os.path.join(directory_path, CONFIG_NAME), 'w') as file:
             json.dump(self.index_config, file)
@@ -354,6 +319,18 @@ class Deduplicator:
         neighbours = self.index.find_neighbours(embeddings, imagenames)
         return neighbours
 
+    def add_images_to_index(self, images: List[np.ndarray], imagenames: List[str], batch_size: int):
+        embeddings = self._get_embeddings(images, batch_size)
+        self.index.add_vectors(embeddings, imagenames)
+
+    def get_neighbours_by_filenames(self, filenames):
+        indexes = [self.index.tmp_id_to_filename[name] for name in filenames]
+        vectors = np.array([self.index.tmp_index.reconstruct(index) for index in indexes])
+
+        neighbours = self.index.find_neighbours(vectors, filenames)
+
+        return neighbours
+
     def run_deduplication(
             self,
             data_dir: str,
@@ -412,25 +389,25 @@ def perceptual_hash_detector(images, filenames: List[str]):
 
 
 def read(data_dir: str) -> Tuple[List[np.ndarray], List[str]]:
-        images: List[np.ndarray] = []
-        imagenames = []
+    images: List[np.ndarray] = []
+    imagenames = []
 
-        for root, subdirs, files in os.walk(data_dir):
-            filenames = map(lambda x: os.path.join(root, x), files)
+    for root, subdirs, files in os.walk(data_dir):
+        filenames = map(lambda x: os.path.join(root, x), files)
 
-            for filename in filenames:
+        for filename in filenames:
 
-                try:
-                    img = cv2.imread(filename)
-                    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            try:
+                img = cv2.imread(filename)
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-                    images.append(img)
-                    imagenames.append(filename)
-                except Exception:
-                    # TODO alerting
-                    continue
+                images.append(img)
+                imagenames.append(filename)
+            except Exception:
+                # TODO alerting
+                continue
 
-        return images, imagenames
+    return images, imagenames
 
 
 if __name__ == '__main__':
@@ -446,7 +423,9 @@ if __name__ == '__main__':
     directory = os.path.join(args.storage_dir, args.id)
 
     if not os.path.isdir(directory) or not os.listdir(directory):
-        assert argparse.ArgumentError("Directory must exist and contain images!")  # TODO process case, return error code
+        assert argparse.ArgumentError(
+            message="Directory must exist and contain images!"
+        )  # TODO process case, return error code
 
     # check if index is already exists
     create_new = True

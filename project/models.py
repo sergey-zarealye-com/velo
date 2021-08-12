@@ -315,6 +315,11 @@ class DataItems(db.Model):
         cascade="all, delete",
         passive_deletes=True
     )
+    t = relationship(
+        "Splits", back_populates="data_item",
+        cascade="all, delete",
+        passive_deletes=True
+    )
 
     def add_if_not_exists(path: str) -> int:
         entry = DataItems.query.filter_by(path=path).first()
@@ -423,6 +428,7 @@ class Deduplication(db.Model):
     __tablename__ = 'deduplication'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     task_uid = db.Column(db.String)
+    celery_task_id = db.Column(db.String)  # to access task result and status if service has restarted
     # user who has created this task
     # user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     stages_status = db.Column(JSON)
@@ -430,6 +436,7 @@ class Deduplication(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     started_at = db.Column(db.DateTime, nullable=True, default=None)
     task_status = db.Column(db.String, default=DeduplicationStatus.staged.value)
+    create_missing_categories = db.Column(db.Boolean)
 
 
 class Diff(db.Model):
@@ -465,6 +472,7 @@ class Changes(db.Model):
         PrimaryKeyConstraint('version_id', 'item_id'),
     )
 
+
 class Model(db.Model):
     __tablename__ = 'models'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -493,3 +501,14 @@ class Model(db.Model):
         return Model.query \
             .filter_by(version_id=version.id, task=task) \
             .all()
+
+
+class Splits(db.Model):
+    __tablename__ = 'splits'
+    version_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False)
+    category = db.Column(db.String, nullable=False)  # Train/Test/Val
+    item_id = db.Column(db.Integer, db.ForeignKey('data_items.id', ondelete='CASCADE'), nullable=False)
+    data_item = relationship("DataItems", back_populates="t")
+    __table_args__ = (
+        PrimaryKeyConstraint('version_id', 'item_id', 'category'),
+    )
