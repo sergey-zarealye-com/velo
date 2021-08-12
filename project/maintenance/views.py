@@ -365,8 +365,6 @@ def model_add(task_id):
     if request.method == 'POST':
         if form.validate_on_submit():
             try:
-                import pdb
-                pdb.set_trace()
                 model = Model(
                     form.name.data,
                     version.id,

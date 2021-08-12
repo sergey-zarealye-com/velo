@@ -333,9 +333,9 @@ def import2ds(selected):
 
     form = ImportForm(request.form)
     categories = Category.list(1, version.name)
-    form.category.choices = [(i, cat.name) for i, cat in enumerate(categories)]
+    form.category.choices = [(-1, 'empty')] + [(i, cat.name) for i, cat in enumerate(categories)]
     scoring_models = Model.list(1, version.name)
-    form.score_model.choices = [(i, model.name) for i, model in enumerate(scoring_models)]
+    form.score_model.choices = [(-1, 'empty')] + [(i, model.name) for i, model in enumerate(scoring_models)]
 
     if request.method == 'POST':
         if form.validate_on_submit():
@@ -379,8 +379,6 @@ def import2ds(selected):
                                 flash(f"{folder_name} not in labels!", "error")
 
                     model_name = ''
-                    import pdb
-                    pdb.set_trace()
                     if bool(form.is_score_model.data):
                         model = scoring_models[form.score_model.data]
 
