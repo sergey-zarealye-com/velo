@@ -1,5 +1,7 @@
 digraph "dsvers" {
-        init[URL="/datasets/select/init", style="filled", fillcolor="lightgrey"];
+        init[URL="/datasets/select/init", style="bold", fillcolor="white"];
+v1[URL="/datasets/select/v1", style="filled", fillcolor="lightgrey"];
 
-        
+        init->v1;
+
         }

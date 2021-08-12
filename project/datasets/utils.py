@@ -2,6 +2,7 @@ import enum
 import logging
 from dataclasses import dataclass
 from pathlib import Path
+from random import shuffle
 from typing import Generator, Dict, List, Optional, Union
 from project import db
 from project.models import Version, Category, DataItems, TmpTable
