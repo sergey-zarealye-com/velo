@@ -321,6 +321,7 @@ class Deduplicator:
 
     def add_images_to_index(self, images: List[np.ndarray], imagenames: List[str], batch_size: int):
         embeddings = self._get_embeddings(images, batch_size)
+        faiss.normalize_L2(embeddings)
         self.index.add_vectors(embeddings, imagenames)
 
     def get_neighbours_by_filenames(self, filenames):

@@ -10,6 +10,7 @@ from flask_login import current_user, login_required
 from project import db, app
 from project.models import Version, VersionChildren, DataItems, TmpTable, Category, Changes, Splits
 from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm, SplitForm
+from project.models import Model
 import graphviz
 from uuid import uuid4
 import traceback
@@ -58,7 +59,9 @@ def copy_directory(
         is_dedup: bool,
         label_ds: Dict[str, int],
         selected_ds: str,
-        create_missing_cats: bool
+        create_missing_cats: bool,
+        is_scoring: bool,
+        scoring_model: str
 ):
     logging.info("Start copying data...")
     sys.stdout.flush()
@@ -79,7 +82,9 @@ def copy_directory(
         'dst_size': tuple(dst_size),
         'deduplication': bool(is_dedup),
         'label_ds': label_ds,
-        'selected_ds': selected_ds
+        'selected_ds': selected_ds,
+        'is_scoring': is_scoring,
+        'scoring_model': scoring_model
     }
     celery_task_id = create_image_processing_task(message)
     print('celery task_id:', celery_task_id)
@@ -270,11 +275,13 @@ def branch(selected):
                 for task in Category.TASKS():
                     categs = Category.list(task[0], parent.name)
                     for parent_categ in categs:
-                        child_categ = Category(parent_categ.name,
-                                               version.id,
-                                               task[0],
-                                               parent_categ.description,
-                                               position=parent_categ.position)
+                        child_categ = Category(
+                            parent_categ.name,
+                            version.id,
+                            task[0],
+                            parent_categ.description,
+                            position=parent_categ.position
+                        )
                         db.session.add(child_categ)
                 db.session.commit()
                 # TODO -- copy images from parent version (to join tbl)? Must be able to browse them in new branched version
@@ -323,9 +330,13 @@ def import2ds(selected):
         abort(404)
     if version.status == 3:
         abort(400)
+
     form = ImportForm(request.form)
     categories = Category.list(1, version.name)
-    form.category.choices = [(cat.position, cat.name) for cat in categories]
+    form.category.choices = [(i, cat.name) for i, cat in enumerate(categories)]
+    scoring_models = Model.list(1, version.name)
+    form.score_model.choices = [(i, model.name) for i, model in enumerate(scoring_models)]
+
     if request.method == 'POST':
         if form.validate_on_submit():
             label_ids = get_labels_of_version(version.id)
@@ -367,6 +378,15 @@ def import2ds(selected):
                             if folder_name not in label_ids:
                                 flash(f"{folder_name} not in labels!", "error")
 
+                    model_name = ''
+                    import pdb
+                    pdb.set_trace()
+                    if bool(form.is_score_model.data):
+                        model = scoring_models[form.score_model.data]
+
+                        model_name = model.local_chkpoint
+                        _, model_name = os.path.split(model_name)
+
                     proc_to_copy_files = Process(
                         target=copy_directory,
                         args=(
@@ -380,7 +400,9 @@ def import2ds(selected):
                             bool(form.is_dedup.data),
                             label_ids,
                             selected,
-                            bool(form.is_create_categs_from_folders)
+                            bool(form.is_create_categs_from_folders),
+                            bool(form.is_score_model.data),
+                            model_name
                         )
                     )
                     proc_to_copy_files.start()
