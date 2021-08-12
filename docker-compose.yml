@@ -29,7 +29,7 @@ services:
     depends_on:
       - redis
     volumes:
-      - ${STORAGE_DIR}:${STORAGE_PATH_IN_DOCKER}
+      - ${MODERATION_STORAGE_DIR}:${STORAGE_PATH_IN_DOCKER}
     links:
       - redis
     environment:

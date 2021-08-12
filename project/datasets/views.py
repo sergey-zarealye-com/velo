@@ -8,8 +8,9 @@ from sqlalchemy.exc import IntegrityError
 from flask_login import current_user, login_required
 
 from project import db, app
-from project.models import Version, VersionChildren, DataItems, TmpTable, Category, Changes, Splits
+from project.models import Version, VersionChildren, DataItems, TmpTable, Category, Changes
 from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm, SplitForm
+from project.models import Model
 import graphviz
 from uuid import uuid4
 import traceback
@@ -25,7 +26,8 @@ import uuid
 from project.datasets.queries import get_labels_of_version, get_nodes_above, get_items_of_nodes, prepare_to_commit, \
     get_items_of_nodes_with_label
 from project.deduplication.utils import create_image_processing_task
-from project.datasets.utils import get_data_samples, split_data_items
+from project.datasets.utils import split_data_items
+from project.datasets.utils import TaskManager
 
 log = logging.getLogger(__name__)
 
@@ -46,6 +48,16 @@ commit_process = Process(
 )
 commit_process.start()
 
+task_queue: Queue = Queue()
+task_manager = TaskManager(task_queue)
+task_proc = Process(
+    target=task_manager.run,
+    daemon=True
+)
+task_proc.start()
+
+shortlife_processes: List[Process] = []
+
 
 def copy_directory(
         src_dir: str,
@@ -58,7 +70,9 @@ def copy_directory(
         is_dedup: bool,
         label_ds: Dict[str, int],
         selected_ds: str,
-        create_missing_cats: bool
+        create_missing_cats: bool,
+        is_scoring: bool,
+        scoring_model: str
 ):
     logging.info("Start copying data...")
     sys.stdout.flush()
@@ -79,10 +93,13 @@ def copy_directory(
         'dst_size': tuple(dst_size),
         'deduplication': bool(is_dedup),
         'label_ds': label_ds,
-        'selected_ds': selected_ds
+        'selected_ds': selected_ds,
+        'is_scoring': is_scoring,
+        'scoring_model': scoring_model
     }
-    celery_task_id = create_image_processing_task(message)
+    celery_task, celery_task_id = create_image_processing_task(message)
     print('celery task_id:', celery_task_id)
+    task_queue.put(celery_task)
 
     commit_queue.put((task_id, celery_task_id, create_missing_cats))
     log.info("Processing entry created")
@@ -270,11 +287,13 @@ def branch(selected):
                 for task in Category.TASKS():
                     categs = Category.list(task[0], parent.name)
                     for parent_categ in categs:
-                        child_categ = Category(parent_categ.name,
-                                               version.id,
-                                               task[0],
-                                               parent_categ.description,
-                                               position=parent_categ.position)
+                        child_categ = Category(
+                            parent_categ.name,
+                            version.id,
+                            task[0],
+                            parent_categ.description,
+                            position=parent_categ.position
+                        )
                         db.session.add(child_categ)
                 db.session.commit()
                 # TODO -- copy images from parent version (to join tbl)? Must be able to browse them in new branched version
@@ -323,9 +342,13 @@ def import2ds(selected):
         abort(404)
     if version.status == 3:
         abort(400)
+
     form = ImportForm(request.form)
     categories = Category.list(1, version.name)
-    form.category.choices = [(cat.position, cat.name) for cat in categories]
+    form.category.choices = [(-1, 'empty')] + [(i, cat.name) for i, cat in enumerate(categories)]
+    scoring_models = Model.list(1, version.name)
+    form.score_model.choices = [(-1, 'empty')] + [(i, model.name) for i, model in enumerate(scoring_models)]
+
     if request.method == 'POST':
         if form.validate_on_submit():
             label_ids = get_labels_of_version(version.id)
@@ -367,6 +390,17 @@ def import2ds(selected):
                             if folder_name not in label_ids:
                                 flash(f"{folder_name} not in labels!", "error")
 
+                    model_name = ''
+                    if bool(form.is_score_model.data):
+                        model = scoring_models[form.score_model.data]
+
+                        model_name = model.local_chkpoint
+                        _, model_name = os.path.split(model_name)
+
+                    for proc in shortlife_processes:
+                        if not proc.is_alive():
+                            proc.terminate()
+
                     proc_to_copy_files = Process(
                         target=copy_directory,
                         args=(
@@ -380,11 +414,15 @@ def import2ds(selected):
                             bool(form.is_dedup.data),
                             label_ids,
                             selected,
-                            bool(form.is_create_categs_from_folders)
-                        )
+                            bool(form.is_create_categs_from_folders),
+                            bool(form.is_score_model.data),
+                            model_name
+                        ),
+                        daemon=True
                     )
                     proc_to_copy_files.start()
-                    proc_to_copy_files.join()
+                    shortlife_processes.append(proc_to_copy_files)
+                    # proc_to_copy_files.join()
 
                     # если включена дедупликация, то сохранение нужно после
                     # процесса ручного отбора картинок (project/deduplication/views/def save_result)
@@ -419,6 +457,7 @@ def import2ds(selected):
                 is_dedup=1 if bool(form.is_dedup.data) else 0
             ))
     return render_template('datasets/import.html', form=form, selected=selected, version=version)
+
 
 
 @datasets_blueprint.route('/commit/<selected>', methods=['GET', 'POST'])
@@ -626,41 +665,12 @@ def split(selected):
     if version.status == 3:
         abort(400)
     form = SplitForm(request.form)
+    nodes = get_nodes_above(db.session, version.id)
+    data_items = get_items_of_nodes(nodes)
+    split_data_items(data_items)
     if request.method == 'POST':
         if form.validate_on_submit():
-            # Берем data_items только от текущей ноды
-            data_items = get_items_of_nodes([version.id])
-            train_size = form.train_size.data
-            val_size = form.val_size.data
-            test_size = form.test_size.data
-            sum = round(train_size + val_size + test_size, 2)
-            if sum != 1:
-                message = Markup(
-                    f"<strong>Train size + test size + val size must be equal to 1.\nSum: {sum}")
-                flash(message, 'danger')
-            else:
-                train_items, val_items, test_items = split_data_items(data_items, train_size, val_size)
-                si = []
-                for item in train_items:
-                    split_item = Splits(version_id=version.id, category="train", item_id=item.id)
-                    si.append(split_item)
-                for item in val_items:
-                    split_item = Splits(version_id=version.id, category="val", item_id=item.id)
-                    si.append(split_item)
-                for item in test_items:
-                    split_item = Splits(version_id=version.id, category="test", item_id=item.id)
-                    si.append(split_item)
-                try:
-                    db.session.bulk_save_objects(si)
-                    db.session.commit()
-                    message = Markup(
-                        f"<strong>Save successfully")
-                    flash(message, 'success')
-                except Exception as ex:
-                    log.error(ex)
-                    db.session.rollback()
-                return redirect(url_for('datasets.select',
-                                        selected=version.name))
+            pass
     return render_template(
         'datasets/split.html',
         version=version,

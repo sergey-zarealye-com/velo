@@ -37,11 +37,17 @@ class ImportForm(FlaskForm):
                                    default='',
                                    validators=[Length(min=0, max=254)])
     is_score_model = BooleanField('Score imported images')
-    score_model = SelectField('Classification model', #TODO -- shall be dynamic!!!
-                            choices=[(1, 'ResNet'),
-                                     (2, 'EfficientNet')],
-                            coerce=int)
+    score_model = SelectField(
+        'Classification model',
+        choices=[],
+        coerce=int
+    )
 
+    # Deduplication settings
+    score_model = SelectField('Classification model',  # TODO -- shall be dynamic!!!
+                              choices=[(1, 'ResNet'),
+                                       (2, 'EfficientNet')],
+                              coerce=int)
     is_dedup = BooleanField('Check for duplicates')
     dedup_model = SelectField(
         'Model for image deduplication',
@@ -79,8 +85,5 @@ class CommitForm(FlaskForm):
 class MergeForm(FlaskForm):
     target_select = SelectField('Merge from', coerce=str)
 
-
 class SplitForm(FlaskForm):
-    train_size = FloatField(label=0.7)
-    test_size = FloatField(label=0.1)
-    val_size = FloatField(label=0.2)
+    train_size = FloatField()

@@ -15,6 +15,12 @@ from project.models import User, Version, Category, Model
 from .forms import AddCategoryForm, EditCategoryForm, AddModelForm, EditModelForm
 import traceback
 import difflib
+import shutil
+import os
+import logging
+
+
+log = logging.getLogger(__name__)
 
 
 # CONFIG
@@ -359,15 +365,26 @@ def model_add(task_id):
     if request.method == 'POST':
         if form.validate_on_submit():
             try:
-                model = Model(form.name.data,
-                                 version.id,
-                                 task_id,
-                                 description=form.description.data,
-                                 kf_uid=form.kf_uid.data,
-                                 local_chkpoint=form.local_chkpoint.data
-                                 )
+                model = Model(
+                    form.name.data,
+                    version.id,
+                    task_id,
+                    description=form.description.data,
+                    kf_uid=form.kf_uid.data,
+                    local_chkpoint=form.local_chkpoint.data
+                )
+
                 db.session.add(model)
                 db.session.commit()
+
+                log.info('Copying model checkpoint to models storage...')
+                models_storage = os.getenv('MODELS_STORAGE')
+                assert models_storage
+                checkpoint_path = str(form.local_chkpoint.data)
+                _, model_name = os.path.split(checkpoint_path)
+                shutil.copy(checkpoint_path, os.path.join(models_storage, model_name))
+                log.info('Copied')
+
                 message = Markup("Saved successfully!")
                 flash(message, 'success')
                 return redirect(url_for('maintenance.models_list', 
@@ -408,7 +425,7 @@ def model_edit(model_id):
                 db.session.commit()
                 message = Markup("Saved successfully!")
                 flash(message, 'success')
-                return redirect(url_for('maintenance.models_list', 
+                return redirect(url_for('maintenance.models_list',
                                         selected=version.name))
             except Exception as e:
                 traceback.print_exc()
