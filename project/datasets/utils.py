@@ -254,7 +254,6 @@ class TaskManager:
             for i, task in enumerate(self.tasks):
                 if task.ready():
                     print(f'Task {task} is ready!')
-                    breakpoint()
                     response = task.result
                     process_response(response)
 
