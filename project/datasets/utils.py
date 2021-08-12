@@ -8,6 +8,7 @@ from project.models import Version, Category, DataItems, TmpTable
 import asyncio
 import time
 import sys
+from random import shuffle
 
 
 log = logging.getLogger(__name__)
@@ -196,5 +197,5 @@ class TaskManager:
 
                     del self.tasks[i]
                     break
-                
+
             time.sleep(1.)
