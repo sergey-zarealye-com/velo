@@ -1,6 +1,7 @@
 import os
 import logging
 from typing import List
+from multiprocessing import Pool
 
 from .processors import Deduplicator, resize_batch, save_multiprocess, perceptual_hash_detector
 from .filters import get_filter_by_min_size
@@ -26,6 +27,7 @@ class Preprocessor:
         self.storage_path = storage_path
         self.dedup_batch_size = dedup_batch_size
         self.saving_pool_size = saving_pool_size
+        self.saving_pool = Pool(saving_pool_size)
 
     def process_by_filenames(self, filepaths: List[str], request: dict):
         filter_func = None
@@ -61,6 +63,7 @@ class Preprocessor:
             parted_filenames = save_multiprocess(
                 resized_images,
                 imagenames,
+                self.saving_pool,
                 pool_size=3,
                 storage_path=self.storage_path
             )
@@ -68,6 +71,7 @@ class Preprocessor:
             parted_filenames = save_multiprocess(
                 images,
                 imagenames,
+                self.saving_pool,
                 pool_size=3,
                 storage_path=self.storage_path
             )
