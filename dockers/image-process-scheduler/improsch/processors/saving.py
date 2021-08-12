@@ -50,23 +50,25 @@ def save_multiprocess(
     """
     assert len(images) == len(filepaths), RuntimeError("Lengths of images and filepaths are different")
     log.info(f"Saving {len(images)} into storage {storage_path}")
+    save_all(images, filepaths)
 
-    chunk_size = ceil(len(images) / pool_size)
-    if chunk_size == 0:
-        log.warning(f"No images to save")
-        return []
+    # chunk_size = ceil(len(images) / pool_size)
+    # if chunk_size == 0:
+    #     log.warning(f"No images to save")
+    #     return []
 
-    chunks = []
+    # chunks = []
 
-    for i in range(0, len(images), chunk_size):
-        chunks.append((
-            images[i:i + chunk_size],
-            filepaths[i:i + chunk_size]
-        ))
+    # for i in range(0, len(images), chunk_size):
+    #     chunks.append((
+    #         images[i:i + chunk_size],
+    #         filepaths[i:i + chunk_size]
+    #     ))
 
-    pool = Pool(pool_size)
-    pool.map(unpack_func_for_saving, chunks)
-    pool.close()
+    # pool = Pool(pool_size)
+    # pool.map(unpack_func_for_saving, chunks)
+    # pool.close()
+
 
     parted_filenames = []
     for filename in filepaths:

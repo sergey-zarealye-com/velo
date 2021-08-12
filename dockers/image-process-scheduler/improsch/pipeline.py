@@ -86,10 +86,11 @@ class Preprocessor:
         for root, _, files in os.walk(data_dir):
             filepaths = list(map(lambda x: os.path.join(root, x), files))
             filenames.extend(filepaths)
-        print(f'\tCount of images: {len(filepaths)}')
+        print(f'\tCount of images: {len(filenames)}')
 
         internal_result = []
         for i in range(0, len(filenames), chunk_size):
+            print('\tProcessing step:', i + 1)
             internal_result.extend(
                 self.process_by_filenames(filenames[i: i + chunk_size], request)
             )
