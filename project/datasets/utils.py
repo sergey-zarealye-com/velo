@@ -150,6 +150,23 @@ def get_data_samples(
                         yield sample
 
 
+def split_data_items(items: List[DataItems], train_size: float = 0.7, val_size: float = 0.1, test_size: float = 0.2):
+    if train_size + val_size + test_size != 1:
+        log.error("Sum of train, test, val size must be equal to 1")
+    elif len(items) < 5:
+        log.error("Too small items")
+    else:
+        shuffle(items)
+        t = int(len(items) * train_size)
+        v = int(len(items) * val_size)
+        if v == 0:
+            v += 1
+        train_items = items[0:t]
+        val_items = items[t:t + v]
+        test_items = items[t + v:]
+        print()
+
+
 class TaskManager:
     def __init__(self):
         self.tasks = []
