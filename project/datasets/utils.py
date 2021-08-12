@@ -91,7 +91,8 @@ def fillup_tmp_table(
     version: Version,
     commit_batch: int = 1000,
     create_missing_categories: bool = False,
-    version_name: Optional[str] = None
+    version_name: Optional[str] = None,
+    set_category: Optional[str] = None
 ) -> None:
     """
     Заполнить временную таблицу
@@ -100,12 +101,20 @@ def fillup_tmp_table(
     """
     import pdb
     pdb.set_trace()
+
+    category_id = None
+    if set_category:
+        version = Version.query.filter_by(name=version_name).first()
+        category = Category.query.filter_by(version_id=version.id, name=set_category).first()
+        category_id = category.id
+
     objects, categories = [], []
     for sample in get_data_samples(
         src,
         label_ids,
         force_creating_categories=create_missing_categories,
-        version_name=version_name
+        version_name=version_name,
+        set_category=category_id
     ):
         res = DataItems.query.filter_by(path=sample.path).first()
         if res:
@@ -127,7 +136,8 @@ def get_data_samples(
     data_path_str: str,
     labels: Dict[str, int],
     force_creating_categories: bool = False,
-    version_name: Optional[str] = None
+    version_name: Optional[str] = None,
+    set_category: Optional[int] = None
 ) -> Generator[DataSample, None, None]:
     import pdb
     pdb.set_trace()
@@ -156,6 +166,10 @@ def get_data_samples(
                         media_type = get_media_type(file)
                         sample = DataSample(str(file), labels[label], media_type)
                         yield sample
+            elif item.is_file() and set_category:
+                media_type = get_media_type(file)
+                sample = DataSample(str(file), set_category, media_type)
+                yield sample
 
 
 def split_data_items(items: List[DataItems], train_size: float = 0.7, val_size: float = 0.1, test_size: float = 0.2):

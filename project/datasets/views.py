@@ -397,7 +397,12 @@ def import2ds(selected):
                         for folder_name in files:
                             if folder_name not in label_ids:
                                 flash(f"{folder_name} not in labels!", "error")
-                                return render_template('datasets/import.html', form=form, selected=selected, version=version)
+                                return render_template(
+                                    'datasets/import.html',
+                                    form=form,
+                                    selected=selected,
+                                    version=version
+                                )
 
                     model_name = ''
                     if bool(form.is_score_model.data):
