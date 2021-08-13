@@ -39,7 +39,9 @@
             function send_moderated_items_set() {
                 let cl_filters = new Set()
 
+                let is_any_filter_class = false
                 $('[id^="filter_class_"]').each(function () {
+                    is_any_filter_class = true
                     if (this.checked) {
                         cl_filters.add(this.value)
                     }
@@ -49,6 +51,11 @@
                     "committed": $('#special-control-filter1a').prop('checked'),
                     "uncommitted": $('#special-control-filter1b').prop('checked')
                 }
+
+                if (is_any_filter_class) {
+                    filter_dict["class_filter"] = Array.from(cl_filters)
+                }
+
 
                 let items_to_save = {}
                 {% if not commited %}
