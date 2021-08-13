@@ -7,8 +7,20 @@
     <div class="card-body">
         <form action="{{ url_for('datasets.split', selected=version.name) }}" method="post" name="editform">
             {{ form.csrf_token }}
+            <div class="form-group mb-4">
+              Train size
+              {{ render_field(form.train_size, value=form.train_size.label.text, class="form-control") }}
+            </div>
+             <div class="form-group mb-4">
+              Test size
+              {{ render_field(form.test_size, value=form.test_size.label.text, class="form-control") }}
+            </div>
+            <div class="form-group mb-4">
+              Val size
+              {{ render_field(form.val_size, value=form.val_size.label.text, class="form-control") }}
+            </div>
             <input type="submit" value="Save" class="btn btn-primary">
-            <a href="{{url_for('datasets.select', selected=version.name)}}" role="button" class="btn btn-secondary float-right">Cancel</a>            
+            <a href="{{url_for('datasets.select', selected=version.name)}}" role="button" class="btn btn-secondary float-right">Cancel</a>
         </form>
     </div>
 </div>
