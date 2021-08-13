@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from flask_login import current_user, login_required
 
 from project import db, app
+from project.images.queries import get_uncommited_items
 from project.models import Version, VersionChildren, DataItems, TmpTable, Category, Changes, Splits
 from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm, SplitForm
 from project.models import Model
@@ -459,7 +460,6 @@ def import2ds(selected):
     return render_template('datasets/import.html', form=form, selected=selected, version=version)
 
 
-
 @datasets_blueprint.route('/commit/<selected>', methods=['GET', 'POST'])
 @login_required
 def commit(selected):
@@ -668,7 +668,8 @@ def split(selected):
     if request.method == 'POST':
         if form.validate_on_submit():
             # Берем data_items только от текущей ноды
-            data_items = get_items_of_nodes([version.id])
+            # data_items = get_items_of_nodes([version.id])
+            data_items = get_uncommited_items(db.session, version.name)
             train_size = form.train_size.data
             val_size = form.val_size.data
             test_size = form.test_size.data
