@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from flask_login import current_user, login_required
 
 from project import db, app
-from project.models import Version, VersionChildren, DataItems, TmpTable, Category, Changes
+from project.models import Version, VersionChildren, DataItems, TmpTable, Category, Changes, Splits
 from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm, SplitForm
 from project.models import Model
 import graphviz
@@ -665,12 +665,41 @@ def split(selected):
     if version.status == 3:
         abort(400)
     form = SplitForm(request.form)
-    nodes = get_nodes_above(db.session, version.id)
-    data_items = get_items_of_nodes(nodes)
-    split_data_items(data_items)
     if request.method == 'POST':
         if form.validate_on_submit():
-            pass
+            # Берем data_items только от текущей ноды
+            data_items = get_items_of_nodes([version.id])
+            train_size = form.train_size.data
+            val_size = form.val_size.data
+            test_size = form.test_size.data
+            sum = round(train_size + val_size + test_size, 2)
+            if sum != 1:
+                message = Markup(
+                    f"<strong>Train size + test size + val size must be equal to 1.\nSum: {sum}")
+                flash(message, 'danger')
+            else:
+                train_items, val_items, test_items = split_data_items(data_items, train_size, val_size)
+                si = []
+                for item in train_items:
+                    split_item = Splits(version_id=version.id, category="train", item_id=item.id)
+                    si.append(split_item)
+                for item in val_items:
+                    split_item = Splits(version_id=version.id, category="val", item_id=item.id)
+                    si.append(split_item)
+                for item in test_items:
+                    split_item = Splits(version_id=version.id, category="test", item_id=item.id)
+                    si.append(split_item)
+                try:
+                    db.session.bulk_save_objects(si)
+                    db.session.commit()
+                    message = Markup(
+                        f"<strong>Save successfully")
+                    flash(message, 'success')
+                except Exception as ex:
+                    log.error(ex)
+                    db.session.rollback()
+                return redirect(url_for('datasets.select',
+                                        selected=version.name))
     return render_template(
         'datasets/split.html',
         version=version,
