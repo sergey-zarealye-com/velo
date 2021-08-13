@@ -7,7 +7,7 @@ from sqlalchemy import bindparam
 
 from project.models import DataItems, VersionItems, Category, TmpTable, Version, Diff, Changes
 
-version_item = namedtuple("VersionItem", "id,version,path,label,class_id")
+version_item = namedtuple("VersionItem", "id,version,path,label,class_id,ds")
 
 
 def get_items_of_version(sess, version_id: List[int]) -> List[version_item]:
@@ -24,11 +24,13 @@ def get_items_of_version(sess, version_id: List[int]) -> List[version_item]:
         .filter(DataItems.id.notin_(deleted_items)) \
         .order_by(DataItems.id, VersionItems.version_id.desc()) \
         .distinct(DataItems.id)
+    # TODO: проверить для разных случает, проверить t[0]
     return [version_item(item.DataItems.id,
                          item.VersionItems.version_id,
                          item.DataItems.path,
                          item.Category.name,
-                         item.Category.id
+                         item.Category.id,
+                         item.DataItems.t[0].category
                          ) for item in query.all()]
 
 
@@ -102,3 +104,4 @@ if __name__ == '__main__':
             print(f"Item path: {item.path}")
             print(f"Version id: {item.version}")
             print(f"Label: {item.label}")
+            print(f"DS: {item.ds}")

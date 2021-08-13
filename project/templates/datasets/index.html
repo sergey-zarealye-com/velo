@@ -13,7 +13,7 @@
           {% if is_active['branch'] %}<a class="nav-item nav-link active m-2" href="{{url_for('datasets.branch', selected=version.name)}}">Branch</a>{% endif %}
           {% if is_active['commit'] %}<a class="nav-item nav-link active m-2" href="{{url_for('datasets.commit', selected=version.name)}}">Commit</a>{% endif %}
           {% if is_active['merge'] %}<a class="nav-item nav-link active m-2" href="{{url_for('datasets.merge', selected=version.name)}}">Merge</a>{% endif %}
-          {% if is_active['split'] %}<a class="nav-item nav-link active m-2" href="#">Split</a>{% endif %}
+          {% if is_active['split'] %}<a class="nav-item nav-link active m-2" href="{{url_for('datasets.split', selected=version.name)}}">Split</a>{% endif %}
           {% if is_active['checkout'] %}<a class="nav-item nav-link active m-2" href="{{url_for('datasets.checkout', selected=version.name)}}">Checkout</a>{% endif %}
           {% if is_active['import'] %}<a class="nav-item nav-link active m-2" href="{{url_for('datasets.import2ds', selected=version.name)}}">Import</a>{% endif %}
       </nav>

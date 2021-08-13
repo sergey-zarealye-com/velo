@@ -9,24 +9,25 @@ from flask_login import current_user, login_required
 
 from project import db, app
 from project.models import Version, VersionChildren, DataItems, TmpTable, Category, Changes
-from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm
+from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm, SplitForm
+from project.models import Model
 import graphviz
 from uuid import uuid4
 import traceback
 from distutils.dir_util import copy_tree
 import sys
-import logging
 import shutil
 
 from project.celery.tasks import upload_files_to_storage
 
 from multiprocessing import Process, Queue
-from .rabbitmq_connector import send_message, get_message
-import json
+from .rabbitmq_connector import send_message
 import uuid
 from project.datasets.queries import get_labels_of_version, get_nodes_above, get_items_of_nodes, prepare_to_commit, \
     get_items_of_nodes_with_label
-from project.datasets.utils import get_data_samples
+from project.deduplication.utils import create_image_processing_task
+from project.datasets.utils import split_data_items
+from project.datasets.utils import TaskManager
 
 log = logging.getLogger(__name__)
 
@@ -39,22 +40,23 @@ datasets_blueprint = Blueprint('datasets', __name__,
 # TODO: вынести процессы в какой нибудь init файл
 
 # Processes for communication module
-sending_queue: Queue = Queue()
-sending_process = Process(
+commit_queue: Queue = Queue()
+commit_process = Process(
     target=send_message,
-    args=('deduplication_1', sending_queue),
+    args=(commit_queue,),
     daemon=True
 )
-sending_process.start()
+commit_process.start()
 
-pulling_queue: Queue = Queue()
-# print("Объявление в датасетс", id(pulling_queue))
-pulling_process = Process(
-    target=get_message,
-    args=('deduplication_result_1', pulling_queue),
+task_queue: Queue = Queue()
+task_manager = TaskManager(task_queue)
+task_proc = Process(
+    target=task_manager.run,
     daemon=True
 )
-pulling_process.start()
+task_proc.start()
+
+shortlife_processes: List[Process] = []
 
 
 def copy_directory(
@@ -67,7 +69,10 @@ def copy_directory(
         dst_size: Tuple[int, int],
         is_dedup: bool,
         label_ds: Dict[str, int],
-        selected_ds: str
+        selected_ds: str,
+        create_missing_cats: bool,
+        is_scoring: bool,
+        scoring_model: str
 ):
     logging.info("Start copying data...")
     sys.stdout.flush()
@@ -79,19 +84,26 @@ def copy_directory(
     logging.info("Sending task to queue...")
     sys.stdout.flush()
 
-    sending_queue.put(
-        (task_id, json.dumps({
-            'id': task_id,
-            'directory': task_id,
-            'is_size_control': is_size_control,
-            'min_size': min_size,
-            'is_resize': bool(is_resize),
-            'dst_size': tuple(dst_size),
-            'deduplication': bool(is_dedup),
-            'label_ds': label_ds,
-            'selected_ds': selected_ds
-        }))
-    )
+    message = {
+        'id': task_id,
+        'directory': task_id,
+        'is_size_control': is_size_control,
+        'min_size': min_size,
+        'is_resize': bool(is_resize),
+        'dst_size': tuple(dst_size),
+        'deduplication': bool(is_dedup),
+        'label_ds': label_ds,
+        'selected_ds': selected_ds,
+        'is_scoring': is_scoring,
+        'scoring_model': scoring_model
+    }
+    celery_task, celery_task_id = create_image_processing_task(message)
+    print('celery task_id:', celery_task_id)
+    task_queue.put(celery_task)
+
+    commit_queue.put((task_id, celery_task_id, create_missing_cats))
+    log.info("Processing entry created")
+
     logging.info(f"Sended task with id {task_id}")
     sys.stdout.flush()
 
@@ -119,16 +131,14 @@ def send_merge_control_request(filepaths: List[str]):
         shutil.copy(src_path, dst_path)
         names_mapping[dst_path] = src_path
 
-    sending_queue.put((
-        task_id,
-        json.dumps({
-            'id': task_id,
-            'type': 'merge_control',
-            'directory': task_dir,
-            'merge_check': True,
-            'names_mapping': names_mapping
-        })
-    ))
+    message = {
+        'id': task_id,
+        'type': 'merge_control',
+        'directory': task_dir,
+        'merge_check': True,
+        'names_mapping': names_mapping
+    }
+    create_image_processing_task(message)
 
 
 # ROUTES
@@ -277,11 +287,13 @@ def branch(selected):
                 for task in Category.TASKS():
                     categs = Category.list(task[0], parent.name)
                     for parent_categ in categs:
-                        child_categ = Category(parent_categ.name,
-                                               version.id,
-                                               task[0],
-                                               parent_categ.description,
-                                               position=parent_categ.position)
+                        child_categ = Category(
+                            parent_categ.name,
+                            version.id,
+                            task[0],
+                            parent_categ.description,
+                            position=parent_categ.position
+                        )
                         db.session.add(child_categ)
                 db.session.commit()
                 # TODO -- copy images from parent version (to join tbl)? Must be able to browse them in new branched version
@@ -330,9 +342,13 @@ def import2ds(selected):
         abort(404)
     if version.status == 3:
         abort(400)
+
     form = ImportForm(request.form)
     categories = Category.list(1, version.name)
-    form.category.choices = [(cat.position, cat.name) for cat in categories]
+    form.category.choices = [(-1, 'empty')] + [(i, cat.name) for i, cat in enumerate(categories)]
+    scoring_models = Model.list(1, version.name)
+    form.score_model.choices = [(-1, 'empty')] + [(i, model.name) for i, model in enumerate(scoring_models)]
+
     if request.method == 'POST':
         if form.validate_on_submit():
             label_ids = get_labels_of_version(version.id)
@@ -369,10 +385,21 @@ def import2ds(selected):
                         list(files)
                     )
 
-                    if form.category_select.data == "folder":
+                    if not form.is_create_categs_from_folders and form.category_select.data == "folder":
                         for folder_name in files:
                             if folder_name not in label_ids:
                                 flash(f"{folder_name} not in labels!", "error")
+
+                    model_name = ''
+                    if bool(form.is_score_model.data):
+                        model = scoring_models[form.score_model.data]
+
+                        model_name = model.local_chkpoint
+                        _, model_name = os.path.split(model_name)
+
+                    for proc in shortlife_processes:
+                        if not proc.is_alive():
+                            proc.terminate()
 
                     proc_to_copy_files = Process(
                         target=copy_directory,
@@ -386,11 +413,16 @@ def import2ds(selected):
                             (int(form.resize_h.data), int(form.resize_w.data)),
                             bool(form.is_dedup.data),
                             label_ids,
-                            selected
-                        )
+                            selected,
+                            bool(form.is_create_categs_from_folders),
+                            bool(form.is_score_model.data),
+                            model_name
+                        ),
+                        daemon=True
                     )
                     proc_to_copy_files.start()
-                    proc_to_copy_files.join()
+                    shortlife_processes.append(proc_to_copy_files)
+                    # proc_to_copy_files.join()
 
                     # если включена дедупликация, то сохранение нужно после
                     # процесса ручного отбора картинок (project/deduplication/views/def save_result)
@@ -426,36 +458,6 @@ def import2ds(selected):
             ))
     return render_template('datasets/import.html', form=form, selected=selected, version=version)
 
-
-def fillup_tmp_table(label_ids: Dict[str, int],
-                     selected: str,
-                     src: str,
-                     version: Version,
-                     commit_batch: int = 1000) -> List[str]:
-    """
-    Заполнить временную таблицу
-    функция проходит по указанной директории src, добавляет найденные файлы в таблицу DataItems,
-    заполняет таблицу TmpTable
-    """
-    objects, categories = [], []
-    warnings = []
-    for sample in get_data_samples(src, label_ids, warnings):
-        res = DataItems.query.filter_by(path=sample.path).first()
-        if res:
-            continue
-        data_item = DataItems(path=sample.path)
-        objects.append(data_item)
-        categories.append(sample.category)
-        if len(objects) == commit_batch:
-            import_data(categories, objects, selected, version)
-            objects.clear()
-            categories.clear()
-    if len(objects):
-        import_data(categories, objects, selected, version)
-        objects.clear()
-        categories.clear()
-
-    return warnings
 
 
 @datasets_blueprint.route('/commit/<selected>', methods=['GET', 'POST'])
@@ -499,11 +501,14 @@ def commit(selected):
                 filepaths = [
                     DataItems.query.filter_by(id=item.item_id).first().path for item in items_to_commit
                 ]
-                sending_queue.put((str(uuid.uuid4()), json.dumps({
-                    'id': str(uuid.uuid4()),
+                task_id = str(uuid.uuid4())
+                task_request = {
+                    'id': task_id,
                     'type': 'merge_indexes',
                     'files_to_keep': filepaths
-                })))
+                }
+                create_image_processing_task(task_request)
+
                 message = Markup("Saved successfully!")
                 flash(message, 'success')
                 return redirect(url_for('datasets.select',
@@ -585,13 +590,13 @@ def merge_categs(parent, child):
                 try:
                     pos = int(request.values['categ_%d' % ch_c.id])
                     task_categs_seq.append((pos, ch_c))
-                except:
+                except Exception:
                     pass
             for pa_c in categs[task[0]]['parent']:
                 try:
                     pos = int(request.values['categ_%d' % pa_c.id])
                     task_categs_seq.append((pos, pa_c))
-                except:
+                except Exception:
                     pass
             task_categs_seq.sort(key=lambda o: o[0])
             checking_validity_list = [o[0] for o in task_categs_seq]
@@ -649,6 +654,28 @@ def checkout(selected):
         data_items
     )
     return redirect(url_for('datasets.select', selected=version.name))
+
+
+@datasets_blueprint.route('/split/<selected>', methods=['GET', 'POST'])
+@login_required
+def split(selected):
+    version = Version.query.filter_by(name=selected).first()
+    if version is None:
+        abort(404)
+    if version.status == 3:
+        abort(400)
+    form = SplitForm(request.form)
+    nodes = get_nodes_above(db.session, version.id)
+    data_items = get_items_of_nodes(nodes)
+    split_data_items(data_items)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            pass
+    return render_template(
+        'datasets/split.html',
+        version=version,
+        form=form
+    )
 
 
 if __name__ == '__main__':

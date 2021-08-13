@@ -7,8 +7,10 @@ services:
     ports:
       - 15672:15672
       - 5672:5672
+
   redis:
     image: redis
+    container_name: redis
     ports:
       - 6379:6379
 
@@ -27,7 +29,7 @@ services:
     depends_on:
       - redis
     volumes:
-      - ${STORAGE_DIR}:${STORAGE_PATH_IN_DOCKER}
+      - ${MODERATION_STORAGE_DIR}:${STORAGE_PATH_IN_DOCKER}
     links:
       - redis
     environment:
@@ -40,11 +42,14 @@ services:
 
   improsch:
     image: improsch
+    container_name: improsch
     depends_on:
       - rabbit
     volumes:
       - ${STORAGE_DIR}:${STORAGE_PATH_IN_DOCKER}
       - ${DEDUP_INDEX}:${DEDUP_PATH_IN_DOCKER}
+    environment:
+      DOCKER_USE: 1
     deploy:
       resources:
         limits:

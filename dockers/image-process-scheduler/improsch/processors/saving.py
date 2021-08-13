@@ -1,8 +1,6 @@
 import logging
 from math import ceil
 from multiprocessing import Pool
-import os
-from pathlib import Path
 from typing import Iterable, List
 
 import numpy as np
@@ -34,7 +32,6 @@ def unpack_func_for_saving(argument):
 def save_multiprocess(
     images: List[np.ndarray],
     filepaths: List[str],
-    task_id: str,
     pool_size: int,
     storage_path: str
 ) -> List[str]:
@@ -54,16 +51,11 @@ def save_multiprocess(
     assert len(images) == len(filepaths), RuntimeError("Lengths of images and filepaths are different")
     log.info(f"Saving {len(images)} into storage {storage_path}")
 
-    # try:
-    #     os.mkdir(os.path.join(storage_path, task_id))
-    # except Exception as err:
-    #     logging.error("Can't create dir for task", err)
-
-    # new_filepaths = []
-    # for i, filename in enumerate(filepaths):
-    #     new_filepaths.append(os.path.join(storage_path, task_id, Path(filename).name))
-
     chunk_size = ceil(len(images) / pool_size)
+    if chunk_size == 0:
+        log.warning(f"No images to save")
+        return []
+
     chunks = []
 
     for i in range(0, len(images), chunk_size):
