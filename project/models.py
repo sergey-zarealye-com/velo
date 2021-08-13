@@ -290,8 +290,8 @@ class Category(db.Model):
     def get_last(version_id, task):
         return (
             Category.query.filter_by(version_id=version_id, task=task)
-            .order_by(Category.position.desc())
-            .first()
+                .order_by(Category.position.desc())
+                .first()
         )
 
     @staticmethod
@@ -301,8 +301,8 @@ class Category(db.Model):
             return []
         return (
             Category.query.filter_by(version_id=version.id, task=task)
-            .order_by(Category.position)
-            .all()
+                .order_by(Category.position)
+                .all()
         )
 
 
@@ -430,9 +430,9 @@ class ToDoItem(db.Model):
                     ),
                 )
             )
-            .order_by(ToDoItem.created_at)
-            .limit(limit)
-            .offset(skip)
+                .order_by(ToDoItem.created_at)
+                .limit(limit)
+                .offset(skip)
         )
 
 
@@ -495,7 +495,6 @@ class Changes(db.Model):
     __table_args__ = (PrimaryKeyConstraint("version_id", "item_id"),)
 
 
-
 class Model(db.Model):
     __tablename__ = "models"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -509,7 +508,7 @@ class Model(db.Model):
     version = db.relationship("Version")
 
     def __init__(
-        self, name, version_id, task, description=None, kf_uid=None, local_chkpoint=None
+            self, name, version_id, task, description=None, kf_uid=None, local_chkpoint=None
     ):
         self.name = name
         self.version_id = version_id
@@ -534,6 +533,7 @@ class Splits(db.Model):
     category = db.Column(db.String, nullable=False)  # Train/Test/Val
     item_id = db.Column(db.Integer, db.ForeignKey('data_items.id', ondelete='CASCADE'), nullable=False)
     data_item = relationship("DataItems", back_populates="t")
+    priority = db.Column(db.Small, nullable=False)  # Высокий / низкий (0, 1)
     __table_args__ = (
         PrimaryKeyConstraint('version_id', 'item_id', 'category'),
     )
@@ -544,3 +544,14 @@ class Splits(db.Model):
         if version is None:
             return []
         return Model.query.filter_by(version_id=version.id, task=task).all()
+
+
+class Score(db.Model):
+    __tablename__ = 'score'
+    model_id = db.Column(db.Integer, db.ForeignKey("models.id"), nullable=False)
+    true_label_score = db.Column(db.Float, nullable=False)  # Категория, назначенная при импорте
+    max_label_score = db.Column(db.Float, nullable=False)  # Категория, котрую показала сеть
+    max_score_label_id = db.Column(db.Integer, db.ForeignKey("categories.id"), nullable=False)
+    item_id = db.Column(
+        db.Integer, db.ForeignKey("data_items.id", ondelete="CASCADE"), nullable=False
+    )
