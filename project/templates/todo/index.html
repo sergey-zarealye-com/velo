@@ -54,6 +54,11 @@
             }
         }
     </style>
+    <style>
+        .red-color {
+            color: red;
+        }
+    </style>
 
     <table class="table table-striped">
         <thead>
@@ -78,6 +83,12 @@
                     {{ todo.cv_status }}
                     {% if todo.cv_status != 'FAILURE' and todo.cv_status != 'SUCCESS' %}
                         <div class="loader"></div>
+                    {% endif %}
+                    {% if todo.cv_status == 'FAILURE' %}
+                        <a href="{{ url_for('todo.view_error', task_id=todo.video_uuid) }}" role="button"
+                           target="_blank" class="float-right">
+                            <i class="fas fa-info-circle red-color"></i>
+                        </a>
                     {% endif %}
                 </td>
                 <td>{{ todo.nlp_status }}</td>
