@@ -181,6 +181,9 @@ class ImageIndex:
         # so vectors shoul be normalized
         # vectors = np.array(vectors)
         # faiss.normalize_L2(vectors)
+        if len(vectors.shape) == 1:
+                vectors = vectors.reshape((1, -1))
+
         distances, indexes = self.tmp_index.search(vectors, 2)
 
         neighbours = []
@@ -328,7 +331,10 @@ class Deduplicator:
 
     def get_neighbours_by_filenames(self, filenames):
         indexes = [self.index.tmp_id_to_filename[name] for name in filenames]
-        vectors = np.array([self.index.tmp_index.reconstruct(index) for index in indexes])
+        vectors = np.stack([self.index.tmp_index.reconstruct(index) for index in indexes])
+        import sys
+        print('VECTORS SHAPE:', vectors.shape)
+        sys.stdout.flush()
 
         neighbours = self.index.find_neighbours(vectors, filenames)
 
