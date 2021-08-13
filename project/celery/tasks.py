@@ -6,13 +6,12 @@ from pathlib import Path
 from typing import List, Tuple
 
 import boto3
-from botocore.exceptions import NoCredentialsError
-from celery import Celery
 import urllib3
 import validators
 import transliterate
 from botocore.exceptions import NoCredentialsError
 from celery import Celery
+from project.celery.exeptions import VideoProcessingError, NoneFramesError
 
 from project.celery.storage_utils.s3_utils import create_bucket_if_not_exists, upload_file_to_bucket
 
@@ -76,7 +75,7 @@ def processing_function(self, thumbs_dir, input_fname, input_fname_stem, img_ext
     )
     (output, err) = process.communicate()
     if 'Invalid data found when processing input' in output:
-        raise OSError
+        raise VideoProcessingError('Invalid data found when processing input')
     if not len(os.listdir(thumbs_dir)):
         command = f"""ffmpeg -y -i {str(file_path)} -vsync vfr -vf "select='eq(pict_type,PICT_TYPE_I)" -s 224:224 -frame_pts 1 {out} 2>&1"""
         self.update_state(state='PROCESSING')
@@ -87,6 +86,8 @@ def processing_function(self, thumbs_dir, input_fname, input_fname_stem, img_ext
             encoding='utf8'
         )
         (output, err) = process.communicate()
+    if not len(os.listdir(thumbs_dir)):
+        raise NoneFramesError("Frames were not found in the video")
     return {
         "id": id,
         "cat": cat,
