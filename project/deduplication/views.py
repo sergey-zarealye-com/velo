@@ -152,7 +152,7 @@ def save_result(task_id, selected_ds):
 @dedup_blueprint.route('/<task_id>/<selected_ds>', methods=['GET'])
 @dedup_blueprint.route('/<task_id>/<selected_ds>&page=<page>&items=<items>', methods=['GET'])
 @login_required
-def show_dedup(task_id, selected_ds, page=1, items=50):
+def show_dedup(task_id, selected_ds, page=1, items=1):
     task = Deduplication.query.filter_by(task_uid=task_id).first()
     if task is None:
         abort(404)
@@ -171,6 +171,8 @@ def show_dedup(task_id, selected_ds, page=1, items=50):
     if not dedup_result:
         return render_template('deduplication/taskPending.html', task_id=task.task_uid)
 
+    items = int(items)
+    page = int(page)
     items_index_range = slice((page - 1) * items, page * items)
 
     if task_id not in temporary_storage:
@@ -214,7 +216,13 @@ def take_task(task_id, selected_ds):
     if not task_entry:
         abort(404)
 
-    return show_dedup(task_id, selected_ds)
+    return redirect(
+        url_for(
+            'deduplication.show_dedup',
+            task_id=task_id,
+            selected_ds=selected_ds
+        )
+    )
 
 
 @dedup_blueprint.route('/tasks', methods=['GET'])
