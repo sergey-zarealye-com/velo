@@ -17,5 +17,7 @@ RUN wget \
     && bash Miniconda3-py38_4.10.3-Linux-x86_64.sh -b \
     && rm -f Miniconda3-py38_4.10.3-Linux-x86_64.sh
 #RUN conda install pytorch torchvision cudatoolkit=10.2 -c pytorch
-RUN yes | pip install torch torchvision
+RUN yes | pip install torch==1.9.0 torchvision==0.10.0
 RUN yes | conda install -c pytorch faiss-gpu
+RUN conda install nomkl numpy scipy scikit-learn numexpr
+RUN conda remove mkl mkl-service
