@@ -534,7 +534,7 @@ class Splits(db.Model):
     category = db.Column(db.String, nullable=False)  # Train/Test/Val
     item_id = db.Column(db.Integer, db.ForeignKey('data_items.id', ondelete='CASCADE'), nullable=False)
     data_item = relationship("DataItems", back_populates="t")
-    priority = db.Column(db.Small, nullable=False)  # Высокий / низкий (0, 1)
+    priority = db.Column(db.SmallInteger, nullable=False)  # Высокий / низкий (0, 1)
     __table_args__ = (
         PrimaryKeyConstraint('version_id', 'item_id', 'category'),
     )

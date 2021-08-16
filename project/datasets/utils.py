@@ -13,9 +13,7 @@ from random import shuffle
 from project.models import Deduplication, DeduplicationStatus
 import os
 
-
 log = logging.getLogger(__name__)
-
 
 image_extensions = ['.jpg', '.png', '.bmp']
 audio_extensions = ['.mp3', '.wav']
@@ -67,12 +65,13 @@ def add_cv_catregory(version_name: str, category_name: str) -> int:
     return category.id
 
 
-def import_data(categories: List[Union[str, int]], objects: List[DataItems], selected: str, version: Version) -> None:
+def import_data(categories: List[Union[str, int]], objects: List[DataItems], priorities: List[int], selected: str, version: Version) -> None:
     try:
         db.session.bulk_save_objects(objects, return_defaults=True)
         tmp = [TmpTable(item_id=obj.id,
                         node_name=selected,
-                        category_id=cat) for obj, cat in zip(objects, categories)]
+                        category_id=cat,
+                        priority=priority) for obj, cat, priority in zip(objects, categories, priorities)]
         db.session.bulk_save_objects(tmp)
     except Exception as ex:
         log.error(ex)
@@ -92,14 +91,15 @@ def fillup_tmp_table(
     commit_batch: int = 1000,
     create_missing_categories: bool = False,
     version_name: Optional[str] = None,
-    set_category: Optional[int] = None
+    set_category: Optional[int] = None,
+    priority: int = 0
 ) -> None:
     """
     Заполнить временную таблицу
     функция проходит по указанной директории src, добавляет найденные файлы в таблицу DataItems,
     заполняет таблицу TmpTable
     """
-    objects, categories = [], []
+    objects, categories, priorities = [], [], []
     for sample in get_data_samples(
         src,
         label_ids,
@@ -113,14 +113,17 @@ def fillup_tmp_table(
         data_item = DataItems(path=sample.path)
         objects.append(data_item)
         categories.append(sample.category)
+        priorities.append(priority)
         if len(objects) == commit_batch:
-            import_data(categories, objects, selected, version)
+            import_data(categories, objects, priorities, selected, version)
             objects.clear()
             categories.clear()
+            priorities.clear()
     if len(objects):
-        import_data(categories, objects, selected, version)
+        import_data(categories, objects, priorities, selected, version)
         objects.clear()
         categories.clear()
+        priorities.clear()
 
 
 def get_data_samples(
