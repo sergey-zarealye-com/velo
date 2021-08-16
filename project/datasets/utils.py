@@ -180,8 +180,11 @@ def split_data_items(items: List[DataItems], train_size: float = 0.7, val_size: 
 
 
 def process_response(response: dict):
-    task_id = response['id']
+    task_id = response.get('id')
+    if not task_id:
+        log.error(f"Got response with no id")
     task_entry = Deduplication.query.filter_by(task_uid=task_id).first()
+    assert task_entry
 
     if task_entry:
         if response['type'] == 'deduplication_result':
@@ -220,7 +223,7 @@ def process_response(response: dict):
             print('MERGE CONTROL RESULT')
         elif response['type'] == 'filtered':
             print("\t\tFILTERED RESULT MESSAGE")
-            print("Result filenames", response["filenames"])
+            # print("Result filenames", response["filenames"])
             # TODO: handle exceptions, add s3 source
             # вынести куда нибудь commit_batch
             storage_dir = os.getenv('STORAGE_DIR')
@@ -228,13 +231,17 @@ def process_response(response: dict):
             label_ids = response['label_ds']
             selected_ds = response['selected_ds']
             version = Version.query.filter_by(name=selected_ds).first()
+            print("FILLUP")
+            import sys
+            sys.stdout.flush()
             fillup_tmp_table(
                 label_ids,
                 selected_ds,
                 os.path.join(storage_dir, task_id),
                 version,
                 create_missing_categories=task_entry.create_missing_categories,
-                version_name=selected_ds
+                version_name=selected_ds,
+                set_category=task_entry.set_category
             )
             task_entry.task_status = DeduplicationStatus.finished.value
             db.session.commit()

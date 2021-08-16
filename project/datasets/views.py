@@ -373,7 +373,7 @@ def import2ds(selected):
                     files = os.listdir(form.flocation.data)
 
                     # only directories
-                    files = filter(
+                    files = list(filter(
                         lambda x: os.path.isdir(x),
                         list(
                             map(
@@ -381,7 +381,7 @@ def import2ds(selected):
                                 files
                             )
                         )
-                    )
+                    ))
 
                     if form.category_select.data == "folder" and not len(files):
                         flash(
@@ -408,6 +408,9 @@ def import2ds(selected):
 
                     model_name = ''
                     if bool(form.is_score_model.data):
+                        if not len(scoring_models):
+                            flash("No models available!", "error")
+                            return render_template('datasets/import.html', form=form, selected=selected, version=version)
                         model = scoring_models[form.score_model.data]
 
                         model_name = model.local_chkpoint
@@ -415,6 +418,14 @@ def import2ds(selected):
 
                     set_category = None
                     if form.category_select.data == 'set':
+                        if not len(categories):
+                            flash("No category is selected!", "error")
+                            return render_template(
+                                'datasets/import.html',
+                                form=form,
+                                selected=selected,
+                                version=version
+                            )
                         set_category = categories[form.category.data]
 
                     for proc in shortlife_processes:

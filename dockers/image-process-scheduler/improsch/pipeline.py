@@ -68,6 +68,7 @@ class Preprocessor:
                 storage_path=self.storage_path
             )
         else:
+            '''
             parted_filenames = save_multiprocess(
                 images,
                 imagenames,
@@ -75,6 +76,11 @@ class Preprocessor:
                 pool_size=3,
                 storage_path=self.storage_path
             )
+            '''
+            parted_filenames = []
+            for filename in imagenames:
+                filename = filename.replace(self.storage_path, '')
+                parted_filenames.append(filename)
 
         if request['deduplication']:
             self.deduplicator.add_images_to_index(
