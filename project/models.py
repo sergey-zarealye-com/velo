@@ -24,6 +24,7 @@ class User(db.Model):
     last_logged_in = db.Column(db.DateTime, nullable=True)
     current_logged_in = db.Column(db.DateTime, nullable=True)
     role = db.Column(db.String, default="user")
+    user = relationship("Version", back_populates="user", cascade="all, delete", passive_deletes=True)
 
     def __init__(self, email, password, email_confirmation_sent_on=None, role="user"):
         self.email = email
@@ -85,9 +86,12 @@ class Version(db.Model):
     status = db.Column(db.SmallInteger, nullable=False)  # 1=empty 2=stage 3=versioned
     description = db.Column(db.String, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
-    user = db.relationship("User")
+    user = db.relationship("User", back_populates='user')
+    # child = db.relationship("VersionChildren", back_populates='child', cascade="all, delete", passive_deletes=True)
+    # parent = db.relationship("VersionChildren", back_populates='parent_id', cascade="all, delete", passive_deletes=True)
+    cat = db.relationship("Category", back_populates='ver', cascade="all, delete", passive_deletes=True)
 
     """
         Status defines allowed operations according to state diagram https://bit.ly/3x9Uv6e
@@ -243,10 +247,11 @@ class VersionChildren(db.Model):
         db.Integer, db.ForeignKey("versions.id"), nullable=False, primary_key=True
     )
     parent_id = db.Column(
-        db.Integer, db.ForeignKey("versions.id"), nullable=False, primary_key=True
+        db.Integer, db.ForeignKey("versions.id", ondelete="CASCADE"), nullable=False, primary_key=True
     )
     child = db.relationship("Version", foreign_keys=[child_id])
-    parents = db.relationship("Version", foreign_keys=[parent_id])
+    parent = db.relationship("Version", foreign_keys=[parent_id])
+    # parents = db.relationship("Version", foreign_keys=[parent_id])
     __table_args__ = (PrimaryKeyConstraint("child_id", "parent_id"),)
 
     def __init__(self, child_id, parent_id):
@@ -257,7 +262,7 @@ class VersionChildren(db.Model):
 class Category(db.Model):
     __tablename__ = "categories"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    version_id = db.Column(db.Integer, db.ForeignKey("versions.id"), nullable=False)
+    version_id = db.Column(db.Integer, db.ForeignKey("versions.id", ondelete="CASCADE"), nullable=False)
     name = db.Column(db.String, unique=False, nullable=False)
     task = db.Column(db.SmallInteger, nullable=False)  # 1=CV classes, 2=NLP classes
     position = db.Column(
@@ -265,7 +270,7 @@ class Category(db.Model):
     )  # position related to Model outputs, numbering starts from ZERO
     description = db.Column(db.String, nullable=True)
 
-    version = db.relationship("Version")
+    ver = db.relationship("Version", back_populates='cat')
 
     @staticmethod
     def TASKS():
@@ -331,7 +336,6 @@ class DataItems(db.Model):
         cascade="all, delete",
         passive_deletes=True,
     )
-
 
     def add_if_not_exists(path: str) -> int:
         entry = DataItems.query.filter_by(path=path).first()
