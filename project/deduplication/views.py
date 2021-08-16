@@ -3,6 +3,8 @@
 # IMPORTS
 import logging
 import os
+import math
+from typing import Dict, List
 from flask import (
     render_template,
     Blueprint,
@@ -27,11 +29,11 @@ from .utils import process_response, get_task_result
 # CONFIG
 TMPDIR = os.path.join('project', 'static', 'tmp')
 dedup_blueprint = Blueprint(
-    'deduplication', __name__, 
+    'deduplication', __name__,
     template_folder='templates',
     url_prefix='/dedup'
 )
-temporary_storage = {}
+temporary_storage: Dict[str, List[dict]] = {}
 
 
 @dedup_blueprint.route('/rm', methods=['POST'])
@@ -148,8 +150,9 @@ def save_result(task_id, selected_ds):
 
 
 @dedup_blueprint.route('/<task_id>/<selected_ds>', methods=['GET'])
+@dedup_blueprint.route('/<task_id>/<selected_ds>&page=<page>&items=<items>', methods=['GET'])
 @login_required
-def show_dedup(task_id, selected_ds):
+def show_dedup(task_id, selected_ds, page=1, items=50):
     task = Deduplication.query.filter_by(task_uid=task_id).first()
     if task is None:
         abort(404)
@@ -163,13 +166,12 @@ def show_dedup(task_id, selected_ds):
 
         task = process_response(response)
 
-    # page_length = request.args.get("num_items")
-    # page_num = request.args.get("page_num")
-
     dedup_result = task.result.get('deduplication')
 
     if not dedup_result:
-        return render_template('deduplication/taskFinished.html', task_id=task.task_uid)
+        return render_template('deduplication/taskPending.html', task_id=task.task_uid)
+
+    items_index_range = slice((page - 1) * items, page * items)
 
     if task_id not in temporary_storage:
         images = dedup_result
@@ -177,18 +179,34 @@ def show_dedup(task_id, selected_ds):
     else:
         images = list(filter(lambda x: not x['removed'], temporary_storage[task_id]))
 
+    count_of_pages = int(math.ceil(len(images) / int(items)))
+    images = images[items_index_range]
+
     return render_template(
         'deduplication/deduplication4.html',
         images=images,
         task_id=task_id,
         selected_ds=selected_ds,
-        count_items=len(images)
+        count_items=len(images),
+        pages=count_of_pages,
+        page=page,
+        items=items
     )
 
 
-@dedup_blueprint.route('/take/<task_id>/<selected_ds>', methods=['GET'])
+@dedup_blueprint.route('/take/<task_id>/<selected_ds>', methods=['GET', 'POST'])
 @login_required
 def take_task(task_id, selected_ds):
+    if request.form.get('submit_btn') == 'delete':
+        return redirect(
+            url_for(
+                'deduplication.delete_task',
+                task_id=task_id
+            )
+        )
+    elif request.form.get('submit_btn') != 'take':
+        abort(403)
+
     print('Got task', task_id, selected_ds)
 
     task_entry = Deduplication.query.filter_by(task_uid=task_id)
@@ -211,7 +229,7 @@ def show_task_list():
         flash(message, 'warning')
         return redirect(url_for('datasets.index'))
 
-    tasks = Deduplication.query.all()
+    tasks = Deduplication.query.order_by(Deduplication.created_at.desc()).all()
 
     return render_template(
         '/deduplication/tasks.html',
@@ -230,16 +248,11 @@ def show_task_list():
     )
 
 
-@dedup_blueprint.route('/delete_task/<task_id>', methods=['POST'])
+@dedup_blueprint.route('/delete_task/<task_id>', methods=['GET'])
 @login_required
 def delete_task(task_id):
-    if 'selected_version' in session:
-        version = Version.query.filter_by(name=session['selected_version']).first()
-    else:
-        version = Version.get_first()
-    if version is None:
-        message = Markup("There was no version found!")
-        flash(message, 'warning')
-        return redirect(url_for('datasets.index'))
+    task = Deduplication.query.filter_by(task_uid=task_id)
+    task.delete()
+    db.session.commit()
 
-    
+    return redirect(url_for('todo.index'))
