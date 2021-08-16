@@ -152,8 +152,6 @@ options = null;
         $('#easySelectable').easySelectable();
 
         $('#no_class').click(function () {
-            let save_btn = $('#navbar_top')
-            let save_text = $('#navbar_text')
             selected_items_set.forEach((item) => {
                 document.getElementById('text_class_' + item["li"][0].id).innerHTML = '';
 
@@ -164,7 +162,7 @@ options = null;
                 item["li"].attr("has-class", false);
                 item["li"].attr("has-select", false);
                 item["li"].attr("deleted", false);
-                item["li"].addClass(es_unselected_has_class).trigger('selected');
+                item["li"].addClass(es_unselected_no_class).trigger('selected');
                 if (item["li"][0].id in moderated_items_set) {
                     delete moderated_items_set[item["li"][0].id]
                 }
@@ -172,55 +170,12 @@ options = null;
                 options.onSelecting(item["li"]);
                 options.onUnSelected(item["li"]);
             });
-            selected_items_set.clear();
-            update_selected_items_text();
-            $('#changed_items_amount').html("Changed (" + Object.keys(moderated_items_set).length + ")");
-            if (save_btn != null){
-                if (Object.keys(moderated_items_set).length){
-                    save_text.text('Save changes');
-                    save_btn.show()
-                } else {
-                    save_btn.hide()
-                }
-
-            }
+            update_cards_front()
         })
 
-        $('[id^="class_id_"]').click(function () {
-            let save_btn = $('#navbar_top')
-            let save_text = $('#navbar_text')
-            let del_btn = document.getElementById('class_id_0')
-            // let no_class_btn = document.getElementById('class_id_no_class')
 
-            selected_items_set.forEach((item) => {
-                document.getElementById('text_class_' + item["li"][0].id).innerHTML = $(this).text();
-
-                item["li"].removeClass(es_selected_has_class).trigger('unselected');
-                item["li"].removeClass(es_selected_no_class).trigger('unselected');
-                item["li"].removeClass(es_selected_has_class_del).trigger('unselected');
-
-                item["li"].attr("has-class", true);
-                item["li"].attr("has-select", false);
-                let f = true
-                if (del_btn != null){
-                    if ($(this).text() == del_btn.innerHTML) {
-                        item["li"].attr("deleted", true);
-                        item["li"].addClass(es_unselected_has_class_del).trigger('selected');
-                        moderated_items_set[item["li"][0].id] = {"cl": "-1", "ver": item["li"][0].getAttribute("ver")}
-                        f = false
-                    }
-                }
-                if (f) {
-                        item["li"].attr("deleted", false);
-                        item["li"].addClass(es_unselected_has_class).trigger('selected');
-                        moderated_items_set[item["li"][0].id] = {"cl": $(this)[0].getAttribute("cl_id"), "ver": item["li"][0].getAttribute("ver")}
-                }
-
-
-                item["div"].trigger('unselected');
-                options.onSelecting(item["li"]);
-                options.onUnSelected(item["li"]);
-            });
+        function update_cards_front() {
+            let save_btn = $('#navbar_top'), save_text = $('#navbar_text');
             selected_items_set.clear();
             update_selected_items_text();
             $('#changed_items_amount').html("Changed (" + Object.keys(moderated_items_set).length + ")");
@@ -231,8 +186,113 @@ options = null;
                 } else {
                     save_btn.hide()
                 }
-
             }
+        }
+
+        function update_cards_data(item, el, star = null, show_original_class = true) {
+            item.removeClass(es_selected_has_class).
+            removeClass(es_selected_no_class).
+            removeClass(es_selected_has_class_del).
+            removeClass(es_unselected_has_class_del).
+            trigger('unselected');
+            item.attr("has-class", true);
+            item.attr("has-select", false);
+            if (star !== null){
+                if (star){
+                    item.attr("priority", "true");
+                } else {
+                    item.attr("priority", "false");
+                }
+            }
+            let f = true
+            let caption_id = 'text_class_' + item[0].id
+            document.getElementById(caption_id).innerHTML = ''
+            if (item.attr("priority") == "true"){
+                document.getElementById(caption_id).innerHTML += '<span><i class="far fa-star"></i></span>'
+            }
+
+            if (el[0].getAttribute("cl_id") == "0") {
+                document.getElementById(caption_id).innerHTML += item.attr('label') + '→' + '<span><i class="fas fa-trash-alt"></i></span>';
+                item.attr("deleted", true);
+                item.addClass(es_unselected_has_class_del).trigger('selected');
+                moderated_items_set[item[0].id] = {
+                    "cl": "-1",
+                    "ver": item[0].getAttribute("ver"),
+                    "priority": item[0].getAttribute("priority")
+                }
+
+            } else {
+                if (show_original_class) {
+                    document.getElementById(caption_id).innerHTML += item.attr('label') + '→';
+                }
+                document.getElementById(caption_id).innerHTML += el[0].getAttribute("label");
+                item.attr("deleted", false);
+                item.addClass(es_unselected_has_class).trigger('selected');
+                moderated_items_set[item[0].id] = {
+                    "cl": el[0].getAttribute("cl_id"),
+                    "ver": item[0].getAttribute("ver"),
+                    "priority": item[0].getAttribute("priority")
+                }
+            }
+            item.trigger('unselected');
+            options.onSelecting(item);
+            options.onUnSelected(item);
+        }
+
+         $('[id^="apply_all_class_id_"]').click(function () {
+             let el = $(this)
+             $('li[has-select]').each(function( i ) {
+                 let item = $(this)
+                 update_cards_data(item, el, false);
+             })
+             update_cards_front()
+             console.log(moderated_items_set)
+        });
+
+         $('[id^="star_apply_all_class_id_"]').click(function () {
+             let el = $(this)
+             $('li[has-select]').each(function( i ) {
+                 let item = $(this)
+                 update_cards_data(item, el, true);
+             })
+             update_cards_front()
+             console.log(moderated_items_set)
+        });
+
+        $('[id^="class_id_"]').click(function () {
+            let el = $(this)
+            selected_items_set.forEach((item) => {
+                update_cards_data(item["li"], el);
+            });
+            update_cards_front()
+            console.log(moderated_items_set)
+        });
+
+        $('[id^="todo_class_id_"]').click(function () {
+            let el = $(this)
+            selected_items_set.forEach((item) => {
+                update_cards_data(item["li"], el, null, false);
+            });
+            update_cards_front()
+            console.log(moderated_items_set)
+        });
+
+        $('[id^="star_class_id_"]').click(function () {
+            let el = $(this)
+            selected_items_set.forEach((item) => {
+                update_cards_data(item["li"], el, true);
+            });
+            update_cards_front()
+            console.log(moderated_items_set)
+        });
+
+        $('[id^="no_star_class_id_"]').click(function () {
+            let el = $(this)
+            selected_items_set.forEach((item) => {
+                update_cards_data(item["li"], el, false);
+            });
+            update_cards_front()
+            console.log(moderated_items_set)
         });
 
         $('#browse_delete_imgs').click(function () {
@@ -247,6 +307,6 @@ options = null;
     })
 
     function update_selected_items_text() {
-        $('#selected_items_amount').html("Unsaved (" + selected_items_set.size + ")");
+        $('#selected_items_amount').html("Selected (" + selected_items_set.size + ")");
     }
 })(jQuery);
