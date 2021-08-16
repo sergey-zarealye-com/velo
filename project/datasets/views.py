@@ -103,7 +103,8 @@ def copy_directory(
     print('celery task_id:', celery_task_id)
     task_queue.put(celery_task)
 
-    commit_queue.put((task_id, celery_task_id, create_missing_cats, set_category.id))
+    set_category_id = None if set_category is None else set_category.id
+    commit_queue.put((task_id, celery_task_id, create_missing_cats, set_category_id))
     log.info("Processing entry created")
 
     logging.info(f"Sended task with id {task_id}")
