@@ -184,7 +184,7 @@ def moderate(item_id):
             os.mkdir(os.path.join(SAVE_PATH, category))
         shutil.move(images_path, os.path.join(SAVE_PATH, category, transliterate.translit(Path(images_path).name, 'ru', reversed=True)))
     Moderation.query.filter_by(id=film_id).delete()
-    fillup_tmp_table(get_labels_of_version(version.id), version.name, str(SAVE_PATH), version)
+    fillup_tmp_table(get_labels_of_version(version.id), version.name, str(SAVE_PATH), version, priority=1)
     folder = Path(images_paths[0]).parent.parent
     shutil.rmtree(folder, ignore_errors=True)
     todo.finished_at = datetime.now()
