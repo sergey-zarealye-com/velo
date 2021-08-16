@@ -331,11 +331,7 @@ class DataItems(db.Model):
         cascade="all, delete",
         passive_deletes=True,
     )
-    t = relationship(
-        "Splits", back_populates="data_item",
-        cascade="all, delete",
-        passive_deletes=True
-    )
+
 
     def add_if_not_exists(path: str) -> int:
         entry = DataItems.query.filter_by(path=path).first()
@@ -358,6 +354,8 @@ class VersionItems(db.Model):
     version_id = db.Column(db.Integer, db.ForeignKey("versions.id"), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey("categories.id"), nullable=False)
     data_item = relationship("DataItems", back_populates="vi")
+    priority = db.Column(db.Integer, nullable=True)  # 0 - low, 1 - high
+    ds_type = db.Column(db.Integer, nullable=True)  # 0 - train, 1 - val, 2 - test
     __table_args__ = (PrimaryKeyConstraint("item_id", "version_id"),)
 
 
@@ -368,6 +366,8 @@ class TmpTable(db.Model):
     )
     node_name = db.Column(db.String, db.ForeignKey("versions.name"), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey("categories.id"), nullable=False)
+    priority = db.Column(db.Integer, nullable=True)  # 0 - low, 1 - high
+    ds_type = db.Column(db.Integer, nullable=True)  # 0 - train, 1 - val, 2 - test
     data_item = relationship("DataItems", back_populates="tmp")
     __table_args__ = (PrimaryKeyConstraint("item_id", "node_name"),)
 
@@ -528,25 +528,6 @@ class Model(db.Model):
             .all()
 
 
-class Splits(db.Model):
-    __tablename__ = 'splits'
-    version_id = db.Column(db.Integer, db.ForeignKey('versions.id'), nullable=False)
-    category = db.Column(db.String, nullable=False)  # Train/Test/Val
-    item_id = db.Column(db.Integer, db.ForeignKey('data_items.id', ondelete='CASCADE'), nullable=False)
-    data_item = relationship("DataItems", back_populates="t")
-    priority = db.Column(db.SmallInteger, nullable=False)  # Высокий / низкий (0, 1)
-    __table_args__ = (
-        PrimaryKeyConstraint('version_id', 'item_id', 'category'),
-    )
-
-    @staticmethod
-    def list(task, version_name):
-        version = Version.query.filter_by(name=version_name).first()
-        if version is None:
-            return []
-        return Model.query.filter_by(version_id=version.id, task=task).all()
-
-
 class Score(db.Model):
     __tablename__ = 'score'
     model_id = db.Column(db.Integer, db.ForeignKey("models.id"), nullable=False)
@@ -555,4 +536,7 @@ class Score(db.Model):
     max_score_label_id = db.Column(db.Integer, db.ForeignKey("categories.id"), nullable=False)
     item_id = db.Column(
         db.Integer, db.ForeignKey("data_items.id", ondelete="CASCADE"), nullable=False
+    )
+    __table_args__ = (
+        PrimaryKeyConstraint('model_id', 'item_id'),
     )

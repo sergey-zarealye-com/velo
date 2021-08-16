@@ -1,5 +1,5 @@
 from typing import List, Dict, Tuple
-from sqlalchemy import create_engine, and_
+from sqlalchemy import create_engine, and_, update, bindparam
 from sqlalchemy.orm import sessionmaker
 
 from project.images.queries import get_id_by_name
@@ -80,7 +80,10 @@ def prepare_to_commit(sess, node_name) -> Dict:
         if item.Changes.new_category != -1:
             obj = VersionItems(item_id=item.Changes.item_id,
                                version_id=item.Changes.version_id,
-                               category_id=item.Changes.new_category)
+                               category_id=item.Changes.new_category,
+                               priority=item.TmpTable.priority,
+                               ds_type=item.TmpTable.ds_type
+                               )
             res['uncommited'].append(obj)
         else:
             res['uncommited_deleted'].append(item.Changes.item_id)
@@ -96,7 +99,9 @@ def prepare_to_commit(sess, node_name) -> Dict:
     for item in query.all():
         obj = VersionItems(item_id=item.item_id,
                            version_id=version_id,
-                           category_id=item.category_id)
+                           category_id=item.category_id,
+                           priority=item.priority,
+                           ds_type=item.ds_type)
         res['uncommited'].append(obj)
     # Закомиченные измененные
     # Закомиченный item есть в таблице changes в заданной версии, но его нет в таблицу Tmp
@@ -113,12 +118,33 @@ def prepare_to_commit(sess, node_name) -> Dict:
             if item.new_category != -1:
                 vi = VersionItems(item_id=item.item_id,
                                   version_id=item.version_id,
-                                  category_id=item.new_category)
+                                  category_id=item.new_category,
+                                  priority=item.priority,
+                                  ds_type=item.ds_type
+                                  )
                 res['commited_changed'].append(vi)
             else:
                 diff = Diff(version_id=version_id, item_id=item.item_id)
                 res['commited_deleted'].append(diff)
     return res
+
+
+def update_tmp(db, changes: List[Dict]) -> None:
+    """Обновить записи в таблице TmpTable"""
+    stmt = (
+        update(TmpTable).
+            where(
+            and_(
+                TmpTable.item_id == bindparam('itm_id'),
+                TmpTable.node_name == bindparam('node'))).
+            values(ds_type=bindparam('ds'))
+    )
+    with db.engine.begin() as conn:
+        conn.execute(
+            stmt,
+            changes
+        )
+    return
 
 
 if __name__ == '__main__':

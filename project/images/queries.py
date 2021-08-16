@@ -68,7 +68,7 @@ def get_uncommited_items(sess, node_name: str) -> List[version_item]:
                          item.DataItems.path,
                          item.Category.name,
                          item.Category.id,
-                         item.DataItems.t[0].category if len(item.DataItems.t) else None,
+                         item.DataItems.tmp[0].ds_type if len(item.DataItems.tmp) else None,
                          ) for item in query.all()]
 
 
