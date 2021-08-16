@@ -477,11 +477,13 @@ class CeleryTask(db.Model):
     cv_task_id = db.Column(db.String, primary_key=True, nullable=False)
     nlp_task_id = db.Column(db.String, primary_key=True, nullable=False)
     todo_id = db.Column(db.Integer, nullable=True)
+    for_checkout = db.Column(db.Boolean, nullable=True)
 
-    def __init__(self, cv_task_id, video_uuid, nlp_task_id="123"):
+    def __init__(self, cv_task_id, video_uuid, nlp_task_id="123", for_checkout=False):
         self.cv_task_id = cv_task_id
         self.video_uuid = video_uuid
         self.nlp_task_id = nlp_task_id
+        self.for_checkout = for_checkout
 
 
 class Changes(db.Model):
