@@ -18,7 +18,7 @@
             <a class="nav-link" href="{{ url_for('deduplication.show_task_list') }}">Deduplication</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" href="#">Checkouts</a>
+            <a class="nav-link" href="{{ url_for('datasets.show_task_list') }}">Checkouts</a>
         </li>
     </ul>
 
@@ -61,6 +61,7 @@
     </style>
 
     <table class="table table-striped">
+    <meta http-equiv="refresh" content="2">
         <thead>
         <tr>
             <th scope="col">Their label</th>
@@ -73,7 +74,6 @@
         </tr>
         </thead>
         <tbody>
-        <meta http-equiv="refresh" content="2">
         {% for todo in todoitems %}
             <tr>
                 <td>{{ todo.gt_category }}</td>
