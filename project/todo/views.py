@@ -192,6 +192,17 @@ def moderate(item_id):
     return f"status: {True}"
 
 
+@todo_blueprint.route('/view_error/<task_id>', methods=['POST', 'GET'])
+@login_required
+def view_error(task_id):
+    todo = ToDoItem.query.filter_by(video_uuid=task_id).first()
+    task = CeleryTask.query.filter_by(video_uuid=todo.video_uuid).first()
+    task_result = AsyncResult(task.cv_task_id, app=app)
+    task_message = task_result.info
+    traceback_text = [task_message]
+    return render_template('todo/help.html', helptext=traceback_text)
+
+
 @todo_blueprint.route('/new_batch', methods=['GET', 'POST'])
 @login_required
 def new_batch():

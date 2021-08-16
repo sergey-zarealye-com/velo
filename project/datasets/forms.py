@@ -84,5 +84,8 @@ class CommitForm(FlaskForm):
 class MergeForm(FlaskForm):
     target_select = SelectField('Merge from', coerce=str)
 
+
 class SplitForm(FlaskForm):
-    train_size = FloatField()
+    train_size = FloatField(label=0.7)
+    test_size = FloatField(label=0.1)
+    val_size = FloatField(label=0.2)

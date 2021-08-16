@@ -1,0 +1,14 @@
+{% extends "_base.html" %}
+{% block title %}Error info{% endblock %}
+{% from "_formshelper.html" import render_field %}
+{% block content %}
+
+    <div class="card bg-light mb-3">
+        <div class="card-body">
+            {% for h in helptext %}
+                <h5>{{ h }}</h5>
+            {% endfor %}
+        </div>
+    </div>
+
+{% endblock %}
