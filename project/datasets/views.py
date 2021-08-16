@@ -9,7 +9,7 @@ from flask_login import current_user, login_required
 
 from project import db, app
 from project.images.queries import get_uncommited_items
-from project.models import Version, VersionChildren, DataItems, TmpTable, Category, Changes, Splits
+from project.models import Version, VersionChildren, DataItems, TmpTable, Category, Changes
 from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm, SplitForm
 from project.models import Model
 import graphviz
@@ -25,7 +25,7 @@ from multiprocessing import Process, Queue
 from .rabbitmq_connector import send_message
 import uuid
 from project.datasets.queries import get_labels_of_version, get_nodes_above, get_items_of_nodes, prepare_to_commit, \
-    get_items_of_nodes_with_label
+    get_items_of_nodes_with_label, update_tmp
 from project.deduplication.utils import create_image_processing_task
 from project.datasets.utils import split_data_items
 from project.datasets.utils import TaskManager
@@ -668,7 +668,7 @@ def split(selected):
     if request.method == 'POST':
         if form.validate_on_submit():
             # Берем data_items только от текущей ноды
-            # data_items = get_items_of_nodes([version.id])
+            # TODO: получить все ранее не распределенные
             data_items = get_uncommited_items(db.session, version.name)
             train_size = form.train_size.data
             val_size = form.val_size.data
@@ -680,18 +680,30 @@ def split(selected):
                 flash(message, 'danger')
             else:
                 train_items, val_items, test_items = split_data_items(data_items, train_size, val_size)
-                si = []
+                tmp_ds = []
                 for item in train_items:
-                    split_item = Splits(version_id=version.id, category="train", item_id=item.id)
-                    si.append(split_item)
+                    upd_tmp_item = dict(
+                        itm_id=item.id,
+                        node=selected,
+                        ds=0
+                    )
+                    tmp_ds.append(upd_tmp_item)
                 for item in val_items:
-                    split_item = Splits(version_id=version.id, category="val", item_id=item.id)
-                    si.append(split_item)
+                    upd_tmp_item = dict(
+                        itm_id=item.id,
+                        node=selected,
+                        ds=1
+                    )
+                    tmp_ds.append(upd_tmp_item)
                 for item in test_items:
-                    split_item = Splits(version_id=version.id, category="test", item_id=item.id)
-                    si.append(split_item)
+                    upd_tmp_item = dict(
+                        itm_id=item.id,
+                        node=selected,
+                        ds=2
+                    )
+                    tmp_ds.append(upd_tmp_item)
                 try:
-                    db.session.bulk_save_objects(si)
+                    update_tmp(db, tmp_ds)
                     db.session.commit()
                     message = Markup(
                         f"<strong>Save successfully")
