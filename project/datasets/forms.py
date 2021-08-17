@@ -37,11 +37,6 @@ class ImportForm(FlaskForm):
                                    default='',
                                    validators=[Length(min=0, max=254)])
     is_score_model = BooleanField('Score imported images')
-    score_model = SelectField(
-        'Classification model',
-        choices=[],
-        coerce=int
-    )
 
     # Deduplication settings
     score_model = SelectField('Classification model',  # TODO -- shall be dynamic!!!
