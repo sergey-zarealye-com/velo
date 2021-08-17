@@ -23,7 +23,7 @@ from project.models import Version, Category, Changes
 images_blueprint = Blueprint('images', __name__,
                              template_folder='templates',
                              url_prefix='/images')
-DS_TYPES = ['None', 'train', 'test', 'val']
+DS_TYPES = {0: 'Train', 1: 'Test', 2: 'Validation', 3: 'None'}
 
 
 # ROUTES
@@ -126,11 +126,11 @@ def browse(selected, page=1, items=50, filters=None):
     # set_info = {cl.name: {'ds': cl.id, 'amount': 0} for cl in Category.list(Category.TASKS()[0][0], version.ds)}
     # count items per class in current ds
     cur_ds_info = dict(Counter(getattr(item, 'label') for item in version_items + uncommitted_items))
-    cur_ds_split = dict(Counter(str(getattr(item, 'ds')) for item in version_items + uncommitted_items))
+    cur_ds_split = dict(Counter(DS_TYPES[getattr(item, 'ds')] for item in version_items + uncommitted_items))
     # TODO выглядит
-    for key in DS_TYPES:
-        if key not in cur_ds_split:
-            cur_ds_split[key] = 0
+    for key, val in DS_TYPES.items():
+        if val not in cur_ds_split:
+            cur_ds_split[val] = 0
     # map vision classes with cur_ds_info
     for key, value in cur_ds_info.items():
         if key in classes_info:
