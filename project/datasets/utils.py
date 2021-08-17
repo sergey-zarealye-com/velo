@@ -59,13 +59,19 @@ def add_cv_catregory(version_name: str, category_name: str) -> int:
     category = Category(name=category_name, version_id=version.id, task=1)
     db.session.add(category)
     db.session.flush()
+    new_cat_id = category.id
 
     db.session.commit()
 
-    return category.id
+    return new_cat_id
 
 
-def import_data(categories: List[Union[str, int]], objects: List[DataItems], priorities: List[int], selected: str, version: Version) -> None:
+def import_data(
+        categories: List[Union[str, int]],
+        objects: List[DataItems],
+        priorities: List[int],
+        selected: str,
+        version: Version) -> None:
     try:
         db.session.bulk_save_objects(objects, return_defaults=True)
         tmp = [TmpTable(item_id=obj.id,
@@ -166,19 +172,15 @@ def get_data_samples(
 
 
 def split_data_items(items: List, train_size: float = 0.7, val_size: float = 0.1):
-    if len(items) < 5:
-        log.error("Too small items")
-    else:
-        shuffle(items)
-        t = int(len(items) * train_size)
-        v = int(len(items) * val_size)
-        if v == 0:
-            v += 1
-        train_items = items[0:t]
-        val_items = items[t:t + v]
-        test_items = items[t + v:]
-        return train_items, val_items, test_items
-    return [], [], []
+    shuffle(items)
+    t = int(len(items) * train_size)
+    v = int(len(items) * val_size)
+    if v == 0:
+        v += 1
+    train_items = items[0:t]
+    val_items = items[t:t + v]
+    test_items = items[t + v:]
+    return train_items, val_items, test_items
 
 
 def process_response(response: dict):

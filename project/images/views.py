@@ -11,7 +11,6 @@ from flask import render_template, Blueprint, redirect, url_for, flash, request
 from flask import abort, session, send_from_directory
 from flask_login import login_required
 from markupsafe import Markup
-import os
 
 from project import app, db
 from project.datasets.queries import get_nodes_above
@@ -71,6 +70,7 @@ def save_changes():
                     obj = Changes(
                         version_id=node_id,
                         item_id=int(item_id),
+                        priority=0 if moderation.get("priority") == 'false' else 1,
                         new_category=int(moderation.get("cl"))
                     )
                     new_changes.append(obj)
@@ -78,7 +78,8 @@ def save_changes():
                     upd_item = dict(
                         v_id=node_id,
                         itm_id=int(item_id),
-                        category=int(moderation.get("cl"))
+                        category=int(moderation.get("cl")),
+                        pr=0 if moderation.get("priority") == 'false' else 1
                     )
                     updates.append(upd_item)
             try:
