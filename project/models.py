@@ -496,6 +496,8 @@ class Changes(db.Model):
         db.Integer, db.ForeignKey("data_items.id", ondelete="CASCADE"), nullable=False
     )
     new_category = db.Column(db.Integer, nullable=False)
+    priority = db.Column(db.Integer, nullable=True)
+    ds_type = db.Column(db.Integer, nullable=True)  # 0 - train, 1 - val, 2 - test
     data_item = relationship("DataItems", back_populates="c")
     __table_args__ = (PrimaryKeyConstraint("version_id", "item_id"),)
 

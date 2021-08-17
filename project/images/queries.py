@@ -97,7 +97,7 @@ def update_changes(db, changes: List[Dict]) -> None:
             and_(
                 Changes.version_id == bindparam('v_id'),
                 Changes.item_id == bindparam('itm_id'))).
-            values(new_category=bindparam('category'))
+            values(new_category=bindparam('category'), priority=bindparam('pr'))
     )
     with db.engine.begin() as conn:
         conn.execute(

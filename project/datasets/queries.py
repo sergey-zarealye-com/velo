@@ -81,8 +81,8 @@ def prepare_to_commit(sess, node_name) -> Dict:
             obj = VersionItems(item_id=item.Changes.item_id,
                                version_id=item.Changes.version_id,
                                category_id=item.Changes.new_category,
-                               priority=item.TmpTable.priority,
-                               ds_type=item.TmpTable.ds_type
+                               priority=item.Changes.priority,
+                               ds_type=item.Changes.ds_type if item.Changes.ds_type is not None else item.TmpTable.ds_type
                                )
             res['uncommited'].append(obj)
         else:
@@ -131,19 +131,20 @@ def prepare_to_commit(sess, node_name) -> Dict:
 
 def update_tmp(db, changes: List[Dict]) -> None:
     """Обновить записи в таблице TmpTable"""
-    stmt = (
-        update(TmpTable).
-            where(
-            and_(
-                TmpTable.item_id == bindparam('itm_id'),
-                TmpTable.node_name == bindparam('node'))).
-            values(ds_type=bindparam('ds'))
-    )
-    with db.engine.begin() as conn:
-        conn.execute(
-            stmt,
-            changes
+    if len(changes):
+        stmt = (
+            update(TmpTable).
+                where(
+                and_(
+                    TmpTable.item_id == bindparam('itm_id'),
+                    TmpTable.node_name == bindparam('node'))).
+                values(ds_type=bindparam('ds'))
         )
+        with db.engine.begin() as conn:
+            conn.execute(
+                stmt,
+                changes
+            )
     return
 
 
