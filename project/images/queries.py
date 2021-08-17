@@ -24,13 +24,12 @@ def get_items_of_version(sess, version_id: List[int]) -> List[version_item]:
         .filter(DataItems.id.notin_(deleted_items)) \
         .order_by(DataItems.id, VersionItems.version_id.desc()) \
         .distinct(DataItems.id)
-    # TODO: проверить для разных случает, проверить t[0]
     return [version_item(item.DataItems.id,
                          item.VersionItems.version_id,
                          item.DataItems.path,
                          item.Category.name,
                          item.Category.id,
-                         item.DataItems.t[0].category if len(item.DataItems.t) else None,
+                         item.VersionItems.ds_type if item.VersionItems.ds_type is not None else 3,
                          ) for item in query.all()]
 
 
@@ -68,7 +67,7 @@ def get_uncommited_items(sess, node_name: str) -> List[version_item]:
                          item.DataItems.path,
                          item.Category.name,
                          item.Category.id,
-                         item.DataItems.tmp[0].ds_type if len(item.DataItems.tmp) else None,
+                         item.DataItems.tmp[0].ds_type if item.DataItems.tmp[0].ds_type is not None else 3,
                          ) for item in query.all()]
 
 
@@ -99,7 +98,8 @@ if __name__ == '__main__':
     session = Session()
     with closing(session) as sess:
         # res = get_items_of_version_with_changes(sess, [2, 3])
-        res = get_uncommited_items(session, "init")
+        # res = get_items_of_version(session, [1])
+        res = get_uncommited_items(session, "v2")
         for item in res:
             print(f"Item id: {item.id}")
             print(f"Item path: {item.path}")

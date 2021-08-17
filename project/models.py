@@ -323,7 +323,10 @@ class DataItems(db.Model):
         passive_deletes=True,
     )
     d = relationship(
-        "Diff", back_populates="data_item", cascade="all, delete", passive_deletes=True
+        "Diff",
+        back_populates="data_item",
+        cascade="all, delete",
+        passive_deletes=True
     )
     c = relationship(
         "Changes",
@@ -331,7 +334,6 @@ class DataItems(db.Model):
         cascade="all, delete",
         passive_deletes=True,
     )
-
 
     def add_if_not_exists(path: str) -> int:
         entry = DataItems.query.filter_by(path=path).first()

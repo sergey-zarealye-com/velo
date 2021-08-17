@@ -55,8 +55,8 @@
                             {#                            {% endfor %}#}
                             {% for value in categs[1] %}
                                 <div class="form-check" style="padding: 0px; margin-bottom:5px;">
-                                    <button type="button" class="btn btn-outline-info" id="class_id_{{ loop.index }}"
-                                            cl_id="{{ value["id"] }}"
+                                    <button type="button" class="btn btn-outline-info" id="todo_class_id_{{ loop.index }}"
+                                            cl_id="{{ value["id"] }}" label="{{ value["name"] }}"
                                             style="width: 100%">{{ value["name"] }}</button>
                                 </div>
                             {% endfor %}
@@ -65,7 +65,7 @@
                                         style="width: 100%">No class
                                 </button>
                             </div>
-                            <h5 id="selected_items_amount">Unsaved (0)</h5>
+                            <h5 id="selected_items_amount">Selected (0)</h5>
                             <div id="selected_items_list"></div>
                         </div>
                     </div>

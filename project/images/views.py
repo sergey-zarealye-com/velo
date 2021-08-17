@@ -23,6 +23,7 @@ from project.models import Version, Category, Changes
 images_blueprint = Blueprint('images', __name__,
                              template_folder='templates',
                              url_prefix='/images')
+DS_TYPES = ['None', 'train', 'test', 'val']
 
 
 # ROUTES
@@ -122,14 +123,21 @@ def browse(selected, page=1, items=50, filters=None):
     uncommitted_items = get_uncommited_items(db.session, selected)
     # get vision classes
     classes_info = {cl.name: {'id': cl.id, 'amount': 0} for cl in Category.list(Category.TASKS()[0][0], version.name)}
+    # set_info = {cl.name: {'ds': cl.id, 'amount': 0} for cl in Category.list(Category.TASKS()[0][0], version.ds)}
     # count items per class in current ds
     cur_ds_info = dict(Counter(getattr(item, 'label') for item in version_items + uncommitted_items))
+    cur_ds_split = dict(Counter(str(getattr(item, 'ds')) for item in version_items + uncommitted_items))
+    # TODO выглядит
+    for key in DS_TYPES:
+        if key not in cur_ds_split:
+            cur_ds_split[key] = 0
     # map vision classes with cur_ds_info
     for key, value in cur_ds_info.items():
         if key in classes_info:
             classes_info[key]['amount'] = value
 
     cb_all_cl_filters = True
+    cb_all_set_filters = True
     # if "browse_filters" exists in session
     if "browse_filters" in session:
         version_items_filter = []
@@ -148,11 +156,19 @@ def browse(selected, page=1, items=50, filters=None):
             cur_filters["class_filter"] = session['browse_filters']["class_filter"]
             if len(classes_info) != len(cur_filters["class_filter"]):
                 cb_all_cl_filters = False
+        # filter by set
+        if "filter_set" in session['browse_filters']:  # and len(session['browse_filters']["class_filter"]):
+            version_items_filter = [item for item in version_items_filter if
+                                    str(item.ds) in session['browse_filters']["filter_set"]]
+            cur_filters["set_filter"] = session['browse_filters']["filter_set"]
+            if len(cur_ds_split) != len(cur_filters["set_filter"]):
+                cb_all_set_filters = False
     # prepare virgin filters settings
     else:
         version_items_filter = uncommitted_items + version_items
         cur_filters = {"uncommitted": True, "committed": True}
     changed = get_changed_items(db.session, version.id)
+    print(f'cur_filters {cur_filters}')
     return render_template('browse/item.html',
                            version=version,
                            version_items=version_items_filter[(page - 1) * items:(page) * items],
@@ -163,6 +179,8 @@ def browse(selected, page=1, items=50, filters=None):
                            },
                            cb_all_cl_filters=cb_all_cl_filters,
                            classes_info=classes_info,
+                           cb_all_set_filters=cb_all_set_filters,
+                           cur_ds_split=cur_ds_split,
                            pages=int(math.ceil(len(version_items_filter) / int(items))),
                            page=page,
                            items=items,
