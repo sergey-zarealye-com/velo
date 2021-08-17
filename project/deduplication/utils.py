@@ -88,7 +88,8 @@ def process_response(response: dict):
                 os.path.join(storage_dir, task_id),
                 version,
                 create_missing_categories=task_entry.create_missing_categories,
-                version_name=selected_ds
+                version_name=selected_ds,
+                set_category=task_entry.set_category
             )
             task_entry.task_status = DeduplicationStatus.finished.value
             db.session.commit()

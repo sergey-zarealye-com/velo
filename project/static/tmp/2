@@ -1,5 +1,16 @@
 digraph "dsvers" {
-        init[URL="/datasets/select/init", style="filled", fillcolor="lightgrey"];
+        init[URL="/datasets/select/init", style="", fillcolor="white"];
+beliver[URL="/datasets/select/beliver", style="bold", fillcolor="white"];
+wrist[URL="/datasets/select/wrist", style="filled", fillcolor="lightgrey"];
+voice[URL="/datasets/select/voice", style="", fillcolor="white"];
+sick[URL="/datasets/select/sick", style="", fillcolor="white"];
+some[URL="/datasets/select/some", style="", fillcolor="white"];
+another[URL="/datasets/select/another", style="", fillcolor="white"];
+dasdas[URL="/datasets/select/dasdas", style="", fillcolor="white"];
+qwe[URL="/datasets/select/qwe", style="", fillcolor="white"];
+asd[URL="/datasets/select/asd", style="", fillcolor="white"];
+zxc[URL="/datasets/select/zxc", style="", fillcolor="white"];
+_111[URL="/datasets/select/_111", style="", fillcolor="white"];
 
         
         }

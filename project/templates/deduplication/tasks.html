@@ -39,15 +39,15 @@
                 <td>{{ task.started_at }}</td>
                 <td>
                     {% if task.started_at == None %}
-                        {% if task.can_take %}
-                            <form method="GET"
-                                  action="{{ url_for('deduplication.take_task', task_id=task.task_id, selected_ds=selected_ds) }}">
-                                <button type="submit" class="btn btn-primary btn-sm active">Take</button>
-                            </form>
-                        {% endif %}
+                    <form method="POST" action="{{url_for('deduplication.take_task', task_id=task.task_id, selected_ds=selected_ds)}}">
+                    {% if task.can_take %}
+                          <button type="submit" class="btn btn-primary btn-sm active" value="take" name="submit_btn">Take</button>
+                    {% endif %}
                     {% else %}
                         {#<a href="{{url_for('todo.item', item_id=todo.task_id)}}" class="btn btn-success btn-sm active" role="button" aria-pressed="true">Open</a>#}
                     {% endif %}
+                          <button type="submit" class="btn btn-primary btn-sm active" value="delete" name="submit_btn">Delete</button>
+                      </form>
                 </td>
             </tr>
         {% endfor %}

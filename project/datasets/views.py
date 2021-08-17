@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import List, Dict, Set, Tuple
+from typing import List, Dict, Optional, Set, Tuple
 
 from celery.result import AsyncResult
 from flask import render_template, Blueprint, request, redirect, url_for
@@ -75,7 +75,8 @@ def copy_directory(
         selected_ds: str,
         create_missing_cats: bool,
         is_scoring: bool,
-        scoring_model: str
+        scoring_model: str,
+        set_category: Optional[Category]
 ):
     logging.info("Start copying data...")
     sys.stdout.flush()
@@ -104,7 +105,8 @@ def copy_directory(
     print('celery task_id:', celery_task_id)
     task_queue.put(celery_task)
 
-    commit_queue.put((task_id, celery_task_id, create_missing_cats))
+    set_category_id = None if set_category is None else set_category.id
+    commit_queue.put((task_id, celery_task_id, create_missing_cats, set_category_id))
     log.info("Processing entry created")
 
     logging.info(f"Sended task with id {task_id}")
@@ -348,17 +350,24 @@ def import2ds(selected):
 
     form = ImportForm(request.form)
     categories = Category.list(1, version.name)
-    form.category.choices = [(-1, 'empty')] + [(i, cat.name) for i, cat in enumerate(categories)]
+    form.category.choices = [(i, cat.name) for i, cat in enumerate(categories)]
     scoring_models = Model.list(1, version.name)
-    form.score_model.choices = [(-1, 'empty')] + [(i, model.name) for i, model in enumerate(scoring_models)]
+    form.score_model.choices = [(i, model.name) for i, model in enumerate(scoring_models)]
 
     if request.method == 'POST':
         if form.validate_on_submit():
+            # check if directory exists
+            if not os.path.exists(form.flocation.data):
+                flash("Provided path does not exist!", "error")
+                return redirect(url_for('datasets.import2ds', selected=selected))
+
+
             label_ids = get_labels_of_version(version.id)
             if form.reason.data == 'moderation':
                 pass
             else:
-                if form.category_select.data == 'folder':
+                # if form.category_select.data == 'folder':
+                if True:
                     # send message to preprocessor
                     storage_dir = os.getenv("STORAGE_DIR")
                     task_id = str(uuid.uuid4())
@@ -374,7 +383,7 @@ def import2ds(selected):
                     files = os.listdir(form.flocation.data)
 
                     # only directories
-                    files = filter(
+                    files = list(filter(
                         lambda x: os.path.isdir(x),
                         list(
                             map(
@@ -382,7 +391,15 @@ def import2ds(selected):
                                 files
                             )
                         )
-                    )
+                    ))
+
+                    if form.category_select.data == "folder" and not len(files):
+                        flash(
+                            f'Set category strategy to "folder" but no folder found in {form.flocation.data}',
+                            "error"
+                        )
+                        return render_template('datasets/import.html', form=form, selected=selected, version=version)
+
                     files = map(
                         lambda x: os.path.split(x)[-1],
                         list(files)
@@ -392,13 +409,34 @@ def import2ds(selected):
                         for folder_name in files:
                             if folder_name not in label_ids:
                                 flash(f"{folder_name} not in labels!", "error")
+                                return render_template(
+                                    'datasets/import.html',
+                                    form=form,
+                                    selected=selected,
+                                    version=version
+                                )
 
                     model_name = ''
                     if bool(form.is_score_model.data):
+                        if not len(scoring_models):
+                            flash("No models available!", "error")
+                            return render_template('datasets/import.html', form=form, selected=selected, version=version)
                         model = scoring_models[form.score_model.data]
 
                         model_name = model.local_chkpoint
                         _, model_name = os.path.split(model_name)
+
+                    set_category = None
+                    if form.category_select.data == 'set':
+                        if not len(categories):
+                            flash("No category is selected!", "error")
+                            return render_template(
+                                'datasets/import.html',
+                                form=form,
+                                selected=selected,
+                                version=version
+                            )
+                        set_category = categories[form.category.data]
 
                     for proc in shortlife_processes:
                         if not proc.is_alive():
@@ -419,7 +457,8 @@ def import2ds(selected):
                             selected,
                             bool(form.is_create_categs_from_folders),
                             bool(form.is_score_model.data),
-                            model_name
+                            model_name,
+                            set_category
                         ),
                         daemon=True
                     )

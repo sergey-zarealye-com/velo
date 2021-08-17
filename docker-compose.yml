@@ -1,13 +1,6 @@
 version: "3"
 
 services:
-  rabbit:
-    image: rabbitmq:3-management
-    container_name: rabbit
-    ports:
-      - 15672:15672
-      - 5672:5672
-
   redis:
     image: redis
     container_name: redis
@@ -44,18 +37,25 @@ services:
     image: improsch
     container_name: improsch
     depends_on:
-      - rabbit
+      - redis
     volumes:
       - ${STORAGE_DIR}:${STORAGE_PATH_IN_DOCKER}
       - ${DEDUP_INDEX}:${DEDUP_PATH_IN_DOCKER}
     environment:
       DOCKER_USE: 1
-    deploy:
-      resources:
-        limits:
-          memory: 20G
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [ gpu, utility ]
+      LD_PRELOAD: "/root/miniconda3/lib/libmkl_core.so:/root/miniconda3/lib/libmkl_intel_thread.so:/root/miniconda3/lib/libmkl_intel_lp64.so:/root/miniconda3/lib/libiomp5.so"
+    runtime: nvidia 
+    stdin_open: true
+    tty: true
+
+  scoring:
+    image: scoring
+    depends_on:
+      - redis
+    volumes:
+      - ${SCORING_MODELS_STORAGE}:/models_storage
+      - ${STORAGE_DIR}:/storage
+    environment:
+      - IN_DOCKER=1
+      - MODELS_STORAGE=/models_storage
+    runtime: nvidia

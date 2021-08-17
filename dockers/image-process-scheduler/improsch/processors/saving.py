@@ -32,6 +32,7 @@ def unpack_func_for_saving(argument):
 def save_multiprocess(
     images: List[np.ndarray],
     filepaths: List[str],
+    pool,
     pool_size: int,
     storage_path: str
 ) -> List[str]:
@@ -50,6 +51,7 @@ def save_multiprocess(
     """
     assert len(images) == len(filepaths), RuntimeError("Lengths of images and filepaths are different")
     log.info(f"Saving {len(images)} into storage {storage_path}")
+    # save_all(images, filepaths)
 
     chunk_size = ceil(len(images) / pool_size)
     if chunk_size == 0:
@@ -64,9 +66,9 @@ def save_multiprocess(
             filepaths[i:i + chunk_size]
         ))
 
-    pool = Pool(pool_size)
+    # pool = Pool(pool_size)
     pool.map(unpack_func_for_saving, chunks)
-    pool.close()
+    # pool.close()
 
     parted_filenames = []
     for filename in filepaths:

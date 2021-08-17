@@ -31,12 +31,26 @@ def process(self, model_name: str, directory: str, has_images_resized: bool):
     directory = os.path.join('/storage', directory)
     print(directory)
 
-    dataloader = ImageDataLoader(directory, 64, not has_images_resized)
-    result = register.process(model_name, dataloader, dataloader.filepaths)
+    print(f'\tReading in {directory}')
+    filenames = []
+    for root, _, files in os.walk(directory):
+        filepaths = list(map(lambda x: os.path.join(root, x), files))
+        filenames.extend(filepaths)
+    print(f'\tCount of images: {len(filenames)}')
 
-    return result
+    internal_result = []
+    chunk_size = 500
+    print("Count of images:", len(filenames))
+    for i in range(0, len(filenames), chunk_size):
+        print("\tChunk:", i)
+        dataloader = ImageDataLoader(filenames[i:i+chunk_size], 64, not has_images_resized)
+        result = register.process(model_name, dataloader, dataloader.filepaths)
+        internal_result.extend(result)
+
+    return internal_result
 
 
 @app.task
 def get_models():
     return register.get_models_info()
+

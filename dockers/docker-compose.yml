@@ -13,14 +13,15 @@ services:
     depends_on:
       - redis
     volumes:
-      - /storage1/mrowl/image_storage:/image_storage
+      - /home/a.makarov/image_storage:/image_storage
     links:
       - redis
     environment:
+      - IN_DOCKER=1
       - DOCKER_USE=1
       - STORAGE_PATH=/image_storage
       - AWS_ENDPOINT_URL= "${DATABASE_URL}"
-      - AWS_ACCESS_KEY_ID= "${miniouser}"
+      - AWS_ACCESS_KEY_ID= "miniouser"
       - AWS_SECRET_ACCESS_KEY= "${AWS_SECRET_ACCESS_KEY}"
     networks:
       - main
@@ -30,8 +31,8 @@ services:
     depends_on:
       - redis
     volumes:
-      - /storage1/mrowl/image_storage:/image_storage
-      - /storage1/mrowl/dedup_index:/dedup_index
+      - /home/a.makarov/image_storage:/image_storage
+      - /home/a.makarov/dedup_index:/dedup_index
     environment:
       - DOCKER_USE=1
     networks:
@@ -43,8 +44,8 @@ services:
     depends_on: 
       - redis
     volumes:
-      - /storage1/mrowl/scoring_models:/models_storage
-      - /storage1/mrowl/image_storage:/storage
+      - /home/a.makarov/scoring_models:/models_storage
+      - /home/a.makaorv/image_storage:/storage
     environment:
       - IN_DOCKER=1
       - MODELS_STORAGE=/models_storage

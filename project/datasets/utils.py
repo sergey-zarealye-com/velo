@@ -84,14 +84,15 @@ def import_data(categories: List[Union[str, int]], objects: List[DataItems], pri
 
 
 def fillup_tmp_table(
-        label_ids: Dict[str, int],
-        selected: str,
-        src: str,
-        version: Version,
-        commit_batch: int = 1000,
-        create_missing_categories: bool = False,
-        version_name: Optional[str] = None,
-        priority: int = 0
+    label_ids: Dict[str, int],
+    selected: str,
+    src: str,
+    version: Version,
+    commit_batch: int = 1000,
+    create_missing_categories: bool = False,
+    version_name: Optional[str] = None,
+    set_category: Optional[int] = None,
+    priority: int = 0
 ) -> None:
     """
     Заполнить временную таблицу
@@ -100,10 +101,11 @@ def fillup_tmp_table(
     """
     objects, categories, priorities = [], [], []
     for sample in get_data_samples(
-            src,
-            label_ids,
-            force_creating_categories=create_missing_categories,
-            version_name=version_name
+        src,
+        label_ids,
+        force_creating_categories=create_missing_categories,
+        version_name=version_name,
+        set_category=set_category
     ):
         res = DataItems.query.filter_by(path=sample.path).first()
         if res:
@@ -125,10 +127,11 @@ def fillup_tmp_table(
 
 
 def get_data_samples(
-        data_path_str: str,
-        labels: Dict[str, int],
-        force_creating_categories: bool = False,
-        version_name: Optional[str] = None
+    data_path_str: str,
+    labels: Dict[str, int],
+    force_creating_categories: bool = False,
+    version_name: Optional[str] = None,
+    set_category: Optional[int] = None
 ) -> Generator[DataSample, None, None]:
     data_path: Path = Path(data_path_str)
     # # если это один файл
@@ -153,8 +156,13 @@ def get_data_samples(
                 for file in item.iterdir():
                     if file.is_file():
                         media_type = get_media_type(file)
-                        sample = DataSample(str(file), labels[label], media_type)
+                        set_label = set_category or labels[label]
+                        sample = DataSample(str(file), set_label, media_type)
                         yield sample
+            elif item.is_file() and set_category:
+                media_type = get_media_type(item)
+                sample = DataSample(str(item), set_category, media_type)
+                yield sample
 
 
 def split_data_items(items: List, train_size: float = 0.7, val_size: float = 0.1):
@@ -174,8 +182,11 @@ def split_data_items(items: List, train_size: float = 0.7, val_size: float = 0.1
 
 
 def process_response(response: dict):
-    task_id = response['id']
+    task_id = response.get('id')
+    if not task_id:
+        log.error(f"Got response with no id")
     task_entry = Deduplication.query.filter_by(task_uid=task_id).first()
+    assert task_entry
 
     if task_entry:
         if response['type'] == 'deduplication_result':
@@ -214,7 +225,7 @@ def process_response(response: dict):
             print('MERGE CONTROL RESULT')
         elif response['type'] == 'filtered':
             print("\t\tFILTERED RESULT MESSAGE")
-            print("Result filenames", response["filenames"])
+            # print("Result filenames", response["filenames"])
             # TODO: handle exceptions, add s3 source
             # вынести куда нибудь commit_batch
             storage_dir = os.getenv('STORAGE_DIR')
@@ -222,13 +233,17 @@ def process_response(response: dict):
             label_ids = response['label_ds']
             selected_ds = response['selected_ds']
             version = Version.query.filter_by(name=selected_ds).first()
+            print("FILLUP")
+            import sys
+            sys.stdout.flush()
             fillup_tmp_table(
                 label_ids,
                 selected_ds,
                 os.path.join(storage_dir, task_id),
                 version,
                 create_missing_categories=task_entry.create_missing_categories,
-                version_name=selected_ds
+                version_name=selected_ds,
+                set_category=task_entry.set_category
             )
             task_entry.task_status = DeduplicationStatus.finished.value
             db.session.commit()
