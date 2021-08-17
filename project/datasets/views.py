@@ -538,9 +538,18 @@ def commit(selected):
                     app.logger.error(ex)
                     db.session.rollback()
 
+                storage_dir = os.getenv('STORAGE_DIR')
+                assert storage_dir, "SET STORAGE_DIR IN ENV"
+
                 filepaths = [
                     DataItems.query.filter_by(id=item.item_id).first().path for item in items_to_commit
                 ]
+                filepaths = list(
+                    map(
+                        lambda x: x.replace(storage_dir, ''),
+                        filepaths
+                    )
+                )
                 task_id = str(uuid.uuid4())
                 task_request = {
                     'id': task_id,
