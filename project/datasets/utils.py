@@ -59,10 +59,11 @@ def add_cv_catregory(version_name: str, category_name: str) -> int:
     category = Category(name=category_name, version_id=version.id, task=1)
     db.session.add(category)
     db.session.flush()
+    new_cat_id = category.id
 
     db.session.commit()
 
-    return category.id
+    return new_cat_id
 
 
 def import_data(categories: List[Union[str, int]], objects: List[DataItems], priorities: List[int], selected: str, version: Version) -> None:
