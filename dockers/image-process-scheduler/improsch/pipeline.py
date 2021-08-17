@@ -94,6 +94,7 @@ class Preprocessor:
         print(f'\tReading in {data_dir}')
         filenames = []
         for root, _, files in os.walk(data_dir):
+            print("\t\tFIlnames:", [file for file in files])
             filepaths = list(map(lambda x: os.path.join(root, x), files))
             filenames.extend(filepaths)
         print(f'\tCount of images: {len(filenames)}')
@@ -127,14 +128,22 @@ class Preprocessor:
 
     def preprocessing(self, request):
         if request.get('type') == 'merge_indexes':
+            import sys
+            print("MERGE INDEXES!")
+            sys.stdout.flush()
             filenames = request["files_to_keep"]
+            print('FILES TO KEEP:', filenames)
             filenames = list(
                 map(
                     lambda x: x.replace(self.storage_path, ''),
                     filenames
                 )
             )
+            print('FILENAMES:', filenames)
+            sys.stdout.flush()
             self.deduplicator.add_indexes_from_tmp(filenames)
+            print('ADD_INDEXES_FORM_TMP')
+            sys.stdout.flush()
             return {'status': 'done'}
 
         return self.parted_preprocessing(request, 500)

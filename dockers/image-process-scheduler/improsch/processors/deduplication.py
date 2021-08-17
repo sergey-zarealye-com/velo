@@ -242,45 +242,6 @@ class Deduplicator:
 
         return all_filepaths
 
-    def read_images(self, filepaths, dst_size):
-        '''Read group of images, resize and return along with the group mean and std'''
-        images = []
-        imagenames = []
-
-        img_mean, img_std = 0, 0
-        count_images = 0
-
-        for filename in filepaths:
-            img = cv2.imread(filename)
-
-            if img is None:
-                # probably this file isn't an image
-                print("Loading error:", filename[32:])
-                continue
-
-            if img.shape[0] < dst_size[0] or img.shape[1] < dst_size[1]:
-                print(filename[32:], "size is", img.shape, "less than", dst_size)
-
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            img = cv2.resize(img, dst_size) / 255.
-            images.append(img)
-            imagenames.append(filename)
-
-            # calculates for every channel
-            img_mean += np.mean(img, axis=tuple(range(img.ndim - 1)))
-            img_std += np.std(img, axis=tuple(range(img.ndim - 1)))
-            count_images += 1
-
-        if not len(images):
-            return [], [], 0, 0
-
-        images = np.stack(images)
-
-        img_mean /= count_images
-        img_std /= count_images
-
-        return images, imagenames, img_mean, img_std
-
     def _get_embeddings(self, images, batch_size: int):
         embeddings = self.feature_extractor.get_embeddings(images, batch_size)
         return embeddings
@@ -332,11 +293,10 @@ class Deduplicator:
     def get_neighbours_by_filenames(self, filenames):
         indexes = [self.index.tmp_id_to_filename[name] for name in filenames]
         vectors = np.stack([self.index.tmp_index.reconstruct(index) for index in indexes])
-        import sys
-        print('VECTORS SHAPE:', vectors.shape)
-        sys.stdout.flush()
 
         neighbours = self.index.find_neighbours(vectors, filenames)
+
+        self.save_index()
 
         return neighbours
 

@@ -43,7 +43,10 @@ services:
       - ${DEDUP_INDEX}:${DEDUP_PATH_IN_DOCKER}
     environment:
       DOCKER_USE: 1
+      LD_PRELOAD: "/root/miniconda3/lib/libmkl_core.so:/root/miniconda3/lib/libmkl_intel_thread.so:/root/miniconda3/lib/libmkl_intel_lp64.so:/root/miniconda3/lib/libiomp5.so"
     runtime: nvidia 
+    stdin_open: true
+    tty: true
 
   scoring:
     image: scoring

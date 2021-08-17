@@ -152,7 +152,7 @@ def save_result(task_id, selected_ds):
 @dedup_blueprint.route('/<task_id>/<selected_ds>', methods=['GET'])
 @dedup_blueprint.route('/<task_id>/<selected_ds>&page=<page>&items=<items>', methods=['GET'])
 @login_required
-def show_dedup(task_id, selected_ds, page=1, items=1):
+def show_dedup(task_id, selected_ds, page=1, items=50):
     task = Deduplication.query.filter_by(task_uid=task_id).first()
     if task is None:
         abort(404)

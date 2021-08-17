@@ -19,5 +19,3 @@ RUN wget \
 #RUN conda install pytorch torchvision cudatoolkit=10.2 -c pytorch
 RUN yes | pip install torch==1.9.0 torchvision==0.10.0
 RUN yes | conda install -c pytorch faiss-gpu
-RUN conda install nomkl numpy scipy scikit-learn numexpr
-RUN conda remove mkl mkl-service

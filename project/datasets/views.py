@@ -355,6 +355,12 @@ def import2ds(selected):
 
     if request.method == 'POST':
         if form.validate_on_submit():
+            # check if directory exists
+            if not os.path.exists(form.flocation.data):
+                flash("Provided path does not exist!", "error")
+                return redirect(url_for('datasets.import2ds', selected=selected))
+
+
             label_ids = get_labels_of_version(version.id)
             if form.reason.data == 'moderation':
                 pass
