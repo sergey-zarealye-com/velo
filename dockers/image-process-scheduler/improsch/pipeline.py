@@ -133,14 +133,7 @@ class Preprocessor:
             sys.stdout.flush()
             filenames = request["files_to_keep"]
             print('FILES TO KEEP:', filenames)
-            filenames = list(
-                map(
-                    lambda x: x.replace(self.storage_path, ''),
-                    filenames
-                )
-            )
-            print('FILENAMES:', filenames)
-            sys.stdout.flush()
+
             self.deduplicator.add_indexes_from_tmp(filenames)
             print('ADD_INDEXES_FORM_TMP')
             sys.stdout.flush()
