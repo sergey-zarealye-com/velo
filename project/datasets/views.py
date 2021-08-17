@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from flask_login import current_user, login_required
 
 from project import db, app
-from project.images.queries import get_uncommited_items
+from project.images.queries import get_uncommited_items, get_unsplitted_items
 from project.models import Version, VersionChildren, DataItems, TmpTable, Category, Changes, CeleryTask
 from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm, SplitForm
 from project.models import Model
@@ -20,7 +20,8 @@ from distutils.dir_util import copy_tree
 import sys
 import shutil
 
-from project.celery.tasks import upload_files_to_storage, app
+from project.celery.tasks import upload_files_to_storage
+from project.celery.tasks import app as celery_app
 
 from multiprocessing import Process, Queue
 from .rabbitmq_connector import send_message
@@ -473,6 +474,15 @@ def commit(selected):
     if request.method == 'POST':
         if form.validate_on_submit():
             try:
+                # Сделать split не раскиданных данных
+                unsplitted = get_unsplitted_items(db.session, selected)
+                train_items, val_items, test_items = split_data_items(unsplitted)
+                tmp_ds = get_list_of_tmp_updates(selected,
+                                                 test_items,
+                                                 train_items,
+                                                 val_items)
+                update_tmp(db, tmp_ds)
+                # Все остальные операции
                 commit_categories = prepare_to_commit(db.session, selected)
                 # Незакомиченные из TmpTable - надо добавить в VersionItems и удалить из TmpTable
                 items_to_commit = commit_categories.get("uncommited")
@@ -664,6 +674,32 @@ def checkout(selected):
     return redirect(url_for('datasets.select', selected=version.name))
 
 
+def get_list_of_tmp_updates(selected: str, test_items, train_items, val_items) -> List[Dict]:
+    tmp_ds = []
+    for item in train_items:
+        upd_tmp_item = dict(
+            itm_id=item.id,
+            node=selected,
+            ds=0
+        )
+        tmp_ds.append(upd_tmp_item)
+    for item in val_items:
+        upd_tmp_item = dict(
+            itm_id=item.id,
+            node=selected,
+            ds=1
+        )
+        tmp_ds.append(upd_tmp_item)
+    for item in test_items:
+        upd_tmp_item = dict(
+            itm_id=item.id,
+            node=selected,
+            ds=2
+        )
+        tmp_ds.append(upd_tmp_item)
+    return tmp_ds
+
+
 @datasets_blueprint.route('/split/<selected>', methods=['GET', 'POST'])
 @login_required
 def split(selected):
@@ -676,7 +712,6 @@ def split(selected):
     if request.method == 'POST':
         if form.validate_on_submit():
             # Берем data_items только от текущей ноды
-            # TODO: получить все ранее не распределенные
             data_items = get_uncommited_items(db.session, version.name)
             train_size = form.train_size.data
             val_size = form.val_size.data
@@ -688,28 +723,7 @@ def split(selected):
                 flash(message, 'danger')
             else:
                 train_items, val_items, test_items = split_data_items(data_items, train_size, val_size)
-                tmp_ds = []
-                for item in train_items:
-                    upd_tmp_item = dict(
-                        itm_id=item.id,
-                        node=selected,
-                        ds=0
-                    )
-                    tmp_ds.append(upd_tmp_item)
-                for item in val_items:
-                    upd_tmp_item = dict(
-                        itm_id=item.id,
-                        node=selected,
-                        ds=1
-                    )
-                    tmp_ds.append(upd_tmp_item)
-                for item in test_items:
-                    upd_tmp_item = dict(
-                        itm_id=item.id,
-                        node=selected,
-                        ds=2
-                    )
-                    tmp_ds.append(upd_tmp_item)
+                tmp_ds = get_list_of_tmp_updates(selected, test_items, train_items, val_items)
                 try:
                     update_tmp(db, tmp_ds)
                     db.session.commit()
@@ -742,7 +756,7 @@ def show_task_list():
     tasks = CeleryTask.query.filter_by(for_checkout=True).all()
     objects = []
     for task in tasks:
-        task_res = AsyncResult(task.cv_task_id, app=app)
+        task_res = AsyncResult(task.cv_task_id, app=celery_app)
         objects.append({
             'status': task_res.state,
             'task_id': task_res.task_id

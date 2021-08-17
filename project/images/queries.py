@@ -57,6 +57,7 @@ def get_id_by_name(node_name: str) -> int:
 
 
 def get_uncommited_items(sess, node_name: str) -> List[version_item]:
+    """Возвращает version_item для текущей ноды из таблицы TmpTable"""
     node_id = get_id_by_name(node_name)
     query = sess.query(TmpTable, DataItems, Category) \
         .filter(TmpTable.node_name == node_name) \
@@ -68,6 +69,23 @@ def get_uncommited_items(sess, node_name: str) -> List[version_item]:
                          item.Category.name,
                          item.Category.id,
                          item.DataItems.tmp[0].ds_type if item.DataItems.tmp[0].ds_type is not None else 3,
+                         ) for item in query.all()]
+
+
+def get_unsplitted_items(sess, node_name: str) -> List[version_item]:
+    """Возвращает version_item, для которых не задан тип датасета"""
+    node_id = get_id_by_name(node_name)
+    query = sess.query(TmpTable, DataItems, Category) \
+        .filter(TmpTable.node_name == node_name) \
+        .filter(TmpTable.ds_type == None) \
+        .join(DataItems) \
+        .filter(Category.id == TmpTable.category_id)
+    return [version_item(item.DataItems.id,
+                         node_id,
+                         item.DataItems.path,
+                         item.Category.name,
+                         item.Category.id,
+                         3,
                          ) for item in query.all()]
 
 
@@ -99,7 +117,7 @@ if __name__ == '__main__':
     with closing(session) as sess:
         # res = get_items_of_version_with_changes(sess, [2, 3])
         # res = get_items_of_version(session, [1])
-        res = get_uncommited_items(session, "v2")
+        res = get_unsplitted_items(session, "v2")
         for item in res:
             print(f"Item id: {item.id}")
             print(f"Item path: {item.path}")
