@@ -2,6 +2,7 @@ import logging
 import os
 from typing import List, Dict, Optional, Set, Tuple
 
+from celery.result import AsyncResult
 from flask import render_template, Blueprint, request, redirect, url_for
 from flask import flash, Markup, abort, session
 from sqlalchemy.exc import IntegrityError
@@ -9,7 +10,7 @@ from flask_login import current_user, login_required
 
 from project import db, app
 from project.images.queries import get_uncommited_items
-from project.models import Version, VersionChildren, DataItems, TmpTable, Category, Changes
+from project.models import Version, VersionChildren, DataItems, TmpTable, Category, Changes, CeleryTask
 from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm, SplitForm
 from project.models import Model
 import graphviz
@@ -19,7 +20,7 @@ from distutils.dir_util import copy_tree
 import sys
 import shutil
 
-from project.celery.tasks import upload_files_to_storage
+from project.celery.tasks import upload_files_to_storage, app
 
 from multiprocessing import Process, Queue
 from .rabbitmq_connector import send_message
@@ -686,6 +687,13 @@ def checkout(selected):
         version.name,
         data_items
     )
+    task = CeleryTask(
+        cv_task_id=task.task_id,
+        video_uuid='smth',
+        for_checkout=True
+    )
+    db.session.add(task)
+    db.session.commit()
     return redirect(url_for('datasets.select', selected=version.name))
 
 
@@ -750,6 +758,33 @@ def split(selected):
         'datasets/split.html',
         version=version,
         form=form
+    )
+
+
+@datasets_blueprint.route('/tasks', methods=['GET'])
+@login_required
+def show_task_list():
+    if 'selected_version' in session:
+        version = Version.query.filter_by(name=session['selected_version']).first()
+    else:
+        version = Version.get_first()
+    if version is None:
+        message = Markup("There was no version found!")
+        flash(message, 'warning')
+        return redirect(url_for('datasets.index'))
+    tasks = CeleryTask.query.filter_by(for_checkout=True).all()
+    objects = []
+    for task in tasks:
+        task_res = AsyncResult(task.cv_task_id, app=app)
+        objects.append({
+            'status': task_res.state,
+            'task_id': task_res.task_id
+        })
+    return render_template(
+        '/datasets/checkout_tasks.html',
+        selected_ds=version.name,
+        version=version,
+        tasks=objects
     )
 
 

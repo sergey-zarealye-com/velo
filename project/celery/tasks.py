@@ -97,8 +97,9 @@ def processing_function(self, thumbs_dir, input_fname, input_fname_stem, img_ext
     }
 
 
-@app.task
-def upload_files_to_storage(version: str, items: List[Tuple[str, str]]):
+@app.task(bind=True)
+def upload_files_to_storage(self, version: str, items: List[Tuple[str, str]]):
+    self.update_state(state='STARTED')
     try:
         s3 = boto3.resource(
             service_name='s3',
@@ -110,14 +111,15 @@ def upload_files_to_storage(version: str, items: List[Tuple[str, str]]):
         k = int(len(items) * train_size)
         train = items[0:k]
         test = items[k:]
+        self.update_state(state='UPLOADING TRAIN')
         upload(bucket, train, version, "train")
+        self.update_state(state='UPLOADING VAL')
         upload(bucket, test, version, "val")
     except NoCredentialsError as ex:
         app.log.error(ex)
 
 
 def upload(bucket, items, version, prefix) -> None:
-    """Временные меры"""
     for item in items:
         file, label = item
         i = file.find("/image_storage")

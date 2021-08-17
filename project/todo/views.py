@@ -41,6 +41,7 @@ for path in (SAVE_PATH, TMP_PATH):
     if not path.exists():
         path.mkdir()
 
+
 # ROUTES
 @todo_blueprint.route('/index')
 @login_required
@@ -55,7 +56,7 @@ def index():
         return redirect(url_for('datasets.index'))
 
     # ToDo написать обработку получения результатов для отображения
-    tasks = CeleryTask.query.distinct("cv_task_id").all()
+    tasks = CeleryTask.query.filter_by(for_checkout=False).all()
     for task in tasks:
         task_id = task.cv_task_id
         video_uuid = task.video_uuid
@@ -182,9 +183,10 @@ def moderate(item_id):
         category = Category.query.filter_by(id=int(v['cl'])).first().name
         if not os.path.exists(os.path.join(SAVE_PATH, category)):
             os.mkdir(os.path.join(SAVE_PATH, category))
-        shutil.move(images_path, os.path.join(SAVE_PATH, category, transliterate.translit(Path(images_path).name, 'ru', reversed=True)))
+        shutil.move(images_path, os.path.join(SAVE_PATH, category,
+                                              transliterate.translit(Path(images_path).name, 'ru', reversed=True)))
     Moderation.query.filter_by(id=film_id).delete()
-    fillup_tmp_table(get_labels_of_version(version.id), version.name, str(SAVE_PATH), version)
+    fillup_tmp_table(get_labels_of_version(version.id), version.name, str(SAVE_PATH), version, priority=1)
     folder = Path(images_paths[0]).parent.parent
     shutil.rmtree(folder, ignore_errors=True)
     todo.finished_at = datetime.now()
@@ -227,7 +229,8 @@ def new_batch():
                 max_id = max([item.id for item in items])
             else:
                 max_id = 0
-            for i, (path, cat, title, description) in enumerate(zip(paths, cats, titles, descriptions), start=max_id+1):
+            for i, (path, cat, title, description) in enumerate(zip(paths, cats, titles, descriptions),
+                                                                start=max_id + 1):
                 task_uuid = str(uuid.uuid4())
                 task_meta = create_video_task(task_uuid, path, version.id, cat, description, title, i)
                 if task_meta is not None:
