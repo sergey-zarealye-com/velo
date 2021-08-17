@@ -308,11 +308,16 @@
                             label="{{ item["label"] }}"
                         >
                             <div class="card-header text-center" id="text_class_{{ item["id"] }}">
-                                {% if "priority" in item and item["priority"] in changed %}
-                                    <i class="far fa-star"></i>
+                                {% if item["id"] in changed %}
+                                    {% if changed[item["id"]]["priority"] == 1 %}
+                                        <i class="far fa-star"></i>
+                                    {% endif %}
                                 {% else %}
-                                    <i class="far fa-star "></i>
+                                    {% if item.priority == 1 %}
+                                        <i class="far fa-star"></i>
+                                    {% endif %}
                                 {% endif %}
+
                                 {{ item["label"] }}
                                 {% if item["id"] in changed %}
                                     →
