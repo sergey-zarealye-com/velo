@@ -159,7 +159,7 @@ def browse(selected, page=1, items=50, filters=None):
         # filter by set
         if "filter_set" in session['browse_filters']:  # and len(session['browse_filters']["class_filter"]):
             version_items_filter = [item for item in version_items_filter if
-                                    item.ds in session['browse_filters']["filter_set"]]
+                                    str(item.ds) in session['browse_filters']["filter_set"]]
             cur_filters["set_filter"] = session['browse_filters']["filter_set"]
             if len(cur_ds_split) != len(cur_filters["set_filter"]):
                 cb_all_set_filters = False
