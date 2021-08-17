@@ -7,7 +7,7 @@ from sqlalchemy import bindparam
 
 from project.models import DataItems, VersionItems, Category, TmpTable, Version, Diff, Changes
 
-version_item = namedtuple("VersionItem", "id,version,path,label,class_id,ds")
+version_item = namedtuple("VersionItem", "id,version,path,label,class_id,ds,priority")
 
 
 def get_items_of_version(sess, version_id: List[int]) -> List[version_item]:
@@ -30,6 +30,7 @@ def get_items_of_version(sess, version_id: List[int]) -> List[version_item]:
                          item.Category.name,
                          item.Category.id,
                          item.VersionItems.ds_type if item.VersionItems.ds_type is not None else 3,
+                         item.VersionItems.priority
                          ) for item in query.all()]
 
 
@@ -69,6 +70,7 @@ def get_uncommited_items(sess, node_name: str) -> List[version_item]:
                          item.Category.name,
                          item.Category.id,
                          item.DataItems.tmp[0].ds_type if item.DataItems.tmp[0].ds_type is not None else 3,
+                         item.TmpTable.priority
                          ) for item in query.all()]
 
 
@@ -86,6 +88,7 @@ def get_unsplitted_items(sess, node_name: str) -> List[version_item]:
                          item.Category.name,
                          item.Category.id,
                          3,
+                         item.TmpTable.priority
                          ) for item in query.all()]
 
 
