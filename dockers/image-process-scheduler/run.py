@@ -14,9 +14,18 @@ def parse_config(config_path: str):
 
 IN_DOCKER = os.environ.get("DOCKER_USE", False)
 STORAGE_PATH = os.environ.get("STORAGE_PATH", None)
+REDIS_PASSW = os.getenv('REDIS_PASSWORD')
 if IN_DOCKER:
-    app = Celery('improsch', backend='redis://redis:6379/1', broker='redis://redis:6379/1')
-    app_scoring = Celery('score', backend='redis://redis:6379/2', broker='redis://redis:6379/2')
+    app = Celery(
+        'improsch',
+        backend=f'redis://:{REDIS_PASSW}@redis:6379/1',
+        broker=f'redis://:{REDIS_PASSW}@redis:6379/1'
+    )
+    app_scoring = Celery(
+        'score',
+        backend=f'redis://:{REDIS_PASSW}@redis:6379/2',
+        broker=f'redis://:{REDIS_PASSW}@redis:6379/2'
+    )
 else:
     app = Celery('improsch', backend='redis://localhost:6379/1', broker='redis://localhost:6379/1')
     app_scoring = Celery('score', backend='redis://localhost:6379/2', broker='redis://localhost:6379/2')

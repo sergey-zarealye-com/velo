@@ -170,7 +170,7 @@ class ImageIndex:
                 (
                     tmp_id_to_filename[item[0]],
                     tmp_id_to_filename[item[1]],
-                    round(float(item[2]), 4)
+                    round(float(similarity), 4)
                 )
             )
 
@@ -182,7 +182,7 @@ class ImageIndex:
         # vectors = np.array(vectors)
         # faiss.normalize_L2(vectors)
         if len(vectors.shape) == 1:
-                vectors = vectors.reshape((1, -1))
+            vectors = vectors.reshape((1, -1))
 
         distances, indexes = self.tmp_index.search(vectors, 2)
 
