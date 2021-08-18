@@ -1,0 +1,96 @@
+{% extends "_base.html" %}
+{% from "helpers.html" import version_details %}
+{% block content %}
+
+    <div class="container">
+        {{ version_details(version) }}
+    </div>
+
+    <ul class="nav nav-tabs mt-4">
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('todo.index') }}">Post-moderation</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('deduplication.show_task_list') }}">Deduplication</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('datasets.show_task_list') }}">Checkouts</a>
+        </li>
+    </ul>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        .loader {
+            border: 2px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 2px solid #3498db;
+            border-bottom: 2px solid #3498db;
+            width: 20px;
+            height: 20px;
+            -webkit-animation: spin 2s linear infinite; /* Safari */
+            animation: spin 2s linear infinite;
+        }
+
+        /* Safari */
+        @-webkit-keyframes spin {
+            0% {
+                -webkit-transform: rotate(0deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+            }
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+    <style>
+        .red-color {
+            color: red;
+        }
+    </style>
+
+    <table class="table table-striped">
+        <meta http-equiv="refresh" content="2">
+        <thead>
+        <tr>
+            <th scope="col">Task ID</th>
+            <th scope="col">Task status</th>
+            <th scope="col"></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for task in tasks %}
+            <tr>
+                <td>{{ task.task_id }}</td>
+                <td>
+                    {{ task.status }}
+                    {% if task.status != 'FAILURE' and task.status != 'SUCCESS' %}
+                        <div class="loader"></div>
+                    {% endif %}
+                    {#                      TODO сделать трейс ошибки при фейле #}
+                    {#                    {% if todo.cv_status == 'FAILURE' %}#}
+                    {#                        <a href="{{ url_for('todo.view_error', task_id=todo.video_uuid) }}" role="button"#}
+                    {#                           target="_blank" class="float-right">#}
+                    {#                            <i class="fas fa-info-circle red-color"></i>#}
+                    {#                        </a>#}
+                    {#                    {% endif %}#}
+                </td>
+                <td>
+                    {#                    TODO сделать удаление таски#}
+                    {#                    <form method="post" , action="{{ url_for('todo.delete', item_id=todo.id) }}">#}
+                    <button type="submit" class="btn btn-primary btn-sm active">Delete</button>
+                    {#                    </form>#}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+{% endblock %}
