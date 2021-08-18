@@ -33,8 +33,13 @@ def get_items_of_nodes(node_ids: List[int]) -> List[DataItems]:
     return DataItems.query.filter(DataItems.id.in_(item_ids)).all()
 
 
-def get_items_of_nodes_with_label(node_ids: List[int]) -> List[Tuple[str, str]]:
+def get_items_of_nodes_with_label(node_ids: List[int]) -> List[Tuple[str, str, str]]:
     """Работает не совсем корректно"""
+    ds_map = {
+        0: 'train',
+        1: "val",
+        2: "test"
+    }
     item_ids = VersionItems \
         .query \
         .filter(VersionItems.version_id.in_(node_ids)) \
@@ -50,7 +55,12 @@ def get_items_of_nodes_with_label(node_ids: List[int]) -> List[Tuple[str, str]]:
     for item in items:
         cat_id = item.vi[0].category_id
         cat_name = cal_label[cat_id]
-        itms_label.append((item.path, cat_name))
+        try:
+            ds_cat = item.vi[0].ds_type
+            ds = ds_map.get(ds_cat)
+        except IndexError:
+            ds = 'train'
+        itms_label.append((item.path, cat_name, ds))
     return itms_label
 
 

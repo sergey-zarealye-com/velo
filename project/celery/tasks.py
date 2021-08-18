@@ -98,7 +98,7 @@ def processing_function(self, thumbs_dir, input_fname, input_fname_stem, img_ext
 
 
 @app.task(bind=True)
-def upload_files_to_storage(self, version: str, items: List[Tuple[str, str]]):
+def upload_files_to_storage(self, version: str, items: List[Tuple[str, str, str]]):
     self.update_state(state='STARTED')
     try:
         s3 = boto3.resource(
@@ -106,23 +106,16 @@ def upload_files_to_storage(self, version: str, items: List[Tuple[str, str]]):
             endpoint_url=os.getenv("AWS_ENDPOINT_URL", "http://s3.amazonaws.com")
         )
         bucket = create_bucket_if_not_exists(s3, "versions")
-        random.shuffle(items)
-        train_size = 0.8
-        k = int(len(items) * train_size)
-        train = items[0:k]
-        test = items[k:]
-        self.update_state(state='UPLOADING TRAIN')
-        upload(bucket, train, version, "train")
-        self.update_state(state='UPLOADING VAL')
-        upload(bucket, test, version, "val")
+        self.update_state(state='UPLOADING DS')
+        upload(bucket, items, version)
     except NoCredentialsError as ex:
         app.log.error(ex)
 
 
-def upload(bucket, items, version, prefix) -> None:
+def upload(bucket, items, version) -> None:
     for item in items:
-        file, label = item
+        file, label, ds = item
         i = file.find("/image_storage")
         if i >= 0:
             path = file[i:]
-            upload_file_to_bucket(bucket, path, f"{version}/{prefix}/{label}")
+            upload_file_to_bucket(bucket, path, f"{version}/{ds}/{label}")

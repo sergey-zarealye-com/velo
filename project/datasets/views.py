@@ -1,4 +1,5 @@
 import logging
+import sys
 import os
 from typing import List, Dict, Optional, Set, Tuple
 
@@ -8,24 +9,23 @@ from flask import flash, Markup, abort, session
 from sqlalchemy.exc import IntegrityError
 from flask_login import current_user, login_required
 
+import graphviz
+from uuid import uuid4
+import uuid
+import traceback
+from distutils.dir_util import copy_tree
+
+import shutil
+from multiprocessing import Process, Queue
+
 from project import db, app
 from project.images.queries import get_uncommited_items, get_unsplitted_items
 from project.models import Version, VersionChildren, DataItems, TmpTable, Category, Changes, CeleryTask
-from .forms import EditVersionForm, ImportForm, CommitForm, MergeForm, SplitForm
+from project.datasets.forms import EditVersionForm, ImportForm, CommitForm, MergeForm, SplitForm
 from project.models import Model
-import graphviz
-from uuid import uuid4
-import traceback
-from distutils.dir_util import copy_tree
-import sys
-import shutil
-
 from project.celery.tasks import upload_files_to_storage
 from project.celery.tasks import app as celery_app
-
-from multiprocessing import Process, Queue
-from .rabbitmq_connector import send_message
-import uuid
+from project.datasets.rabbitmq_connector import send_message
 from project.datasets.queries import get_labels_of_version, get_nodes_above, get_items_of_nodes, prepare_to_commit, \
     get_items_of_nodes_with_label, update_tmp
 from project.deduplication.utils import create_image_processing_task
@@ -362,7 +362,6 @@ def import2ds(selected):
                 flash("Provided path does not exist!", "error")
                 return redirect(url_for('datasets.import2ds', selected=selected))
 
-
             label_ids = get_labels_of_version(version.id)
             if form.reason.data == 'moderation':
                 pass
@@ -421,7 +420,8 @@ def import2ds(selected):
                     if bool(form.is_score_model.data):
                         if not len(scoring_models):
                             flash("No models available!", "error")
-                            return render_template('datasets/import.html', form=form, selected=selected, version=version)
+                            return render_template('datasets/import.html', form=form, selected=selected,
+                                                   version=version)
                         model = scoring_models[form.score_model.data]
 
                         model_name = model.local_chkpoint
@@ -816,10 +816,3 @@ def show_task_list():
         version=version,
         tasks=objects
     )
-
-
-if __name__ == '__main__':
-    # data_items = get_items_of_nodes([8, 9])
-    # print(data_items)
-    items = get_items_of_nodes_with_label([8, 9])
-    print(items)
