@@ -5,6 +5,7 @@ import json
 import math
 import os
 import ntpath
+import time
 from collections import Counter
 
 from flask import render_template, Blueprint, redirect, url_for, flash, request
@@ -15,7 +16,7 @@ from markupsafe import Markup
 from project import app, db
 from project.datasets.queries import get_nodes_above
 from project.images.queries import get_items_of_version, get_uncommited_items, get_id_by_name, update_changes, \
-    get_changed_items
+    get_changed_items, get_ds_info
 from project.models import Version, Category, Changes
 
 # CONFIG
@@ -94,6 +95,11 @@ def save_changes():
         return "Ok"
 
 
+def get_commited_categories_count():
+    pass
+
+
+
 @images_blueprint.route('/browse/<selected>')
 @images_blueprint.route('/browse/<selected>&page=<page>&items=<items>')
 @images_blueprint.route('/browse/<selected>&page=<page>&items=<items>&filters=<filters>')
@@ -120,22 +126,22 @@ def browse(selected, page=1, items=50, filters=None):
         flash(message, 'warning')
         return redirect(url_for('datasets.index'))
     nodes_of_version = get_nodes_above(db.session, version.id)
-    version_items = get_items_of_version(db.session, nodes_of_version)
-    uncommitted_items = get_uncommited_items(db.session, selected)
+    version_items = get_items_of_version(db.session, nodes_of_version, page, items)
+    uncommitted_items = get_uncommited_items(db.session, selected, page, items)
     # get vision classes
+    set_info, categories_info, uncommited_amount, commited_amount = get_ds_info(db.session, nodes_of_version, selected)
     classes_info = {cl.name: {'id': cl.id, 'amount': 0} for cl in Category.list(Category.TASKS()[0][0], version.name)}
-    # set_info = {cl.name: {'ds': cl.id, 'amount': 0} for cl in Category.list(Category.TASKS()[0][0], version.ds)}
     # count items per class in current ds
-    cur_ds_info = dict(Counter(getattr(item, 'label') for item in version_items + uncommitted_items))
-    cur_ds_split = dict(Counter(DS_TYPES[getattr(item, 'ds')] for item in version_items + uncommitted_items))
-    # TODO выглядит
+    cur_ds_split = {}
     for key, val in DS_TYPES.items():
-        if val not in cur_ds_split:
+        if key in set_info:
+            cur_ds_split[val] = set_info[key]
+        else:
             cur_ds_split[val] = 0
-    # map vision classes with cur_ds_info
-    for key, value in cur_ds_info.items():
-        if key in classes_info:
-            classes_info[key]['amount'] = value
+
+    for key, value in classes_info.items():
+        if value['id'] in categories_info:
+            classes_info[key]['amount'] = categories_info[value['id']]
 
     cb_all_cl_filters = True
     cb_all_set_filters = True
@@ -169,20 +175,20 @@ def browse(selected, page=1, items=50, filters=None):
         version_items_filter = uncommitted_items + version_items
         cur_filters = {"uncommitted": True, "committed": True}
     changed = get_changed_items(db.session, version.id)
-    print(f'cur_filters {cur_filters}')
+    total_amount = sum(set_info.values())
     return render_template('browse/item.html',
                            version=version,
-                           version_items=version_items_filter[(page - 1) * items:(page) * items],
+                           version_items=version_items_filter,
                            ds_length={
-                               "all": len(version_items) + len(uncommitted_items),
-                               "committed": len(version_items),
-                               "uncommitted": len(uncommitted_items)
+                               "all": total_amount,
+                               "committed": commited_amount,
+                               "uncommitted": uncommited_amount
                            },
                            cb_all_cl_filters=cb_all_cl_filters,
                            classes_info=classes_info,
                            cb_all_set_filters=cb_all_set_filters,
                            cur_ds_split=cur_ds_split,
-                           pages=int(math.ceil(len(version_items_filter) / int(items))),
+                           pages=int(math.ceil(total_amount / int(items))),
                            page=page,
                            items=items,
                            changed=changed,
