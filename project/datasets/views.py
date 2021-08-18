@@ -159,6 +159,7 @@ def select(selected):
         session.pop('browse_filters', None)
 
     session['selected_version'] = selected
+    session.pop("browse_filters", None)
     srcStr = Version.dot_str(selected)
     fname = str(current_user.id)
     my_graph = graphviz.Digraph(name="my_graph", engine='dot')
