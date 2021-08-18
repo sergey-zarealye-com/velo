@@ -145,6 +145,7 @@ def browse(selected, page=1, items=50, filters=None):
 
     cb_all_cl_filters = True
     cb_all_set_filters = True
+    # TODO: вынести всю фильтрацию в sql запросы!!!
     # if "browse_filters" exists in session
     if "browse_filters" in session:
         version_items_filter = []
