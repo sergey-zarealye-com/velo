@@ -9,9 +9,14 @@ from project import db
 
 
 # TODO config?
+redis_passw = os.getenv('REDIS_PASSWORD')
 redis_port = os.getenv('REDIS_PORT') or 6379
 redis_port = int(redis_port)
-app = Celery('improsch', backend=f'redis://localhost:{redis_port}/1', broker=f'redis://localhost:{redis_port}/1')
+app = Celery(
+    'improsch',
+    backend=f'redis://:{redis_passw}@localhost:{redis_port}/1',
+    broker=f'redis://:{redis_passw}@localhost:{redis_port}/1'
+)
 
 
 def create_image_processing_task(message) -> Tuple[Any, str]:

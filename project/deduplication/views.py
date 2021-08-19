@@ -39,7 +39,7 @@ temporary_storage: Dict[str, List[dict]] = {}
 @dedup_blueprint.route('/rm', methods=['POST'])
 def temporary_remove():
     content = request.get_json()
-    ids_to_remove = content.get('checkboxes', [])
+    # ids_to_remove = content.get('checkboxes', []) Deprecated
     task_id = content.get('task_id')
 
     db_result = Deduplication.query.filter_by(task_uid=task_id)
@@ -47,10 +47,12 @@ def temporary_remove():
     if not task_id or not db_result:
         abort(404)
 
-    for idx in ids_to_remove:
-        temporary_storage[task_id][idx]['removed'] = True
+    for item in temporary_storage[task_id]:
+        if item['checked']:
+            item['removed'] = True
 
     db_result.result = temporary_storage[task_id]
+    db.session.flush()
     db.session.commit()
 
     return ('', 204)
@@ -87,7 +89,9 @@ def task_confirmation(task_id, selected, is_dedup):
 
 @dedup_blueprint.route('/checkbox/<task_id>/<selected_ds>', methods=['POST'])
 def save_result(task_id, selected_ds):
-    selected = request.form.getlist('rm_checkbox')
+    # selected = request.form.getlist('rm_checkbox')
+    # select checked items
+    selected = [i for i, item in enumerate(temporary_storage[task_id]) if item['checked']]
 
     task = Deduplication.query.filter_by(task_uid=task_id).first()
     if task is None:
@@ -146,6 +150,9 @@ def save_result(task_id, selected_ds):
         set_category=task.set_category
     )
 
+    task.delete()
+    db.session.commit()
+
     return redirect(f'/datasets/select/{selected_ds}')
 
 
@@ -177,23 +184,51 @@ def show_dedup(task_id, selected_ds, page=1, items=50):
 
     if task_id not in temporary_storage:
         images = dedup_result
-        temporary_storage[task_id] = images
+        for image in images:
+            if 'checked' not in image:
+                image['checked'] = False
+        temporary_storage[task_id] = list(filter(lambda x: not x['removed'], images))
     else:
         images = list(filter(lambda x: not x['removed'], temporary_storage[task_id]))
 
     count_of_pages = int(math.ceil(len(images) / int(items)))
+    count_of_all_images = len(images)
     images = images[items_index_range]
+
+    checked_images = []
+    for img in images:
+        if img['checked']:
+            checked_images.append(img['item_index'])
+    print('\t\tChecked:', checked_images)
 
     return render_template(
         'deduplication/deduplication4.html',
         images=images,
         task_id=task_id,
         selected_ds=selected_ds,
-        count_items=len(images),
+        count_items=count_of_all_images,
         pages=count_of_pages,
         page=page,
-        items=items
+        items=items,
+        selected_checkboxes=checked_images
     )
+
+
+@dedup_blueprint.route('/check_image/<task_id>', methods=['POST'])
+@login_required
+def check_image(task_id):
+    if task_id not in temporary_storage:
+        abort(404)
+
+    content = request.get_json()
+    item_index = content.get('item_index')
+    item_index = int(item_index.split('_')[1])
+
+    print('Check image:', item_index)
+
+    temporary_storage[task_id][item_index]['checked'] = not temporary_storage[task_id][item_index]['checked']
+
+    return ('', 204)
 
 
 @dedup_blueprint.route('/take/<task_id>/<selected_ds>', methods=['GET', 'POST'])

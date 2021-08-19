@@ -7,8 +7,15 @@ from datasets import ImageDataLoader
 MODELS_STORAGE = os.getenv("MODELS_STORAGE")
 assert MODELS_STORAGE
 IN_DOCKER = os.getenv("IN_DOCKER")
+REDIS_PASSW = os.getenv("REDIS_PASSWORD")
+assert REDIS_PASSW
+
 if IN_DOCKER:
-    app = Celery('score', backend='redis://redis:6379/2', broker='redis://redis:6379/2')
+    app = Celery(
+        'score',
+        backend=f'redis://:{REDIS_PASSW}@redis:6379/2',
+        broker=f'redis://:{REDIS_PASSW}@redis:6379/2'
+    )
 else:
     app = Celery('score', backend='redis://localhost:6379/2', broker='redis://localhost:6379/2')
 app.autodiscover_tasks(force=True)
