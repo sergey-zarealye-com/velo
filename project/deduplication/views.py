@@ -140,6 +140,9 @@ def save_result(task_id, selected_ds):
         except Exception as err:
             print(err)
 
+    if task.result.get('selected_ds'):
+        selected_ds = task.result['selected_ds']
+
     fillup_tmp_table(
         label_ids,
         selected_ds,
@@ -150,7 +153,7 @@ def save_result(task_id, selected_ds):
         set_category=task.set_category
     )
 
-    task.delete()
+    # task.delete()
     db.session.commit()
 
     return redirect(f'/datasets/select/{selected_ds}')
@@ -174,6 +177,8 @@ def show_dedup(task_id, selected_ds, page=1, items=50):
         task = process_response(response)
 
     dedup_result = task.result.get('deduplication')
+    if task.result.get('selected_ds'):
+        selected_ds = task.result['selected_ds']
 
     if not dedup_result:
         return render_template('deduplication/taskPending.html', task_id=task.task_uid)
