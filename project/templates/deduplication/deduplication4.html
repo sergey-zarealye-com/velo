@@ -9,7 +9,34 @@
     <script src="{{ url_for('static', filename='js/easySelectableBrowse.js') }}"></script>
     
     <script>
+        async function send_check_event(id) {
+            let url = "{{ url_for('deduplication.check_image', task_id=task_id) }}";
+            let request = {
+                'item_index': id
+            };
+
+            console.log('Sending request', request, " to url ", url);
+
+            const response = await fetch(url, {
+                method: 'POST',
+                body: JSON.stringify(request),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            console.log('Успех');
+        }
+
         $(document).ready(function () {
+            //make all selected images to be selected
+            for (i in {{ selected_checkboxes }}) {
+                let element = document.getElementById("cb_" + String(i) + "_1");
+                if (element != null) {
+                    element.checked = true;
+                }
+            }
+            console.log("Document ready", {{ selected_checkboxes }})
+
             let version_name = "{{ selected_ds }}"
             let items = "{{ items }}"
 
@@ -23,7 +50,23 @@
                 let page = this.getAttribute('data-lp')
                 window.location = version_name + '&page='+page+'&items=' + items;
             });
-        })
+
+            images = document.getElementsByName("image_label");
+            console.log('Images:', images)
+            for (i in images) {
+                item = images[i];
+                console.log('Item:', item);
+                let value = item.value;
+                console.log('Value: ', value)
+                let htmlFor = item.htmlFor;
+                console.log('HtmlFor: ', htmlFor)
+
+                item.addEventListener('click', function() {
+                    console.log("Click!")
+                    send_check_event(htmlFor)
+                });
+            }
+        });
     </script>
 {% endblock %}
 
@@ -395,7 +438,13 @@
 <script type="text/javascript">
 	function check_top(end_index) {
   	for (let i = 0; i <= end_index; i++) {
-    	document.getElementById("cb_" + String(i) + "_1").checked = true;
+        let elementId = "cb_" + String(i) + "_1";
+    	let element = document.getElementById(elementId);
+        if (element != null) {
+            element.checked = true;
+        }
+
+        send_check_event(elementId);
     }
 
     return false;
@@ -403,22 +452,17 @@
 
   function uncheck_all(count_items)  {
       for (let i = 0; i < count_items; i++) {
-          element = document.getElementById("cb_" + String(i) + "_1")
-          element.checked = false;
+          let elementId = "cb_" + String(i) + "_1";
+          element = document.getElementById(elementId)
+          console.log("Checkbox " + i + ": " + element)
+          send_check_event(elementId);
+          if (element != null)
+            element.checked = false;
       }
   }
 
     async function send_remove_request(count_items) {
-        let checkedIndexes = [];
-        for (let i = 0; i < count_items; i++) {
-            element = document.getElementById("cb_" + String(i) + "_1");
-            if (element.checked) {
-                checkedIndexes.push(i);
-            }
-        }
-
         let request = {
-            "checkboxes": checkedIndexes,
             "task_id": "{{ task_id }}"
         };
         let url = "{{ url_for('deduplication.temporary_remove') }}";
@@ -449,12 +493,12 @@
                     <p>Similarity: {{ item.similarity }}</p>
                     <ul>
                         <li><input type="checkbox" name="rm_checkbox" id="{{ 'cb_' + item.item_index|string + '_1' }}" value="{{ item.item_index|int }}"/>
-                            <label for="{{ 'cb_' + item.item_index|string + '_1' }}">
+                            <label for="{{ 'cb_' + item.item_index|string + '_1' }}" name="image_label" value="{{ item.item_index|string }}">
                                 <img id="{{ "image" + item.item_index|string }}" src="{{ url_for('deduplication.download_file', filename=item.image1) }}"/>
                             </label>
                         </li>
                         <li>
-                            <label for="{{ 'cb_' + item.item_index|string + '_1' }}">
+                            <label for="{{ 'cb_' + item.item_index|string + '_1' }}" name="image_label" value="{{ item.item_index|string }}">
                                 <img src="{{ url_for('deduplication.download_file', filename=item.image2) }}"/>
                             </label>
                         </li>
